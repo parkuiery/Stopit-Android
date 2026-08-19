@@ -4,7 +4,6 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.uiery.keep.analytics.KeepAnalytics
 import com.uiery.keep.analytics.KeepAnalyticsScreen
-import com.uiery.keep.datastore.BlockingStateStore
 import com.uiery.keep.domain.parentmode.ParentModeSession
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
@@ -15,9 +14,15 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
+/**
+ * Parent mode's list is an allowlist: the apps named here are the only ones that stay open, and
+ * every other app on the device is locked for the duration. That is the opposite of the blocking
+ * selection the rest of the app keeps, so this screen deliberately does not read it — seeding one
+ * from the other handed parents an allowlist made of the apps they had already chosen to block,
+ * which locked everything else and reads as "parent mode locks every app".
+ */
 @HiltViewModel
 internal class ParentModeSetupViewModel @Inject constructor(
-    private val blockingStateStore: BlockingStateStore,
     private val sessionController: ParentModeSessionController,
     private val clock: ParentModeClock,
     private val analytics: KeepAnalytics,
@@ -32,30 +37,18 @@ internal class ParentModeSetupViewModel @Inject constructor(
         analytics.logScreenView(KeepAnalyticsScreen.PARENT_MODE_SETUP)
     }
 
+    /** Preset shortcut. It moves the same wheel the parent would otherwise dial by hand. */
     fun setDurationMinutes(durationMinutes: Int) {
         _state.update { current ->
             current.copy(
                 durationMinutes = durationMinutes,
-                customDurationInput = durationMinutes.toString(),
                 setupIssues = current.setupIssues - ParentModeSetupIssue.InvalidDuration,
             )
         }
     }
 
-    fun updateCustomDurationInput(input: String) {
-        val sanitizedInput = input.filter(Char::isDigit).take(MAX_CUSTOM_DURATION_INPUT_LENGTH)
-        val durationMinutes = sanitizedInput.toIntOrNull() ?: 0
-        _state.update { current ->
-            current.copy(
-                durationMinutes = durationMinutes,
-                customDurationInput = sanitizedInput,
-                setupIssues = if (durationMinutes > 0) {
-                    current.setupIssues - ParentModeSetupIssue.InvalidDuration
-                } else {
-                    current.setupIssues
-                },
-            )
-        }
+    fun setDurationParts(hours: Int, minutes: Int) {
+        setDurationMinutes(hours.coerceAtLeast(0) * MINUTES_PER_HOUR + minutes.coerceAtLeast(0))
     }
 
     fun setAllowedApps(allowedApps: Set<String>) {
@@ -85,15 +78,43 @@ internal class ParentModeSetupViewModel @Inject constructor(
         }
     }
 
-    fun startParentModeFromSetupInput() {
-        startParentMode(pinState = state.value.pinState)
+    /**
+     * The guardian PIN is the gate that hands the phone over, not another field on the form, so it
+     * is asked for once — in a sheet — at the moment the parent commits to an action.
+     */
+    fun requestGuardianAction(action: ParentModeGuardianAction) {
+        _state.update { current ->
+            current.copy(
+                pendingGuardianAction = action,
+                guardianPin = "",
+                guardianPinConfirmation = "",
+                setupIssues = current.setupIssues - ParentModeSetupIssue.PinNotVerified,
+            )
+        }
     }
 
-    fun loadAllowedAppsFromCurrentSelection() {
-        viewModelScope.launch(Dispatchers.IO) {
-            setAllowedApps(blockingStateStore.readSelectedAppPackages())
-            applyActiveSessionStatus(sessionController.markExpiredIfNeeded(clock.nowMillis()))
+    fun dismissGuardianAction() {
+        _state.update { current ->
+            current.copy(
+                pendingGuardianAction = null,
+                guardianPin = "",
+                guardianPinConfirmation = "",
+                setupIssues = current.setupIssues - ParentModeSetupIssue.PinNotVerified,
+            )
         }
+    }
+
+    fun confirmPendingGuardianAction() {
+        when (state.value.pendingGuardianAction) {
+            ParentModeGuardianAction.Start -> startParentModeFromSetupInput()
+            ParentModeGuardianAction.Extend -> extendActiveSessionByTenMinutes()
+            ParentModeGuardianAction.End -> endActiveSessionFromSetupInput()
+            null -> Unit
+        }
+    }
+
+    fun startParentModeFromSetupInput() {
+        startParentMode(pinState = state.value.pinState)
     }
 
     fun startParentMode(pinState: ParentModePinState) {
@@ -201,6 +222,7 @@ internal class ParentModeSetupViewModel @Inject constructor(
                             activeSession = null,
                             guardianPin = "",
                             guardianPinConfirmation = "",
+                            pendingGuardianAction = null,
                         )
                     }
                 }
@@ -247,6 +269,7 @@ internal class ParentModeSetupViewModel @Inject constructor(
                 activeSession = session,
                 guardianPin = "",
                 guardianPinConfirmation = "",
+                pendingGuardianAction = null,
             )
         }
         _sideEffect.value = sideEffect
@@ -255,15 +278,24 @@ internal class ParentModeSetupViewModel @Inject constructor(
 
 private const val DEFAULT_EXTENSION_MINUTES = 10
 
+/** What the guardian PIN sheet is currently standing in front of. */
+internal enum class ParentModeGuardianAction {
+    Start,
+    Extend,
+    End,
+}
+
 internal data class ParentModeSetupUiState(
     val durationMinutes: Int = 10,
-    val customDurationInput: String = "10",
     val allowedApps: Set<String> = emptySet(),
     val guardianPin: String = "",
     val guardianPinConfirmation: String = "",
     val setupIssues: Set<ParentModeSetupIssue> = emptySet(),
     val activeSession: ParentModeSession? = null,
+    val pendingGuardianAction: ParentModeGuardianAction? = null,
 ) {
+    val durationHoursPart: Int = durationMinutes / MINUTES_PER_HOUR
+    val durationMinutesPart: Int = durationMinutes % MINUTES_PER_HOUR
     val pinState: ParentModePinState = if (
         guardianPin.length >= MIN_GUARDIAN_PIN_LENGTH &&
         guardianPin == guardianPinConfirmation
@@ -274,12 +306,15 @@ internal data class ParentModeSetupUiState(
     } else {
         ParentModePinState.Failed
     }
-    val canAttemptStart: Boolean = durationMinutes > 0 && allowedApps.isNotEmpty() && pinState == ParentModePinState.Verified
+
+    /** The promise itself is complete without a PIN; the PIN is asked for in the sheet after this. */
+    val canRequestStart: Boolean = durationMinutes > 0 && allowedApps.isNotEmpty()
+    val canAttemptStart: Boolean = canRequestStart && pinState == ParentModePinState.Verified
 }
 
+internal const val MINUTES_PER_HOUR = 60
 private const val MIN_GUARDIAN_PIN_LENGTH = 4
 private const val MAX_GUARDIAN_PIN_LENGTH = 6
-private const val MAX_CUSTOM_DURATION_INPUT_LENGTH = 3
 
 internal enum class ParentModeSetupSideEffect {
     Started,

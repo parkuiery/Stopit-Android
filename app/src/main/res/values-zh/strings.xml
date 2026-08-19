@@ -43,6 +43,8 @@
     <string name="block_screen_title">先停一下——你正在守住自己的约定</string>
     <string name="block_screen_message">%1$s现在已暂停。关闭此页面，回到你正在做的事。</string>
     <string name="block_screen_routine_active_reason">正在运行的例程正在保护这段时间。如果确实需要短暂例外，可以使用紧急解锁。</string>
+    <string name="block_screen_parent_mode_allowed_apps_reason">现在只能打开约定好的应用。请找监护人确认。</string>
+    <string name="block_screen_parent_mode_expired_reason">约定的时间结束了。请找监护人确认。</string>
     <string name="block_screen_first_core_action_feedback">第一次拦截已生效。StopIt 开启时，StopIt 会继续拦截已选择的应用。</string>
     <string name="block_screen_close">回到正在做的事</string>
     <string name="permission_dialog_title">要使用应用锁功能，需要辅助功能权限。</string>
@@ -156,8 +158,9 @@
 
     <string name="parent_mode_setup_title">家长模式</string>
     <string name="parent_mode_setup_headline">在交出手机前先约定好</string>
-    <string name="parent_mode_setup_description">家长模式会将你当前选择的应用作为允许的应用载入。你可以在下方调整。</string>
-    <string name="parent_mode_setup_allowed_apps_summary">来自当前选择的允许应用：%1$d</string>
+    <string name="parent_mode_setup_description">请挑选孩子可以使用的应用。未挑选的应用在家长模式期间全部锁定。</string>
+    <string name="parent_mode_setup_allowed_apps_summary">只有挑选的 %1$d 个应用可以打开，其余应用全部锁定。</string>
+    <string name="parent_mode_setup_allowed_apps_scope_notice">现在开始后，除挑选的 %1$d 个应用外，其余应用全部锁定。</string>
     <string name="parent_mode_setup_accessibility_summary">Parent Mode setup. Allowed time %1$d minutes. Allowed apps %2$d.</string>
     <string name="parent_mode_active_accessibility_summary">%1$s。时长 %2$d 分钟。允许应用 %3$d 个。</string>
     <string name="parent_mode_setup_pin_required_notice">输入并确认至少 4 位的家长 PIN，即可开始家长模式。</string>
@@ -168,12 +171,16 @@
     <string name="parent_mode_setup_start">开始家长模式</string>
     <string name="parent_mode_setup_start_disabled">需要设置 PIN</string>
     <string name="parent_mode_setup_duration_label">允许时长</string>
+    <string name="parent_mode_setup_duration_helper">滚动选择，或点按下方的预设。</string>
+    <string name="parent_mode_setup_duration_hours_minutes">%1$d小时 %2$d分钟</string>
+    <string name="cd_parent_mode_duration_picker">允许时长选择器。%1$d小时 %2$d分钟。</string>
+    <string name="parent_mode_guardian_sheet_title">监护人 PIN</string>
+    <string name="parent_mode_guardian_sheet_summary">%1$s · 允许的应用 %2$d 个 · 其他应用全部锁定</string>
     <string name="parent_mode_setup_duration_minutes">%1$d 分钟</string>
-    <string name="parent_mode_setup_duration_custom_label">Custom minutes</string>
-    <string name="parent_mode_setup_duration_custom_helper">Type a direct duration when the presets do not fit.</string>
     <string name="parent_mode_setup_allowed_apps_label">允许的应用</string>
     <string name="parent_mode_setup_adjust_apps">在应用选择器中调整</string>
-    <string name="parent_mode_setup_reload_current_selection">重新加载主页选择</string>
+    <string name="app_selection_allowed_apps_title">选择允许的应用</string>
+    <string name="app_selection_allowed_apps_notice">只有在此挑选的应用可以打开，其余应用全部锁定。</string>
     <string name="parent_mode_setup_apps_empty">尚未选择允许的应用。</string>
     <string name="parent_mode_active_title">家长模式正在运行</string>
     <string name="parent_mode_expired_title">家长模式时间已结束</string>
@@ -183,6 +190,7 @@
     <string name="parent_mode_active_extend_ten_minutes">延长 10 分钟</string>
     <string name="parent_mode_active_end_now">使用监护人 PIN 结束</string>
     <string name="parent_mode_prepare_another_session">再次启动家长模式</string>
+    <string name="parent_mode_expired_end_and_unlock">结束家长模式并解锁</string>
 
     <string name="lock_history_menu_title">查看锁定记录</string>
     <string name="lock_history_title">锁定记录</string>

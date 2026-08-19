@@ -3,7 +3,6 @@ package com.uiery.keep.feature.parentmode
 import com.uiery.keep.data.parentmode.ParentModeSessionStore
 import com.uiery.keep.analytics.KeepAnalytics
 import com.uiery.keep.analytics.KeepAnalyticsScreen
-import com.uiery.keep.datastore.BlockingStateStore
 import com.uiery.keep.datastore.PreferencesKey
 import com.uiery.keep.domain.parentmode.ParentModeSession
 import com.uiery.keep.domain.parentmode.ParentModeSessionState
@@ -25,17 +24,33 @@ class ParentModeSetupViewModelTest {
         assertEquals(listOf(KeepAnalyticsScreen.PARENT_MODE_SETUP), analytics.screenViews)
     }
 
+    /**
+     * The blocking selection is the list of apps the user wants stopped. Parent mode reads its list
+     * as the only apps that stay open, so seeding one from the other hands the parent an allowlist
+     * that locks everything they did not already block — the VOC that says parent mode locks every
+     * app. The parent picks the allowed apps deliberately or starts with none.
+     */
     @Test
-    fun loadAllowedAppsFromCurrentBlockingSelectionSeedsParentModeSetup() = runBlocking {
+    fun openingParentModeSetupLeavesAllowedAppsEmptyInsteadOfSeedingTheBlockingSelection() = runBlocking {
         val dataStore = FakeDataStore.withPrefs {
             this[PreferencesKey.SELECTED_APP_PACKAGES] = setOf("com.video.app", "com.kids.app")
         }
-        val viewModel = createViewModel(blockingStateStore = BlockingStateStore(dataStore))
+        val store = ParentModeSessionStore(dataStore)
+        store.save(
+            ParentModeSession(
+                startedAtMillis = 1_000L,
+                expiresAtMillis = 601_000L,
+                durationMinutes = 10,
+                allowedApps = setOf("com.video.app"),
+                state = ParentModeSessionState.Active,
+            ),
+        )
+        val viewModel = createViewModel(sessionStore = store, nowMillis = { 120_000L })
 
-        viewModel.loadAllowedAppsFromCurrentSelection()
-        awaitUntil { viewModel.state.value.allowedApps.isNotEmpty() }
+        viewModel.refreshActiveSessionStatus()
+        awaitUntil { viewModel.state.value.activeSession != null }
 
-        assertEquals(setOf("com.video.app", "com.kids.app"), viewModel.state.value.allowedApps)
+        assertEquals(emptySet<String>(), viewModel.state.value.allowedApps)
         assertEquals(10, viewModel.state.value.durationMinutes)
         assertTrue(viewModel.state.value.canAttemptStart.not())
     }
@@ -125,8 +140,12 @@ class ParentModeSetupViewModelTest {
         assertEquals(ParentModeSetupSideEffect.Started, viewModel.sideEffect.value)
     }
 
+    /**
+     * The duration used to live in three places at once — the header label, the selected chip and a
+     * separate number field — so the wheel is now the only place the value is dialled.
+     */
     @Test
-    fun customDurationInputStartsParentModeWithDirectMinuteValue() = runBlocking {
+    fun durationWheelStartsParentModeWithTheHourAndMinuteTheParentDialled() = runBlocking {
         val store = ParentModeSessionStore(FakeDataStore())
         val viewModel = createViewModel(
             sessionStore = store,
@@ -136,10 +155,11 @@ class ParentModeSetupViewModelTest {
         viewModel.updateGuardianPin("1234")
         viewModel.updateGuardianPinConfirmation("1234")
 
-        viewModel.updateCustomDurationInput("45")
+        viewModel.setDurationParts(hours = 0, minutes = 45)
 
-        assertEquals("45", viewModel.state.value.customDurationInput)
         assertEquals(45, viewModel.state.value.durationMinutes)
+        assertEquals(0, viewModel.state.value.durationHoursPart)
+        assertEquals(45, viewModel.state.value.durationMinutesPart)
         assertTrue(viewModel.state.value.canAttemptStart)
 
         viewModel.startParentModeFromSetupInput()
@@ -158,7 +178,135 @@ class ParentModeSetupViewModelTest {
     }
 
     @Test
-    fun loadAllowedAppsFromCurrentSelectionAlsoRestoresPersistedActiveSession() = runBlocking {
+    fun durationWheelCarriesHoursIntoTheStoredSessionMinutes() {
+        val viewModel = createViewModel()
+
+        viewModel.setDurationParts(hours = 1, minutes = 15)
+
+        assertEquals(75, viewModel.state.value.durationMinutes)
+        assertEquals(1, viewModel.state.value.durationHoursPart)
+        assertEquals(15, viewModel.state.value.durationMinutesPart)
+    }
+
+    /** Presets are a shortcut into the wheel, not a second copy of the value. */
+    @Test
+    fun presetDurationReplacesWhateverTheWheelWasShowing() {
+        val viewModel = createViewModel()
+        viewModel.setDurationParts(hours = 1, minutes = 15)
+
+        viewModel.setDurationMinutes(30)
+
+        assertEquals(30, viewModel.state.value.durationMinutes)
+        assertEquals(0, viewModel.state.value.durationHoursPart)
+        assertEquals(30, viewModel.state.value.durationMinutesPart)
+    }
+
+    /**
+     * The PIN is the gate that hands the phone over, not another setting on the form. The form is
+     * complete without it, and the CTA opens the gate rather than starting the session.
+     */
+    @Test
+    fun theStartCtaOpensTheGuardianSheetInsteadOfStartingTheSessionOutright() = runBlocking {
+        val store = ParentModeSessionStore(FakeDataStore())
+        val viewModel = createViewModel(sessionStore = store, nowMillis = { 1_000L })
+        viewModel.setAllowedApps(setOf("com.video.app"))
+
+        assertTrue(viewModel.state.value.canRequestStart)
+        assertNull(viewModel.state.value.pendingGuardianAction)
+
+        viewModel.requestGuardianAction(ParentModeGuardianAction.Start)
+
+        assertEquals(ParentModeGuardianAction.Start, viewModel.state.value.pendingGuardianAction)
+        assertNull(store.read())
+    }
+
+    @Test
+    fun confirmingTheGuardianSheetWithAMatchingPinStartsTheSessionAndClosesTheSheet() = runBlocking {
+        val store = ParentModeSessionStore(FakeDataStore())
+        val viewModel = createViewModel(sessionStore = store, nowMillis = { 1_000L })
+        viewModel.setAllowedApps(setOf("com.video.app"))
+        viewModel.requestGuardianAction(ParentModeGuardianAction.Start)
+        viewModel.updateGuardianPin("1234")
+        viewModel.updateGuardianPinConfirmation("1234")
+
+        viewModel.confirmPendingGuardianAction()
+        awaitUntil { viewModel.sideEffect.value == ParentModeSetupSideEffect.Started }
+
+        assertNull(viewModel.state.value.pendingGuardianAction)
+        assertEquals(ParentModeSessionState.Active, store.read()?.state)
+    }
+
+    @Test
+    fun aMismatchedPinKeepsTheGuardianSheetOpenAndLeavesTheSessionAlone() = runBlocking {
+        val store = ParentModeSessionStore(FakeDataStore())
+        val viewModel = createViewModel(sessionStore = store, nowMillis = { 1_000L })
+        viewModel.setAllowedApps(setOf("com.video.app"))
+        viewModel.requestGuardianAction(ParentModeGuardianAction.Start)
+        viewModel.updateGuardianPin("1234")
+        viewModel.updateGuardianPinConfirmation("9999")
+
+        viewModel.confirmPendingGuardianAction()
+        awaitUntil { ParentModeSetupIssue.PinNotVerified in viewModel.state.value.setupIssues }
+
+        assertEquals(ParentModeGuardianAction.Start, viewModel.state.value.pendingGuardianAction)
+        assertNull(store.read())
+    }
+
+    /** A PIN typed into one sheet must not still be sitting there when the next sheet opens. */
+    @Test
+    fun dismissingOrReopeningTheGuardianSheetClearsTheTypedPin() {
+        val viewModel = createViewModel()
+        viewModel.requestGuardianAction(ParentModeGuardianAction.Start)
+        viewModel.updateGuardianPin("1234")
+        viewModel.updateGuardianPinConfirmation("1234")
+
+        viewModel.dismissGuardianAction()
+
+        assertNull(viewModel.state.value.pendingGuardianAction)
+        assertEquals("", viewModel.state.value.guardianPin)
+        assertEquals("", viewModel.state.value.guardianPinConfirmation)
+
+        viewModel.updateGuardianPin("5678")
+        viewModel.requestGuardianAction(ParentModeGuardianAction.End)
+
+        assertEquals("", viewModel.state.value.guardianPin)
+    }
+
+    @Test
+    fun theGuardianSheetRoutesExtendAndEndThroughTheSamePinGate() = runBlocking {
+        val store = ParentModeSessionStore(FakeDataStore())
+        var now = 1_000L
+        val viewModel = createViewModel(sessionStore = store, nowMillis = { now })
+        viewModel.setAllowedApps(setOf("com.video.app"))
+        viewModel.setDurationMinutes(10)
+        viewModel.requestGuardianAction(ParentModeGuardianAction.Start)
+        viewModel.updateGuardianPin("1234")
+        viewModel.updateGuardianPinConfirmation("1234")
+        viewModel.confirmPendingGuardianAction()
+        awaitUntil { viewModel.sideEffect.value == ParentModeSetupSideEffect.Started }
+
+        now = 60_000L
+        viewModel.requestGuardianAction(ParentModeGuardianAction.Extend)
+        viewModel.updateGuardianPin("1234")
+        viewModel.updateGuardianPinConfirmation("1234")
+        viewModel.confirmPendingGuardianAction()
+        awaitUntil { viewModel.sideEffect.value == ParentModeSetupSideEffect.Extended }
+
+        assertNull(viewModel.state.value.pendingGuardianAction)
+        assertEquals(20, store.read()?.durationMinutes)
+
+        viewModel.requestGuardianAction(ParentModeGuardianAction.End)
+        viewModel.updateGuardianPin("1234")
+        viewModel.updateGuardianPinConfirmation("1234")
+        viewModel.confirmPendingGuardianAction()
+        awaitUntil { viewModel.sideEffect.value == ParentModeSetupSideEffect.Ended }
+
+        assertNull(viewModel.state.value.pendingGuardianAction)
+        assertEquals(ParentModeSessionState.UnlockedByPin, store.read()?.state)
+    }
+
+    @Test
+    fun openingParentModeSetupRestoresThePersistedActiveSession() = runBlocking {
         val expectedSession = ParentModeSession(
             startedAtMillis = 1_000L,
             expiresAtMillis = 601_000L,
@@ -173,7 +321,7 @@ class ParentModeSetupViewModelTest {
             nowMillis = { 120_000L },
         )
 
-        viewModel.loadAllowedAppsFromCurrentSelection()
+        viewModel.refreshActiveSessionStatus()
         awaitUntil { viewModel.state.value.activeSession != null }
 
         assertEquals(expectedSession, viewModel.state.value.activeSession)
@@ -370,12 +518,10 @@ class ParentModeSetupViewModelTest {
     }
 
     private fun createViewModel(
-        blockingStateStore: BlockingStateStore = BlockingStateStore(FakeDataStore()),
         sessionStore: ParentModeSessionStore = ParentModeSessionStore(FakeDataStore()),
         nowMillis: () -> Long = { 10_000L },
         analytics: ParentModeSetupRecordingAnalytics = ParentModeSetupRecordingAnalytics(),
     ): ParentModeSetupViewModel = ParentModeSetupViewModel(
-        blockingStateStore = blockingStateStore,
         sessionController = ParentModeSessionController(sessionStore, analytics),
         clock = object : ParentModeClock() {
             override fun nowMillis(): Long = nowMillis()

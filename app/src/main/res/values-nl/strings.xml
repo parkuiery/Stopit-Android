@@ -43,6 +43,8 @@
     <string name="block_screen_title">Pauzeer even — je houdt je belofte</string>
     <string name="block_screen_message">%1$s is nu gepauzeerd. Sluit dit scherm en ga terug naar wat je deed.</string>
     <string name="block_screen_routine_active_reason">Een actieve routine beschermt dit moment. Als je echt even een uitzondering nodig hebt, gebruik dan Noodontgrendeling.</string>
+    <string name="block_screen_parent_mode_allowed_apps_reason">Nu gaan alleen de afgesproken apps open. Vraag het even aan je ouder.</string>
+    <string name="block_screen_parent_mode_expired_reason">De afgesproken tijd is voorbij. Vraag het even aan je ouder.</string>
     <string name="block_screen_first_core_action_feedback">Je eerste blokkade werkte. StopIt blijft de geselecteerde apps blokkeren zolang StopIt aan staat.</string>
     <string name="block_screen_close">Terug naar wat ik deed</string>
     <string name="permission_dialog_title">Toegankelijkheidsmachtiging is vereist om de app-vergrendelfunctie te gebruiken.</string>
@@ -156,8 +158,9 @@
 
     <string name="parent_mode_setup_title">Oudermodus</string>
     <string name="parent_mode_setup_headline">Maak een afspraak voordat je je telefoon overhandigt</string>
-    <string name="parent_mode_setup_description">Oudermodus laadt je momenteel geselecteerde apps als toegestane apps. Je kunt ze hieronder aanpassen.</string>
-    <string name="parent_mode_setup_allowed_apps_summary">Toegestane apps uit huidige selectie: %1$d</string>
+    <string name="parent_mode_setup_description">Kies de apps die je kind mag gebruiken. Apps die je niet kiest, blijven vergrendeld tijdens de oudermodus.</string>
+    <string name="parent_mode_setup_allowed_apps_summary">Alleen de %1$d gekozen apps gaan open. Alle andere apps zijn vergrendeld.</string>
+    <string name="parent_mode_setup_allowed_apps_scope_notice">Als je nu start, worden alle apps vergrendeld behalve de %1$d gekozen apps.</string>
     <string name="parent_mode_setup_accessibility_summary">Parent Mode setup. Allowed time %1$d minutes. Allowed apps %2$d.</string>
     <string name="parent_mode_active_accessibility_summary">%1$s. Duur %2$d minuten. Toegestane apps %3$d.</string>
     <string name="parent_mode_setup_pin_required_notice">Voer een ouder-PIN van minstens 4 cijfers in en bevestig deze om de oudermodus te starten.</string>
@@ -168,12 +171,16 @@
     <string name="parent_mode_setup_start">Oudermodus starten</string>
     <string name="parent_mode_setup_start_disabled">PIN-instelling vereist</string>
     <string name="parent_mode_setup_duration_label">Toegestane tijd</string>
+    <string name="parent_mode_setup_duration_helper">Draai aan het wiel of tik hieronder op een voorinstelling.</string>
+    <string name="parent_mode_setup_duration_hours_minutes">%1$d u %2$d min</string>
+    <string name="cd_parent_mode_duration_picker">Kiezer voor toegestane tijd. %1$d uur %2$d minuten.</string>
+    <string name="parent_mode_guardian_sheet_title">Ouder-PIN</string>
+    <string name="parent_mode_guardian_sheet_summary">%1$s · %2$d toegestane apps · alle andere apps vergrendeld</string>
     <string name="parent_mode_setup_duration_minutes">%1$d min</string>
-    <string name="parent_mode_setup_duration_custom_label">Custom minutes</string>
-    <string name="parent_mode_setup_duration_custom_helper">Type a direct duration when the presets do not fit.</string>
     <string name="parent_mode_setup_allowed_apps_label">Toegestane apps</string>
     <string name="parent_mode_setup_adjust_apps">Aanpassen in app-kiezer</string>
-    <string name="parent_mode_setup_reload_current_selection">Home-selectie opnieuw laden</string>
+    <string name="app_selection_allowed_apps_title">Toegestane apps kiezen</string>
+    <string name="app_selection_allowed_apps_notice">Alleen de apps die je hier kiest, gaan open. Alle andere apps blijven vergrendeld.</string>
     <string name="parent_mode_setup_apps_empty">Nog geen toegestane apps geselecteerd.</string>
     <string name="parent_mode_active_title">Oudermodus is actief</string>
     <string name="parent_mode_expired_title">Tijd voor oudermodus is voorbij</string>
@@ -183,6 +190,7 @@
     <string name="parent_mode_active_extend_ten_minutes">10 minuten verlengen</string>
     <string name="parent_mode_active_end_now">Beëindigen met ouder-PIN</string>
     <string name="parent_mode_prepare_another_session">Start nog een oudermodus</string>
+    <string name="parent_mode_expired_end_and_unlock">Oudermodus beëindigen en ontgrendelen</string>
 
     <string name="lock_history_menu_title">Vergrendelgeschiedenis bekijken</string>
     <string name="lock_history_title">Vergrendelgeschiedenis</string>

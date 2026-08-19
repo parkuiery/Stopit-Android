@@ -6,12 +6,15 @@ import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.performClick
 import androidx.test.core.app.ApplicationProvider
 import com.uiery.kds.theme.KeepTheme
 import com.uiery.keep.R
 import com.uiery.keep.domain.parentmode.ParentModeSession
 import com.uiery.keep.domain.parentmode.ParentModeSessionState
+import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
 
@@ -21,27 +24,32 @@ class ParentModeSetupScreenAccessibilityTest {
 
     private val context = ApplicationProvider.getApplicationContext<android.content.Context>()
 
+    private fun activeSession(
+        durationMinutes: Int = 60,
+        allowedApps: Set<String> = setOf("com.example.video"),
+        state: ParentModeSessionState = ParentModeSessionState.Active,
+    ) = ParentModeSession(
+        startedAtMillis = 1_000L,
+        expiresAtMillis = 61_000L,
+        durationMinutes = durationMinutes,
+        allowedApps = allowedApps,
+        state = state,
+    )
+
     @Test
-    fun setupFormExposesDurationAppsAndPinAsTalkBackSummary() {
+    fun setupFormExposesDurationAndAppsAsTalkBackSummary() {
         val state = ParentModeSetupUiState(
             durationMinutes = 45,
-            customDurationInput = "45",
             allowedApps = setOf("com.example.video", "com.example.kids"),
-            guardianPin = "1234",
-            guardianPinConfirmation = "1234",
         )
 
         composeRule.setContent {
             KeepTheme {
                 ParentModeSetupForm(
                     state = state,
-                    pinMismatch = false,
                     onDurationSelected = {},
-                    onCustomDurationChanged = {},
-                    onReloadCurrentSelection = {},
+                    onDurationDialled = { _, _ -> },
                     onAdjustApps = {},
-                    onGuardianPinChanged = {},
-                    onGuardianPinConfirmationChanged = {},
                 )
             }
         }
@@ -51,34 +59,46 @@ class ParentModeSetupScreenAccessibilityTest {
             45,
             2,
         )
-        // 시작 버튼은 화면의 하단 액션 바가 소유한다. 폼은 입력만 담는다.
+        // 시작 버튼은 화면의 하단 액션 바가 소유한다. 폼은 약속의 내용만 담는다.
         composeRule.onNode(hasContentDescription(expectedSummary)).assertIsDisplayed()
     }
 
+    /**
+     * The duration used to appear as a header label, a selected chip and a separate number field at
+     * the same time. The wheel is the one place it is dialled now, and the PIN has left the form.
+     */
     @Test
-    fun activeControlsExposeActiveSessionAsTalkBackSummaryAndEnabledActions() {
-        val session = ParentModeSession(
-            startedAtMillis = 1_000L,
-            expiresAtMillis = 61_000L,
-            durationMinutes = 60,
-            allowedApps = setOf("com.example.video"),
-            state = ParentModeSessionState.Active,
-        )
+    fun setupFormDialsTheDurationOnAWheelAndAsksForNoPin() {
+        composeRule.setContent {
+            KeepTheme {
+                ParentModeSetupForm(
+                    state = ParentModeSetupUiState(durationMinutes = 45),
+                    onDurationSelected = {},
+                    onDurationDialled = { _, _ -> },
+                    onAdjustApps = {},
+                )
+            }
+        }
+
+        composeRule.onNodeWithTag("parent_mode_duration_picker").assertIsDisplayed()
+        composeRule.onNodeWithText(context.getString(R.string.parent_mode_setup_pin_label))
+            .assertDoesNotExist()
+        composeRule.onNodeWithText(context.getString(R.string.parent_mode_setup_pin_confirm_label))
+            .assertDoesNotExist()
+    }
+
+    @Test
+    fun activeControlsExposeActiveSessionAsTalkBackSummaryAndLiveGuardianActions() {
+        var extendClicks = 0
+        var endClicks = 0
 
         composeRule.setContent {
             KeepTheme {
                 ParentModeActiveControls(
-                    state = ParentModeSetupUiState(
-                        guardianPin = "1234",
-                        guardianPinConfirmation = "1234",
-                    ),
-                    session = session,
-                    pinMismatch = false,
-                    onGuardianPinChanged = {},
-                    onGuardianPinConfirmationChanged = {},
+                    session = activeSession(),
                     onRefresh = {},
-                    onExtend = {},
-                    onEnd = {},
+                    onExtend = { extendClicks++ },
+                    onEnd = { endClicks++ },
                     onPrepareAnother = {},
                 )
             }
@@ -91,70 +111,35 @@ class ParentModeSetupScreenAccessibilityTest {
             1,
         )
         composeRule.onNodeWithContentDescription(expectedSummary).assertIsDisplayed()
+
+        // 진행 중 화면에는 PIN 칸이 없다. 두 버튼이 각각 보호자 PIN 시트를 연다.
         composeRule.onNodeWithText(context.getString(R.string.parent_mode_active_extend_ten_minutes))
             .assertIsDisplayed()
             .assertIsEnabled()
+            .performClick()
         composeRule.onNodeWithText(context.getString(R.string.parent_mode_active_end_now))
             .assertIsDisplayed()
             .assertIsEnabled()
+            .performClick()
+
+        assertEquals(1, extendClicks)
+        assertEquals(1, endClicks)
     }
 
+    /**
+     * A finished session has nothing left to extend or end, so the guardian card is gone rather than
+     * sitting there with two dead buttons. The unlock is the only thing left to do.
+     */
     @Test
-    fun activeControlsRequireGuardianPinBeforeExtendingOrEnding() {
-        val session = ParentModeSession(
-            startedAtMillis = 1_000L,
-            expiresAtMillis = 61_000L,
-            durationMinutes = 60,
-            allowedApps = setOf("com.example.video"),
-            state = ParentModeSessionState.Active,
-        )
-
+    fun activeControlsDropTheGuardianCardOnceTheSessionIsFinished() {
         composeRule.setContent {
             KeepTheme {
                 ParentModeActiveControls(
-                    state = ParentModeSetupUiState(),
-                    session = session,
-                    pinMismatch = false,
-                    onGuardianPinChanged = {},
-                    onGuardianPinConfirmationChanged = {},
-                    onRefresh = {},
-                    onExtend = {},
-                    onEnd = {},
-                    onPrepareAnother = {},
-                )
-            }
-        }
-
-        composeRule.onNodeWithText(context.getString(R.string.parent_mode_setup_pin_label))
-            .assertIsDisplayed()
-        composeRule.onNodeWithText(context.getString(R.string.parent_mode_setup_pin_confirm_label))
-            .assertIsDisplayed()
-        composeRule.onNodeWithText(context.getString(R.string.parent_mode_active_extend_ten_minutes))
-            .assertIsDisplayed()
-            .assertIsNotEnabled()
-        composeRule.onNodeWithText(context.getString(R.string.parent_mode_active_end_now))
-            .assertIsDisplayed()
-            .assertIsNotEnabled()
-    }
-
-    @Test
-    fun activeControlsKeepExpiredSessionActionsDisabled() {
-        val session = ParentModeSession(
-            startedAtMillis = 1_000L,
-            expiresAtMillis = 61_000L,
-            durationMinutes = 30,
-            allowedApps = setOf("com.example.video", "com.example.kids"),
-            state = ParentModeSessionState.Expired,
-        )
-
-        composeRule.setContent {
-            KeepTheme {
-                ParentModeActiveControls(
-                    state = ParentModeSetupUiState(),
-                    session = session,
-                    pinMismatch = false,
-                    onGuardianPinChanged = {},
-                    onGuardianPinConfirmationChanged = {},
+                    session = activeSession(
+                        durationMinutes = 30,
+                        allowedApps = setOf("com.example.video", "com.example.kids"),
+                        state = ParentModeSessionState.Expired,
+                    ),
                     onRefresh = {},
                     onExtend = {},
                     onEnd = {},
@@ -171,13 +156,69 @@ class ParentModeSetupScreenAccessibilityTest {
         )
         composeRule.onNodeWithContentDescription(expectedSummary).assertIsDisplayed()
         composeRule.onNodeWithText(context.getString(R.string.parent_mode_active_extend_ten_minutes))
-            .assertIsDisplayed()
-            .assertIsNotEnabled()
+            .assertDoesNotExist()
         composeRule.onNodeWithText(context.getString(R.string.parent_mode_active_end_now))
-            .assertIsDisplayed()
-            .assertIsNotEnabled()
-        composeRule.onNodeWithText(context.getString(R.string.parent_mode_prepare_another_session))
+            .assertDoesNotExist()
+        composeRule.onNodeWithText(context.getString(R.string.parent_mode_expired_end_and_unlock))
             .assertIsDisplayed()
             .assertIsEnabled()
+    }
+
+    @Test
+    fun guardianPinSheetStatesTheScopeAndStaysLockedUntilThePinsMatch() {
+        composeRule.setContent {
+            KeepTheme {
+                ParentModeGuardianPinSheet(
+                    state = ParentModeSetupUiState(
+                        durationMinutes = 45,
+                        allowedApps = setOf("com.example.video", "com.example.kids"),
+                        guardianPin = "1234",
+                        guardianPinConfirmation = "9999",
+                    ),
+                    action = ParentModeGuardianAction.Start,
+                    pinMismatch = true,
+                    onGuardianPinChanged = {},
+                    onGuardianPinConfirmationChanged = {},
+                    onConfirm = {},
+                )
+            }
+        }
+
+        composeRule.onNodeWithTag("parent_mode_guardian_pin_sheet").assertIsDisplayed()
+        composeRule.onNodeWithTag("parent_mode_guardian_sheet_summary").assertIsDisplayed()
+        composeRule.onNodeWithText(context.getString(R.string.parent_mode_setup_pin_mismatch))
+            .assertIsDisplayed()
+        composeRule.onNodeWithText(context.getString(R.string.parent_mode_setup_start))
+            .assertIsDisplayed()
+            .assertIsNotEnabled()
+    }
+
+    @Test
+    fun guardianPinSheetUnlocksItsActionOnceThePinsMatch() {
+        var confirmed = 0
+
+        composeRule.setContent {
+            KeepTheme {
+                ParentModeGuardianPinSheet(
+                    state = ParentModeSetupUiState(
+                        durationMinutes = 45,
+                        allowedApps = setOf("com.example.video"),
+                        guardianPin = "1234",
+                        guardianPinConfirmation = "1234",
+                    ),
+                    action = ParentModeGuardianAction.Start,
+                    pinMismatch = false,
+                    onGuardianPinChanged = {},
+                    onGuardianPinConfirmationChanged = {},
+                    onConfirm = { confirmed++ },
+                )
+            }
+        }
+
+        composeRule.onNodeWithText(context.getString(R.string.parent_mode_setup_start))
+            .assertIsEnabled()
+            .performClick()
+
+        assertEquals(1, confirmed)
     }
 }

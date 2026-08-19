@@ -1,8 +1,24 @@
 import pathlib
 import unittest
+import xml.etree.ElementTree as ET
 
 
 REPO_ROOT = pathlib.Path(__file__).resolve().parents[2]
+RES_DIR = REPO_ROOT / "app" / "src" / "main" / "res"
+APP_SRC = REPO_ROOT / "app" / "src" / "main" / "java" / "com" / "uiery" / "keep"
+SETUP_SCREEN = APP_SRC / "feature" / "parentmode" / "ParentModeSetupScreen.kt"
+SETUP_VIEW_MODEL = APP_SRC / "feature" / "parentmode" / "ParentModeSetupViewModel.kt"
+APP_SELECTION_SHEET = APP_SRC / "ui" / "component" / "CategoryBottomSheetContent.kt"
+
+
+def load_strings(strings_xml: pathlib.Path) -> dict[str, str]:
+    root = ET.parse(strings_xml).getroot()
+    return {
+        node.attrib["name"]: "".join(node.itertext()).strip()
+        for node in root.findall("string")
+    }
+
+
 RUNBOOK = REPO_ROOT / "docs" / "PARENT_MODE_MVP.md"
 PRODUCT_DASHBOARD = REPO_ROOT / "docs" / "PRODUCT_METRICS_DASHBOARD.md"
 METRICS_ANALYSIS = REPO_ROOT / "docs" / "METRICS_ANALYSIS.md"
@@ -145,7 +161,18 @@ class ParentModeContractTest(unittest.TestCase):
             "Menu의 `아이에게 폰 주기` entrypoint",
             "ParentModeSetupRoute",
             "setup 화면 foothold",
-            "현재 선택 앱을 setup allowed-app seed로 읽어오는 경계",
+            # 4차 foothold의 seed 경계는 10차에서 걷어냈다. 문서는 그 전환을 남기고,
+            # 계약은 되돌아간 상태가 아니라 현재 경계를 잠근다.
+            "10차 code-lane allowlist 경계",
+            "11차 code-lane 차단 이유 · 탈출 경로 · 긴급 전화 경계",
+            "block_screen_parent_mode_expired_reason",
+            "parent_mode_expired_end_and_unlock",
+            "ParentModeBlockReasonSource",
+            "자기통제 잠금(수동/타이머/루틴/목표)은 그대로\n  발신을 막는다",
+            "BlockingStateStore",
+            "parent_mode_setup_allowed_apps_scope_notice",
+            "AppSelectionPurpose",
+            "app_selection_allowed_apps_notice",
             "5차 code-lane foothold",
             "실제 PIN 입력 UI와 setup CTA enablement",
             "PIN 불일치/미충족 상태에서는 session 저장을 막는 경계",
@@ -279,9 +306,16 @@ class ParentModeContractTest(unittest.TestCase):
         self.assertIn("PR #946", qa_checklist)
         self.assertIn("ParentModeSetupScreenAccessibilityTest", qa_checklist)
         self.assertIn("TalkBack summary", qa_checklist)
-        self.assertIn("직접 분 입력 custom duration", qa_checklist)
-        self.assertIn("customDurationInputStartsParentModeWithDirectMinuteValue", qa_checklist)
+        self.assertIn("시/분 휠 duration 다이얼", qa_checklist)
+        self.assertIn(
+            "ParentModeSetupViewModelTest.durationWheelStartsParentModeWithTheHourAndMinuteTheParentDialled",
+            qa_checklist,
+        )
         self.assertIn("direct duration spot-check", qa_checklist)
+        self.assertIn(
+            "ParentModeSetupViewModelTest.theGuardianSheetRoutesExtendAndEndThroughTheSamePinGate",
+            qa_checklist,
+        )
         self.assertIn("ParentModePolicyTest", qa_checklist)
         self.assertIn("BlockViewModelTest.parentModeBlockTracksDedicatedPrivacySafeInterceptEvent", qa_checklist)
         self.assertIn("FirebaseKeepAnalyticsTest.parentModeBlockInterceptedUsesSafeBlockContextOnly", qa_checklist)
@@ -337,6 +371,56 @@ class ParentModeContractTest(unittest.TestCase):
             "expiredActiveParentModeWithoutManualKeep_blocksPreviouslyAllowedAppWithExpiredEvidence",
         ]:
             self.assertIn(phrase, runbook)
+
+    def test_setup_screen_states_the_allowlist_scope_and_never_seeds_the_blocking_selection(self):
+        """부모 모드는 허용목록이라 고르지 않은 앱이 전부 잠긴다.
+
+        차단 앱 목록을 허용 앱으로 씨딩하면 부모가 평소 막아 두던 앱만 열리고 나머지 기기 전체가
+        잠긴다. VOC "부모모드를 쓰면 모든 앱이 잠긴다"가 정확히 이 경로다. 씨딩 경로를 없애고,
+        시작 전에 무엇이 잠기는지 화면이 직접 말하게 한다.
+        """
+        setup_screen = SETUP_SCREEN.read_text()
+        setup_view_model = SETUP_VIEW_MODEL.read_text()
+
+        for removed in [
+            "parent_mode_setup_reload_current_selection",
+            "onReloadCurrentSelection",
+        ]:
+            self.assertNotIn(removed, setup_screen)
+
+        for removed in [
+            "readSelectedAppPackages",
+            "BlockingStateStore",
+            "loadAllowedAppsFromCurrentSelection",
+        ]:
+            self.assertNotIn(removed, setup_view_model)
+
+        self.assertIn("parent_mode_setup_allowed_apps_scope_notice", setup_screen)
+        self.assertIn("AppSelectionPurpose.Allow", setup_screen)
+
+    def test_app_selection_sheet_carries_allow_mode_copy(self):
+        """같은 시트가 차단 대상 선택과 허용 앱 선택 양쪽에 쓰인다.
+
+        허용 모드에서 "차단 대상 선택" 제목과 "차단하면 인증번호를 못 받아요" 확인 다이얼로그는
+        의미가 정반대다. 특히 그 다이얼로그의 제외 버튼은 허용 목록에서는 오히려 그 앱을 잠근다.
+        """
+        sheet = APP_SELECTION_SHEET.read_text()
+        default_strings = load_strings(RES_DIR / "values" / "strings.xml")
+
+        self.assertIn("enum class AppSelectionPurpose", sheet)
+        self.assertIn("appSelectionHeading(", sheet)
+        self.assertIn("requiresSensitiveBlockConfirmation(", sheet)
+        self.assertIn("app_selection_allowed_apps_title", sheet)
+        self.assertIn("app_selection_allowed_apps_notice", sheet)
+
+        for key in [
+            "app_selection_allowed_apps_title",
+            "app_selection_allowed_apps_notice",
+            "parent_mode_setup_allowed_apps_scope_notice",
+        ]:
+            self.assertIn(key, default_strings)
+
+        self.assertNotIn("parent_mode_setup_reload_current_selection", default_strings)
 
     def test_runbook_points_future_lanes_to_contract_regression(self):
         runbook = RUNBOOK.read_text()

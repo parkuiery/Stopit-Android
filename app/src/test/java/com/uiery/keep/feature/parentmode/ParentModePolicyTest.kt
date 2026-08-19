@@ -203,4 +203,26 @@ class ParentModePolicyTest {
         assertEquals(0L, activeSessionRefreshDelayMillis(activeSession, nowMillis = 61_000L))
         assertEquals(null, activeSessionRefreshDelayMillis(expiredSession, nowMillis = 2_000L))
     }
+
+    /**
+     * An expired session locks every app, and this button is the only thing that lifts it. Labelling
+     * it "start parent mode again" hides the exit behind a name for starting another lock, which is
+     * the last thing someone staring at a locked device goes looking for. A session already ended by
+     * PIN locks nothing, so there "start another" is the honest label.
+     */
+    @Test
+    fun finishedSessionActionSaysUnlockOnlyWhileTheDeviceIsStillLocked() {
+        assertEquals(
+            ParentModeFinishedAction.EndAndUnlock,
+            ParentModePolicy.finishedSessionAction(ParentModeSessionState.Expired),
+        )
+        assertEquals(
+            ParentModeFinishedAction.StartAnother,
+            ParentModePolicy.finishedSessionAction(ParentModeSessionState.UnlockedByPin),
+        )
+        assertEquals(
+            ParentModeFinishedAction.StartAnother,
+            ParentModePolicy.finishedSessionAction(ParentModeSessionState.Cancelled),
+        )
+    }
 }

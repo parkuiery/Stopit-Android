@@ -45,6 +45,68 @@ class CategoryBottomSheetContentIntegrationTest {
     @get:Rule
     val composeRule = createComposeRule()
 
+    /**
+     * Parent mode reads this same list as an allowlist: what is picked stays open and what is left
+     * out is locked. Under the block heading a parent picks the apps they want stopped, which is how
+     * the device ends up locking everything they did not already block.
+     */
+    @Test
+    fun allowPurposeHeadsTheSheetAsAllowedAppsAndSaysWhatHappensToTheRest() {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+
+        composeRule.setContent {
+            KeepTheme {
+                CategoryBottomSheetLoadedContent(
+                    apps = listOf(testApp(packageName = "com.example.alpha", appName = "Alpha Focus")),
+                    storeSelectApps = emptySet(),
+                    onComplete = { },
+                    purpose = AppSelectionPurpose.Allow,
+                )
+            }
+        }
+
+        composeRule
+            .onNodeWithText(context.getString(R.string.app_selection_allowed_apps_title))
+            .assertIsDisplayed()
+        composeRule.onNodeWithTag("app_selection_allow_notice").assertIsDisplayed()
+        composeRule
+            .onNodeWithText(context.getString(R.string.activity_selection))
+            .assertDoesNotExist()
+    }
+
+    /**
+     * The confirmation says the selected apps are about to be blocked and its dismiss action drops
+     * them from the selection. Under an allowlist that is backwards twice over — picking the dialer
+     * is what keeps it reachable, and "exclude" is what would block it.
+     */
+    @Test
+    fun allowPurposeSavesSensitiveAppsWithoutTheBlockConfirmation() {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val completedSelections = mutableListOf<Set<String>>()
+        val dialer = testApp(packageName = "com.example.dialer", appName = "Phone")
+
+        composeRule.setContent {
+            KeepTheme {
+                CategoryBottomSheetLoadedContent(
+                    apps = listOf(dialer),
+                    exemptPackages = BlockExemptPackages(
+                        sensitiveRoles = mapOf(dialer.packageName to SensitiveAppRole.DIALER),
+                    ),
+                    storeSelectApps = setOf(dialer.packageName),
+                    onComplete = { completedSelections += it },
+                    purpose = AppSelectionPurpose.Allow,
+                )
+            }
+        }
+
+        composeRule.onNodeWithTag("category_selection_complete").performClick()
+
+        composeRule
+            .onNodeWithText(context.getString(R.string.sensitive_block_confirm_title))
+            .assertDoesNotExist()
+        assertEquals(listOf(setOf(dialer.packageName)), completedSelections)
+    }
+
     @Test
     fun selectionStateUpdatesVisibleChecksAndCompletionPayloadAfterFiltering() {
         val context = InstrumentationRegistry.getInstrumentation().targetContext

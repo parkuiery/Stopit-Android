@@ -27,6 +27,8 @@ import com.uiery.keep.service.DEFAULT_EMERGENCY_UNLOCK_DAILY_LIMIT
 import com.uiery.keep.service.DEFAULT_EMERGENCY_UNLOCK_DURATION_OPTIONS
 import com.uiery.keep.service.EmergencyUnlockAvailabilityReason
 import com.uiery.keep.service.EmergencyUnlockCoordinator
+import com.uiery.keep.domain.parentmode.ParentModeBlockReason
+import com.uiery.keep.domain.parentmode.ParentModeBlockReasonSource
 import com.uiery.keep.service.EmergencyUnlockRequestResult
 import dagger.hilt.android.lifecycle.HiltViewModel
 
@@ -51,6 +53,7 @@ class BlockViewModel
         private val routineRepository: RoutineRepository,
         private val repeatBlockSuggestionStore: RepeatBlockRoutineSuggestionStore,
         private val appCategoryResolver: AppCategoryResolver,
+        private val parentModeBlockReasonSource: ParentModeBlockReasonSource,
     ) : ViewModel(),
         ContainerHost<BlockUiState, BlockSideEffect> {
         override val container: Container<BlockUiState, BlockSideEffect> = container(BlockUiState())
@@ -69,6 +72,25 @@ class BlockViewModel
             now = now,
             zone = zone,
         )
+
+        /**
+         * Loads why parent mode put this screen up.
+         *
+         * The child holding the phone did not set the session up and has no other way to find out,
+         * and the two reasons need different words — see [ParentModeBlockReason].
+         */
+        internal fun syncParentModeBlockReason(
+            entry: LockScreenEntry,
+            nowMillis: Long = System.currentTimeMillis(),
+        ) = intent {
+            if (entry.blockSource != AnalyticsBlockSource.PARENT_MODE) {
+                reduce { state.copy(parentModeBlockReason = null) }
+                return@intent
+            }
+
+            val reason = parentModeBlockReasonSource.blockReason(nowMillis)
+            reduce { state.copy(parentModeBlockReason = reason) }
+        }
 
         internal fun syncManualTimedLockReentry(
             blockSource: String,
@@ -281,6 +303,7 @@ data class BlockUiState(
     val showFirstCoreActionFeedback: Boolean = false,
     val timedLockDeadline: LocalDateTime? = null,
     val repeatBlockRoutineSuggestion: RepeatBlockRoutineSuggestion? = null,
+    val parentModeBlockReason: ParentModeBlockReason? = null,
 )
 
 sealed class BlockSideEffect {
