@@ -181,6 +181,7 @@
     <string name="app_selection_allowed_apps_title">Choisir les applis autorisées</string>
     <string name="app_selection_allowed_apps_notice">Seules les applis choisies ici s\'ouvriront. Toutes les autres applis restent verrouillées.</string>
     <string name="parent_mode_setup_apps_empty">Aucune appli autorisée sélectionnée pour le moment.</string>
+    <string name="parent_mode_setup_allowed_apps_overflow">et %1$d de plus</string>
     <string name="parent_mode_active_title">Le mode parent est actif</string>
     <string name="parent_mode_expired_title">Le temps du mode parent est écoulé</string>
     <string name="parent_mode_ended_title">Mode parent terminé</string>

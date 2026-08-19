@@ -181,6 +181,7 @@
     <string name="app_selection_allowed_apps_title">許可するアプリを選ぶ</string>
     <string name="app_selection_allowed_apps_notice">ここで選んだアプリだけが開き、ほかのアプリはすべてロックされます。</string>
     <string name="parent_mode_setup_apps_empty">まだ許可するアプリが選択されていません。</string>
+    <string name="parent_mode_setup_allowed_apps_overflow">ほか%1$d件</string>
     <string name="parent_mode_active_title">保護者モード実行中</string>
     <string name="parent_mode_expired_title">保護者モードの時間が終了しました</string>
     <string name="parent_mode_ended_title">保護者モード終了</string>

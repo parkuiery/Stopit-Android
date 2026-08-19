@@ -87,6 +87,53 @@ class ParentModeSetupScreenAccessibilityTest {
             .assertDoesNotExist()
     }
 
+    /**
+     * 목록에 상한이 없으면 앱을 많이 고를수록 아래 허용 시간 카드가 접히는 선 밖으로 밀려난다.
+     * 앞의 3개만 남기고 나머지는 개수로 접어 카드 높이를 고정한다.
+     */
+    @Test
+    fun setupFormCapsTheAllowedAppListAndSaysHowManyItFolded() {
+        composeRule.setContent {
+            KeepTheme {
+                ParentModeSetupForm(
+                    state = ParentModeSetupUiState(
+                        allowedApps = setOf(
+                            "com.a.app",
+                            "com.b.app",
+                            "com.c.app",
+                            "com.d.app",
+                            "com.e.app",
+                        ),
+                    ),
+                    onDurationSelected = {},
+                    onDurationDialled = { _, _ -> },
+                    onAdjustApps = {},
+                )
+            }
+        }
+
+        composeRule.onNodeWithTag("parent_mode_setup_allowed_apps_overflow")
+            .assertIsDisplayed()
+        composeRule.onNodeWithText("com.d.app").assertDoesNotExist()
+        composeRule.onNodeWithText("com.e.app").assertDoesNotExist()
+    }
+
+    @Test
+    fun setupFormDoesNotFoldAnAllowedAppListThatAlreadyFits() {
+        composeRule.setContent {
+            KeepTheme {
+                ParentModeSetupForm(
+                    state = ParentModeSetupUiState(allowedApps = setOf("com.a.app", "com.b.app")),
+                    onDurationSelected = {},
+                    onDurationDialled = { _, _ -> },
+                    onAdjustApps = {},
+                )
+            }
+        }
+
+        composeRule.onNodeWithTag("parent_mode_setup_allowed_apps_overflow").assertDoesNotExist()
+    }
+
     @Test
     fun activeControlsExposeActiveSessionAsTalkBackSummaryAndLiveGuardianActions() {
         var extendClicks = 0

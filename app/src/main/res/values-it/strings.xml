@@ -181,6 +181,7 @@
     <string name="app_selection_allowed_apps_title">Scegli le app consentite</string>
     <string name="app_selection_allowed_apps_notice">Si apriranno solo le app scelte qui. Tutte le altre app restano bloccate.</string>
     <string name="parent_mode_setup_apps_empty">Nessuna app consentita selezionata.</string>
+    <string name="parent_mode_setup_allowed_apps_overflow">e altre %1$d</string>
     <string name="parent_mode_active_title">La modalità genitore è attiva</string>
     <string name="parent_mode_expired_title">Il tempo della modalità genitore è finito</string>
     <string name="parent_mode_ended_title">Modalità genitore terminata</string>

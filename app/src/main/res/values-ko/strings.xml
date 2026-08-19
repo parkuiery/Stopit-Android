@@ -245,6 +245,7 @@
     <string name="app_selection_allowed_apps_title">허용 앱 선택</string>
     <string name="app_selection_allowed_apps_notice">여기서 고른 앱만 열리고, 나머지 앱은 모두 잠겨요.</string>
     <string name="parent_mode_setup_apps_empty">아직 허용 앱을 선택하지 않았어요.</string>
+    <string name="parent_mode_setup_allowed_apps_overflow">외 %1$d개</string>
     <string name="lock_history_menu_title">잠금 기록 보기</string>
     <string name="lock_history_title">잠금 기록</string>
     <string name="lock_history_week">주</string>

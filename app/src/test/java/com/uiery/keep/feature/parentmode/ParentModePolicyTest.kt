@@ -225,4 +225,43 @@ class ParentModePolicyTest {
             ParentModePolicy.finishedSessionAction(ParentModeSessionState.Cancelled),
         )
     }
+
+    /**
+     * 허용 앱 목록은 상한이 없어서 앱을 많이 고르면 아래에 있는 허용 시간 카드를 접히는 선 밖으로
+     * 밀어냈다. 목록은 이미 고른 것을 확인시켜 주는 자리이고 편집은 `앱 선택 화면에서 조정`이
+     * 맡으므로, 앞의 몇 개만 보여주고 나머지는 개수로 접는다.
+     */
+    @Test
+    fun allowedAppsPreviewCapsTheListAndReportsWhatItFolded() {
+        val preview = allowedAppsPreview(
+            setOf("com.e.app", "com.a.app", "com.d.app", "com.b.app", "com.c.app"),
+        )
+
+        assertEquals(listOf("com.a.app", "com.b.app", "com.c.app"), preview.visible)
+        assertEquals(2, preview.hiddenCount)
+    }
+
+    @Test
+    fun allowedAppsPreviewFoldsNothingWhenTheListFits() {
+        val preview = allowedAppsPreview(setOf("com.b.app", "com.a.app"))
+
+        assertEquals(listOf("com.a.app", "com.b.app"), preview.visible)
+        assertEquals(0, preview.hiddenCount)
+    }
+
+    @Test
+    fun allowedAppsPreviewOnTheCapBoundaryStillFoldsNothing() {
+        val preview = allowedAppsPreview(setOf("com.c.app", "com.a.app", "com.b.app"))
+
+        assertEquals(3, preview.visible.size)
+        assertEquals(0, preview.hiddenCount)
+    }
+
+    @Test
+    fun allowedAppsPreviewOfAnEmptySelectionIsEmpty() {
+        val preview = allowedAppsPreview(emptySet())
+
+        assertEquals(emptyList<String>(), preview.visible)
+        assertEquals(0, preview.hiddenCount)
+    }
 }

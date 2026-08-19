@@ -343,6 +343,11 @@ VOC "부모모드를 사용하면 모든 앱이 잠긴다"를 확인한 결과, 
   프리셋이기 때문이다. 재측정: 허용 앱 카드 전체와 `앱 선택 화면에서 조정`(`877..943`), 허용 시간 헤더와
   프리셋 칩(`1670..1726`)이 모두 접히는 선(`1935`) 위에 들어온다. 컨트롤 사용법을 설명하던
   `parent_mode_setup_duration_helper` 캡션은 삭제했다 — 설명이 필요한 컨트롤이라는 신호였다.
+- 허용 앱 목록 상한: 목록은 편집기가 아니라 확인용이고 편집은 `앱 선택 화면에서 조정`이 맡으므로,
+  `allowedAppsPreview(...)`가 앞의 3개만 남기고 나머지를 `parent_mode_setup_allowed_apps_overflow`
+  (`외 %1$d개`)로 접는다. 상한이 없던 동안에는 앱을 고를수록 카드가 자라 아래 허용 시간 카드를 계속
+  밀어냈다. 실기기 5개 선택 재측정: 허용 앱 카드가 `632..1732`로 고정되고 허용 시간 헤더(`1828..1884`)가
+  접히는 선(`1935`) 위에 남는다.
 - 회귀: `ParentModeSetupViewModelTest`의 duration 3건(`durationWheelStartsParentModeWithTheHourAndMinuteTheParentDialled`,
   `durationWheelCarriesHoursIntoTheStoredSessionMinutes`, `presetDurationReplacesWhateverTheWheelWasShowing`)과
   guardian sheet 4건(`theStartCtaOpensTheGuardianSheetInsteadOfStartingTheSessionOutright`,

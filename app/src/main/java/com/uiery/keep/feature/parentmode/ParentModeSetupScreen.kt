@@ -77,6 +77,7 @@ import kotlinx.coroutines.delay
 import com.uiery.keep.ui.component.withoutBottomInset
 
 private val PARENT_MODE_DURATION_OPTIONS = listOf(10, 20, 30, 60)
+private const val MAX_VISIBLE_ALLOWED_APPS = 3
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
@@ -263,14 +264,25 @@ internal fun ParentModeSetupForm(
             Spacer(modifier = Modifier.height(12.dp))
             SetupSectionCaption(text = stringResource(id = R.string.parent_mode_setup_apps_empty))
         } else {
+            val preview = allowedAppsPreview(state.allowedApps)
             Spacer(modifier = Modifier.height(12.dp))
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                state.allowedApps.sorted().forEach { packageName ->
+                preview.visible.forEach { packageName ->
                     SetupAppRow(
                         packageName = packageName,
                         fallbackLabel = packageName,
                     )
                 }
+            }
+            if (preview.hiddenCount > 0) {
+                Spacer(modifier = Modifier.height(10.dp))
+                SetupSectionCaption(
+                    modifier = Modifier.testTag("parent_mode_setup_allowed_apps_overflow"),
+                    text = stringResource(
+                        id = R.string.parent_mode_setup_allowed_apps_overflow,
+                        preview.hiddenCount,
+                    ),
+                )
             }
         }
     }
@@ -629,6 +641,28 @@ private fun formatParentModeRemaining(millis: Long): String {
     } else {
         String.format(Locale.US, "%d:%02d", minutes, seconds)
     }
+}
+
+/** 목록에 보여줄 허용 앱과, 개수로 접은 나머지. */
+internal data class AllowedAppsPreview(
+    val visible: List<String>,
+    val hiddenCount: Int,
+)
+
+/**
+ * 이 목록은 편집기가 아니라 확인용이다. 편집은 `앱 선택 화면에서 조정`이 맡고, 목록이 길어지면
+ * 아래에 있는 허용 시간 카드를 접히는 선 밖으로 밀어내기만 한다. 그래서 앞의 몇 개만 남기고
+ * 나머지는 개수로 접는다.
+ */
+internal fun allowedAppsPreview(
+    allowedApps: Set<String>,
+    limit: Int = MAX_VISIBLE_ALLOWED_APPS,
+): AllowedAppsPreview {
+    val sorted = allowedApps.sorted()
+    return AllowedAppsPreview(
+        visible = sorted.take(limit),
+        hiddenCount = (sorted.size - limit).coerceAtLeast(0),
+    )
 }
 
 internal fun activeSessionRefreshDelayMillis(

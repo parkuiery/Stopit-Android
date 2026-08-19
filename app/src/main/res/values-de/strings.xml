@@ -181,6 +181,7 @@
     <string name="app_selection_allowed_apps_title">Erlaubte Apps auswählen</string>
     <string name="app_selection_allowed_apps_notice">Nur die hier ausgewählten Apps lassen sich öffnen. Alle anderen Apps bleiben gesperrt.</string>
     <string name="parent_mode_setup_apps_empty">Noch keine erlaubten Apps ausgewählt.</string>
+    <string name="parent_mode_setup_allowed_apps_overflow">und %1$d weitere</string>
     <string name="parent_mode_active_title">Eltern-Modus läuft</string>
     <string name="parent_mode_expired_title">Eltern-Modus-Zeit ist abgelaufen</string>
     <string name="parent_mode_ended_title">Eltern-Modus beendet</string>

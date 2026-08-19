@@ -181,6 +181,7 @@
     <string name="app_selection_allowed_apps_title">选择允许的应用</string>
     <string name="app_selection_allowed_apps_notice">只有在此挑选的应用可以打开，其余应用全部锁定。</string>
     <string name="parent_mode_setup_apps_empty">尚未选择允许的应用。</string>
+    <string name="parent_mode_setup_allowed_apps_overflow">另外 %1$d 个</string>
     <string name="parent_mode_active_title">家长模式正在运行</string>
     <string name="parent_mode_expired_title">家长模式时间已结束</string>
     <string name="parent_mode_ended_title">家长模式已结束</string>

@@ -181,6 +181,7 @@
     <string name="app_selection_allowed_apps_title">Escolher apps permitidos</string>
     <string name="app_selection_allowed_apps_notice">Só os apps escolhidos aqui vão abrir. Todos os outros apps ficam bloqueados.</string>
     <string name="parent_mode_setup_apps_empty">Nenhum app permitido selecionado ainda.</string>
+    <string name="parent_mode_setup_allowed_apps_overflow">e mais %1$d</string>
     <string name="parent_mode_active_title">Modo dos pais em execução</string>
     <string name="parent_mode_expired_title">O tempo do modo dos pais acabou</string>
     <string name="parent_mode_ended_title">Modo dos pais encerrado</string>

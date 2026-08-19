@@ -245,6 +245,7 @@
     <string name="app_selection_allowed_apps_title">Choose allowed apps</string>
     <string name="app_selection_allowed_apps_notice">Only the apps you pick here will open. Every other app stays locked.</string>
     <string name="parent_mode_setup_apps_empty">No allowed apps selected yet.</string>
+    <string name="parent_mode_setup_allowed_apps_overflow">and %1$d more</string>
     <string name="lock_history_menu_title">View Lock History</string>
     <string name="lock_history_title">Lock History</string>
     <string name="lock_history_week">Week</string>

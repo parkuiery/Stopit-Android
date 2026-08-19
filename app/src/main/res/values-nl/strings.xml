@@ -181,6 +181,7 @@
     <string name="app_selection_allowed_apps_title">Toegestane apps kiezen</string>
     <string name="app_selection_allowed_apps_notice">Alleen de apps die je hier kiest, gaan open. Alle andere apps blijven vergrendeld.</string>
     <string name="parent_mode_setup_apps_empty">Nog geen toegestane apps geselecteerd.</string>
+    <string name="parent_mode_setup_allowed_apps_overflow">en nog %1$d</string>
     <string name="parent_mode_active_title">Oudermodus is actief</string>
     <string name="parent_mode_expired_title">Tijd voor oudermodus is voorbij</string>
     <string name="parent_mode_ended_title">Oudermodus beëindigd</string>
