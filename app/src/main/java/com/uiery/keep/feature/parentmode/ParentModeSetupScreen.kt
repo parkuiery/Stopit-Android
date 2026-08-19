@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -36,6 +37,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.res.painterResource
@@ -275,14 +277,8 @@ internal fun ParentModeSetupForm(
                 }
             }
             if (preview.hiddenCount > 0) {
-                Spacer(modifier = Modifier.height(10.dp))
-                SetupSectionCaption(
-                    modifier = Modifier.testTag("parent_mode_setup_allowed_apps_overflow"),
-                    text = stringResource(
-                        id = R.string.parent_mode_setup_allowed_apps_overflow,
-                        preview.hiddenCount,
-                    ),
-                )
+                Spacer(modifier = Modifier.height(8.dp))
+                AllowedAppsOverflowRow(hiddenCount = preview.hiddenCount)
             }
         }
     }
@@ -316,6 +312,51 @@ internal fun ParentModeSetupForm(
             hours = state.durationHoursPart,
             minutes = state.durationMinutesPart,
             onDurationChange = onDurationDialled,
+        )
+    }
+}
+
+/**
+ * 접힌 앱들을 대신하는 목록의 마지막 행. 여백에 놓인 캡션은 목록이 이어진다는 신호를 주지 못해서,
+ * 앱 행과 같은 배경·같은 높이로 그리고 아이콘 자리에 남은 개수를 세워 목록의 일부로 읽히게 한다.
+ */
+@Composable
+private fun AllowedAppsOverflowRow(hiddenCount: Int) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .testTag("parent_mode_setup_allowed_apps_overflow")
+            .clip(RoundedCornerShape(12.dp))
+            .background(KeepTheme.colors.background)
+            .padding(horizontal = 12.dp, vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Box(
+            modifier = Modifier
+                .size(40.dp)
+                .clip(RoundedCornerShape(10.dp))
+                .background(KeepTheme.colors.primaryContainer)
+                // 옆 문구가 같은 수를 이미 말하므로 TalkBack에서는 한 번만 읽히게 한다.
+                .clearAndSetSemantics { },
+            contentAlignment = Alignment.Center,
+        ) {
+            Text(
+                text = "+$hiddenCount",
+                color = KeepTheme.colors.onPrimaryContainer,
+                fontSize = 15.sp,
+                fontWeight = FontWeight.Bold,
+            )
+        }
+        Text(
+            modifier = Modifier.weight(1f),
+            text = stringResource(
+                id = R.string.parent_mode_setup_allowed_apps_overflow,
+                hiddenCount,
+            ),
+            color = KeepTheme.colors.onSurfaceVariant,
+            fontSize = 14.sp,
+            fontWeight = FontWeight.Medium,
         )
     }
 }
@@ -659,9 +700,14 @@ internal fun allowedAppsPreview(
     limit: Int = MAX_VISIBLE_ALLOWED_APPS,
 ): AllowedAppsPreview {
     val sorted = allowedApps.sorted()
+    // 접기 표시도 목록의 한 줄을 쓴다. 한 개만 접히면 줄 수가 그대로라, 아낀 것 없이 무엇이 들어
+    // 있는지만 감추는 셈이다. 그때는 접지 않는다.
+    if (sorted.size <= limit + 1) {
+        return AllowedAppsPreview(visible = sorted, hiddenCount = 0)
+    }
     return AllowedAppsPreview(
         visible = sorted.take(limit),
-        hiddenCount = (sorted.size - limit).coerceAtLeast(0),
+        hiddenCount = sorted.size - limit,
     )
 }
 

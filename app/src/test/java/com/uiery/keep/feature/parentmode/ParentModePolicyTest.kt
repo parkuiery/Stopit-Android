@@ -257,6 +257,23 @@ class ParentModePolicyTest {
         assertEquals(0, preview.hiddenCount)
     }
 
+    /**
+     * 접기 표시도 목록의 한 줄을 쓴다. 한 개만 접히면 줄 수가 그대로라 아낀 것 없이 무엇이 들어
+     * 있는지만 감추는 셈이라, 그때는 접지 않는다.
+     */
+    @Test
+    fun allowedAppsPreviewDoesNotFoldASingleAppBecauseFoldingItSavesNoRow() {
+        val preview = allowedAppsPreview(
+            setOf("com.d.app", "com.a.app", "com.c.app", "com.b.app"),
+        )
+
+        assertEquals(
+            listOf("com.a.app", "com.b.app", "com.c.app", "com.d.app"),
+            preview.visible,
+        )
+        assertEquals(0, preview.hiddenCount)
+    }
+
     @Test
     fun allowedAppsPreviewOfAnEmptySelectionIsEmpty() {
         val preview = allowedAppsPreview(emptySet())

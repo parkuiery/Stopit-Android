@@ -344,10 +344,15 @@ VOC "부모모드를 사용하면 모든 앱이 잠긴다"를 확인한 결과, 
   프리셋 칩(`1670..1726`)이 모두 접히는 선(`1935`) 위에 들어온다. 컨트롤 사용법을 설명하던
   `parent_mode_setup_duration_helper` 캡션은 삭제했다 — 설명이 필요한 컨트롤이라는 신호였다.
 - 허용 앱 목록 상한: 목록은 편집기가 아니라 확인용이고 편집은 `앱 선택 화면에서 조정`이 맡으므로,
-  `allowedAppsPreview(...)`가 앞의 3개만 남기고 나머지를 `parent_mode_setup_allowed_apps_overflow`
-  (`외 %1$d개`)로 접는다. 상한이 없던 동안에는 앱을 고를수록 카드가 자라 아래 허용 시간 카드를 계속
-  밀어냈다. 실기기 5개 선택 재측정: 허용 앱 카드가 `632..1732`로 고정되고 허용 시간 헤더(`1828..1884`)가
-  접히는 선(`1935`) 위에 남는다.
+  `allowedAppsPreview(...)`가 앞의 3개만 남기고 나머지를 접는다. 상한이 없던 동안에는 앱을 고를수록
+  카드가 자라 아래 허용 시간 카드를 계속 밀어냈다.
+  접기 표시는 여백에 놓인 캡션이 아니라 `AllowedAppsOverflowRow`, 즉 앱 행과 같은 배경·같은 높이(`66px`)의
+  목록 마지막 행이다. 캡션일 때는 목록이 이어진다는 신호를 주지 못했고, 아이콘 자리에 남은 개수(`+2`)를
+  세워야 비로소 "더 있다"가 읽혔다.
+  한 개만 접히는 경우(앱 4개)에는 접지 않는다. 접기 행도 한 줄을 쓰므로 줄 수가 그대로여서, 아낀 것 없이
+  무엇이 들어 있는지만 감추게 되기 때문이다. 실기기 확인: 4개는 4행 그대로, 5개는 3행 + `+2 외 2개`.
+  다만 접기 행이 앱 행과 같은 높이를 쓰므로 앱 5개부터는 허용 시간 카드가 접히는 선 아래로 내려간다 —
+  허용 앱 선택 버튼(`877..943`)은 계속 보이고, 시간은 기본값과 프리셋이 있어 감수한 쪽이다.
 - 회귀: `ParentModeSetupViewModelTest`의 duration 3건(`durationWheelStartsParentModeWithTheHourAndMinuteTheParentDialled`,
   `durationWheelCarriesHoursIntoTheStoredSessionMinutes`, `presetDurationReplacesWhateverTheWheelWasShowing`)과
   guardian sheet 4건(`theStartCtaOpensTheGuardianSheetInsteadOfStartingTheSessionOutright`,
