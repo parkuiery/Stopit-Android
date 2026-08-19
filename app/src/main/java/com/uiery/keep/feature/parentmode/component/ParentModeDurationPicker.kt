@@ -136,7 +136,9 @@ private fun DurationWheel(
         state = state,
         items = items,
         startIndex = startIndex,
-        visibleItemsCount = 5,
+        // 3행이면 위아래 이웃 값이 하나씩 보여 휠이라는 건 충분히 읽히고, 5행일 때 이 카드가
+        // 접힌 화면의 절반을 넘게 먹으며 허용 앱 선택 버튼을 밀어내던 것을 되돌린다.
+        visibleItemsCount = 3,
         color = KeepTheme.colors.onSurfaceVariant,
         textStyle = TextStyle(
             fontWeight = FontWeight.SemiBold,

@@ -171,7 +171,6 @@
     <string name="parent_mode_setup_start">开始家长模式</string>
     <string name="parent_mode_setup_start_disabled">需要设置 PIN</string>
     <string name="parent_mode_setup_duration_label">允许时长</string>
-    <string name="parent_mode_setup_duration_helper">滚动选择，或点按下方的预设。</string>
     <string name="parent_mode_setup_duration_hours_minutes">%1$d小时 %2$d分钟</string>
     <string name="cd_parent_mode_duration_picker">允许时长选择器。%1$d小时 %2$d分钟。</string>
     <string name="parent_mode_guardian_sheet_title">监护人 PIN</string>

@@ -237,41 +237,11 @@ internal fun ParentModeSetupForm(
         subtitle = stringResource(id = R.string.parent_mode_setup_description),
     )
 
+    // 고르지 않은 앱이 전부 잠기는 게 이 화면의 본론이라 시간보다 먼저 온다. 시간은 기본값과
+    // 프리셋이 있어 접혀도 되지만, 이 카드의 버튼이 접히면 허용 앱을 고를 길이 없다.
     SetupGroupCard(
         modifier = Modifier.semantics { contentDescription = setupAccessibilitySummary },
     ) {
-        SetupSectionHeader(
-            title = stringResource(id = R.string.parent_mode_setup_duration_label),
-            valueLabel = parentModeDurationLabel(state.durationMinutes),
-        )
-        Spacer(modifier = Modifier.height(4.dp))
-        ParentModeDurationPicker(
-            hours = state.durationHoursPart,
-            minutes = state.durationMinutesPart,
-            onDurationChange = onDurationDialled,
-        )
-        Spacer(modifier = Modifier.height(12.dp))
-        FlowRow(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            PARENT_MODE_DURATION_OPTIONS.forEach { minutes ->
-                SetupChip(
-                    label = stringResource(
-                        id = R.string.parent_mode_setup_duration_minutes,
-                        minutes,
-                    ),
-                    selected = state.durationMinutes == minutes,
-                    onClick = { onDurationSelected(minutes) },
-                )
-            }
-        }
-        Spacer(modifier = Modifier.height(8.dp))
-        SetupSectionCaption(text = stringResource(id = R.string.parent_mode_setup_duration_helper))
-    }
-
-    SetupGroupCard {
         SetupSectionHeader(
             title = stringResource(id = R.string.parent_mode_setup_allowed_apps_label),
             valueLabel = state.allowedApps.size.toString(),
@@ -303,6 +273,38 @@ internal fun ParentModeSetupForm(
                 }
             }
         }
+    }
+
+    SetupGroupCard {
+        SetupSectionHeader(
+            title = stringResource(id = R.string.parent_mode_setup_duration_label),
+            valueLabel = parentModeDurationLabel(state.durationMinutes),
+        )
+        Spacer(modifier = Modifier.height(12.dp))
+        // 프리셋이 빠른 길이고 휠은 그 사이를 메우는 쪽이라 프리셋이 먼저 온다. 허용 앱이 늘어
+        // 이 카드가 접히기 시작하면 아래부터 잘리는데, 그때 남아야 하는 건 휠이 아니라 프리셋이다.
+        FlowRow(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            PARENT_MODE_DURATION_OPTIONS.forEach { minutes ->
+                SetupChip(
+                    label = stringResource(
+                        id = R.string.parent_mode_setup_duration_minutes,
+                        minutes,
+                    ),
+                    selected = state.durationMinutes == minutes,
+                    onClick = { onDurationSelected(minutes) },
+                )
+            }
+        }
+        Spacer(modifier = Modifier.height(4.dp))
+        ParentModeDurationPicker(
+            hours = state.durationHoursPart,
+            minutes = state.durationMinutesPart,
+            onDurationChange = onDurationDialled,
+        )
     }
 }
 

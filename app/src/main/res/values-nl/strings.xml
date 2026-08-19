@@ -171,7 +171,6 @@
     <string name="parent_mode_setup_start">Oudermodus starten</string>
     <string name="parent_mode_setup_start_disabled">PIN-instelling vereist</string>
     <string name="parent_mode_setup_duration_label">Toegestane tijd</string>
-    <string name="parent_mode_setup_duration_helper">Draai aan het wiel of tik hieronder op een voorinstelling.</string>
     <string name="parent_mode_setup_duration_hours_minutes">%1$d u %2$d min</string>
     <string name="cd_parent_mode_duration_picker">Kiezer voor toegestane tijd. %1$d uur %2$d minuten.</string>
     <string name="parent_mode_guardian_sheet_title">Ouder-PIN</string>

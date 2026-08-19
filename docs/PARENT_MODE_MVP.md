@@ -335,6 +335,14 @@ VOC "부모모드를 사용하면 모든 앱이 잠긴다"를 확인한 결과, 
   종류의 값인데 혼자 칩+숫자 필드를 쓰고 있었다. 프리셋 칩(10/20/30/60)은 남되 값의 두 번째 사본이 아니라
   휠을 움직이는 바로가기다 — 칩을 누르면 휠이 remount되어 그 값으로 간다. 직접 입력 필드와
   `parent_mode_setup_duration_custom_label` / `..._custom_helper` 문자열은 삭제했다.
+- 접히는 선 예산: 첫 배치(휠 5행 + 카드 순서 시간→앱)를 SM-G991N(1080×2400, density 480)에서 재보니 허용 시간
+  카드가 콘텐츠 영역 `1714px`의 `957px`(56%)를 먹고, 허용 앱을 고르는 유일한 버튼이 `5px`만 남아 사실상
+  접혀 있었다. 기본값과 프리셋이 있는 시간이 VOC의 본론인 허용 앱을 밀어낸 셈이라 셋을 되돌렸다:
+  카드 순서를 앱 → 시간으로 바꾸고(히어로 문구가 이미 앱을 먼저 말한다), 휠을 5행 → 3행(`565px` → `339px`)으로
+  줄이고, 카드 안에서는 프리셋 칩을 휠 위로 올렸다. 카드가 아래부터 잘릴 때 남아야 하는 건 휠이 아니라
+  프리셋이기 때문이다. 재측정: 허용 앱 카드 전체와 `앱 선택 화면에서 조정`(`877..943`), 허용 시간 헤더와
+  프리셋 칩(`1670..1726`)이 모두 접히는 선(`1935`) 위에 들어온다. 컨트롤 사용법을 설명하던
+  `parent_mode_setup_duration_helper` 캡션은 삭제했다 — 설명이 필요한 컨트롤이라는 신호였다.
 - 회귀: `ParentModeSetupViewModelTest`의 duration 3건(`durationWheelStartsParentModeWithTheHourAndMinuteTheParentDialled`,
   `durationWheelCarriesHoursIntoTheStoredSessionMinutes`, `presetDurationReplacesWhateverTheWheelWasShowing`)과
   guardian sheet 4건(`theStartCtaOpensTheGuardianSheetInsteadOfStartingTheSessionOutright`,

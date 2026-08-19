@@ -235,7 +235,6 @@
     <string name="parent_mode_setup_start">부모 모드 시작</string>
     <string name="parent_mode_setup_start_disabled">PIN 설정 필요</string>
     <string name="parent_mode_setup_duration_label">허용 시간</string>
-    <string name="parent_mode_setup_duration_helper">휠을 돌려 맞추거나, 아래 프리셋을 눌러 주세요.</string>
     <string name="parent_mode_setup_duration_hours_minutes">%1$d시간 %2$d분</string>
     <string name="cd_parent_mode_duration_picker">허용 시간 선택. %1$d시간 %2$d분.</string>
     <string name="parent_mode_guardian_sheet_title">보호자 PIN</string>

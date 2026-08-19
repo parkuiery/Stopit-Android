@@ -171,7 +171,6 @@
     <string name="parent_mode_setup_start">ペアレントモードを開始</string>
     <string name="parent_mode_setup_start_disabled">PIN設定が必要です</string>
     <string name="parent_mode_setup_duration_label">許可する時間</string>
-    <string name="parent_mode_setup_duration_helper">ホイールを回すか、下のプリセットを選んでください。</string>
     <string name="parent_mode_setup_duration_hours_minutes">%1$d時間 %2$d分</string>
     <string name="cd_parent_mode_duration_picker">許可する時間の選択。%1$d時間 %2$d分。</string>
     <string name="parent_mode_guardian_sheet_title">保護者PIN</string>

@@ -171,7 +171,6 @@
     <string name="parent_mode_setup_start">Eltern-Modus starten</string>
     <string name="parent_mode_setup_start_disabled">PIN-Einrichtung erforderlich</string>
     <string name="parent_mode_setup_duration_label">Erlaubte Zeit</string>
-    <string name="parent_mode_setup_duration_helper">Am Rad drehen oder unten eine Vorgabe antippen.</string>
     <string name="parent_mode_setup_duration_hours_minutes">%1$d Std. %2$d Min.</string>
     <string name="cd_parent_mode_duration_picker">Auswahl der erlaubten Zeit. %1$d Stunden %2$d Minuten.</string>
     <string name="parent_mode_guardian_sheet_title">Eltern-PIN</string>

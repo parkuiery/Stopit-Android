@@ -171,7 +171,6 @@
     <string name="parent_mode_setup_start">Démarrer le mode parental</string>
     <string name="parent_mode_setup_start_disabled">Configuration du PIN requise</string>
     <string name="parent_mode_setup_duration_label">Temps autorisé</string>
-    <string name="parent_mode_setup_duration_helper">Faites tourner la molette ou touchez un préréglage ci-dessous.</string>
     <string name="parent_mode_setup_duration_hours_minutes">%1$d h %2$d min</string>
     <string name="cd_parent_mode_duration_picker">Sélecteur du temps autorisé. %1$d heures %2$d minutes.</string>
     <string name="parent_mode_guardian_sheet_title">PIN tuteur</string>

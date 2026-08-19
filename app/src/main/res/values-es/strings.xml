@@ -170,7 +170,6 @@
     <string name="parent_mode_setup_start">Iniciar modo padres</string>
     <string name="parent_mode_setup_start_disabled">Configuración de PIN necesaria</string>
     <string name="parent_mode_setup_duration_label">Tiempo permitido</string>
-    <string name="parent_mode_setup_duration_helper">Gira la rueda o toca un preajuste de abajo.</string>
     <string name="parent_mode_setup_duration_hours_minutes">%1$d h %2$d min</string>
     <string name="cd_parent_mode_duration_picker">Selector de tiempo permitido. %1$d horas %2$d minutos.</string>
     <string name="parent_mode_guardian_sheet_title">PIN de tutor</string>

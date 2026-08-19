@@ -235,7 +235,6 @@
     <string name="parent_mode_setup_start">Start Parent Mode</string>
     <string name="parent_mode_setup_start_disabled">PIN setup required</string>
     <string name="parent_mode_setup_duration_label">Allowed time</string>
-    <string name="parent_mode_setup_duration_helper">Spin the wheel, or tap a preset below.</string>
     <string name="parent_mode_setup_duration_hours_minutes">%1$d h %2$d min</string>
     <string name="cd_parent_mode_duration_picker">Allowed time picker. %1$d hours %2$d minutes.</string>
     <string name="parent_mode_guardian_sheet_title">Guardian PIN</string>

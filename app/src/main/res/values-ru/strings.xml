@@ -171,7 +171,6 @@
     <string name="parent_mode_setup_start">Запустить родительский режим</string>
     <string name="parent_mode_setup_start_disabled">Требуется настройка PIN</string>
     <string name="parent_mode_setup_duration_label">Разрешённое время</string>
-    <string name="parent_mode_setup_duration_helper">Прокрутите колесо или выберите пресет ниже.</string>
     <string name="parent_mode_setup_duration_hours_minutes">%1$d ч %2$d мин</string>
     <string name="cd_parent_mode_duration_picker">Выбор разрешённого времени. %1$d часов %2$d минут.</string>
     <string name="parent_mode_guardian_sheet_title">PIN опекуна</string>

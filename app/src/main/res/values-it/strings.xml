@@ -171,7 +171,6 @@
     <string name="parent_mode_setup_start">Avvia modalità genitori</string>
     <string name="parent_mode_setup_start_disabled">Configurazione del PIN necessaria</string>
     <string name="parent_mode_setup_duration_label">Tempo consentito</string>
-    <string name="parent_mode_setup_duration_helper">Gira la rotella o tocca un preset qui sotto.</string>
     <string name="parent_mode_setup_duration_hours_minutes">%1$d h %2$d min</string>
     <string name="cd_parent_mode_duration_picker">Selettore del tempo consentito. %1$d ore %2$d minuti.</string>
     <string name="parent_mode_guardian_sheet_title">PIN tutore</string>
