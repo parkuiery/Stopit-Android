@@ -304,6 +304,83 @@ class KeepAccessibilityServiceBlockDecisionTest {
         )
     }
 
+    /**
+     * The person holding the phone during parent mode is not the person who set the lock up, so an
+     * emergency call cannot depend on the parent having thought to put the dialer on the allowlist.
+     * The self-control locks keep blocking outgoing calls — there the blocker and the caller are the
+     * same person — but a supervised session cannot make that trade on someone else's behalf.
+     */
+    @Test
+    fun parentModeKeepsTheDialerReachableForOutgoingEmergencyCalls() {
+        val request = resolveForegroundBlockRequest(
+            packageName = DIALER,
+            prefs = AccessibilityBlockingPreferences(
+                exemptPackages = BlockExemptPackages(
+                    sensitiveRoles = mapOf(DIALER to SensitiveAppRole.DIALER),
+                ),
+            ),
+            cachedRoutines = emptyList(),
+            parentModeSession = activeParentModeSession(allowedApps = emptySet()),
+            now = LocalDateTime.of(2026, 5, 27, 10, 0),
+            isEmergencyUnlocked = false,
+            isDuplicateBlock = false,
+            isCallInProgress = false,
+        )
+
+        assertNull(request)
+    }
+
+    @Test
+    fun expiredParentModeAlsoKeepsTheDialerReachable() {
+        val request = resolveForegroundBlockRequest(
+            packageName = DIALER,
+            prefs = AccessibilityBlockingPreferences(
+                exemptPackages = BlockExemptPackages(
+                    sensitiveRoles = mapOf(DIALER to SensitiveAppRole.DIALER),
+                ),
+            ),
+            cachedRoutines = emptyList(),
+            parentModeSession = activeParentModeSession(allowedApps = setOf(DIALER)),
+            // The session ran out an hour ago, which is when every app including the allowed ones
+            // gets blocked. The dialer is the one that must not.
+            now = LocalDateTime.of(2026, 5, 27, 12, 0),
+            isEmergencyUnlocked = false,
+            isDuplicateBlock = false,
+            isCallInProgress = false,
+        )
+
+        assertNull(request)
+    }
+
+    /**
+     * Without a parent mode session the existing trade stands: the user blocked their own dialer on
+     * purpose, and only a live incoming call steps aside for it.
+     */
+    @Test
+    fun selfControlLocksStillBlockOutgoingCallsToADeliberatelyBlockedDialer() {
+        val request = resolveForegroundBlockRequest(
+            packageName = DIALER,
+            prefs = AccessibilityBlockingPreferences(
+                isKeep = true,
+                selectedAppPackages = setOf(DIALER),
+                exemptPackages = BlockExemptPackages(
+                    sensitiveRoles = mapOf(DIALER to SensitiveAppRole.DIALER),
+                ),
+            ),
+            cachedRoutines = emptyList(),
+            parentModeSession = null,
+            now = LocalDateTime.of(2026, 5, 27, 10, 0),
+            isEmergencyUnlocked = false,
+            isDuplicateBlock = false,
+            isCallInProgress = false,
+        )
+
+        assertEquals(
+            ForegroundBlockRequest(packageName = DIALER, blockSource = AnalyticsBlockSource.MANUAL_KEEP),
+            request,
+        )
+    }
+
     @Test
     fun parentModeStillCannotBlockTheHomeLauncher() {
         val request = resolveForegroundBlockRequest(

@@ -43,6 +43,8 @@
     <string name="block_screen_title">Сделайте паузу — вы держите свое обещание</string>
     <string name="block_screen_message">%1$s сейчас приостановлено. Закройте этот экран и вернитесь к своему делу.</string>
     <string name="block_screen_routine_active_reason">Активная рутина защищает это время. Если действительно нужно короткое исключение, используйте экстренную разблокировку.</string>
+    <string name="block_screen_parent_mode_allowed_apps_reason">Сейчас можно открыть только те приложения, о которых договорились. Спроси у взрослого.</string>
+    <string name="block_screen_parent_mode_expired_reason">Договорённое время закончилось. Спроси у взрослого.</string>
     <string name="block_screen_first_core_action_feedback">Первая блокировка сработала. StopIt продолжит блокировать выбранные приложения, пока StopIt включён.</string>
     <string name="block_screen_close">Вернуться к своему делу</string>
     <string name="permission_dialog_title">Для использования функции блокировки приложений требуется разрешение на доступность.</string>
@@ -156,8 +158,9 @@
 
     <string name="parent_mode_setup_title">Родительский режим</string>
     <string name="parent_mode_setup_headline">Договоритесь о правилах, прежде чем отдать телефон</string>
-    <string name="parent_mode_setup_description">Родительский режим загружает выбранные сейчас приложения как разрешённые. Их можно изменить ниже.</string>
-    <string name="parent_mode_setup_allowed_apps_summary">Разрешённые приложения из текущего выбора: %1$d</string>
+    <string name="parent_mode_setup_description">Выберите приложения, которыми может пользоваться ребёнок. Невыбранные приложения будут заблокированы на время родительского режима.</string>
+    <string name="parent_mode_setup_allowed_apps_summary">Откроются только выбранные приложения (%1$d). Все остальные приложения заблокированы.</string>
+    <string name="parent_mode_setup_allowed_apps_scope_notice">Если начать сейчас, будут заблокированы все приложения, кроме выбранных (%1$d).</string>
     <string name="parent_mode_setup_accessibility_summary">Parent Mode setup. Allowed time %1$d minutes. Allowed apps %2$d.</string>
     <string name="parent_mode_active_accessibility_summary">%1$s. Длительность %2$d мин. Разрешённых приложений: %3$d.</string>
     <string name="parent_mode_setup_pin_required_notice">Введите и подтвердите родительский PIN не менее 4 цифр, чтобы запустить родительский режим.</string>
@@ -168,13 +171,17 @@
     <string name="parent_mode_setup_start">Запустить родительский режим</string>
     <string name="parent_mode_setup_start_disabled">Требуется настройка PIN</string>
     <string name="parent_mode_setup_duration_label">Разрешённое время</string>
+    <string name="parent_mode_setup_duration_hours_minutes">%1$d ч %2$d мин</string>
+    <string name="cd_parent_mode_duration_picker">Выбор разрешённого времени. %1$d часов %2$d минут.</string>
+    <string name="parent_mode_guardian_sheet_title">PIN опекуна</string>
+    <string name="parent_mode_guardian_sheet_summary">%1$s · разрешённых приложений: %2$d · остальные заблокированы</string>
     <string name="parent_mode_setup_duration_minutes">%1$d мин</string>
-    <string name="parent_mode_setup_duration_custom_label">Custom minutes</string>
-    <string name="parent_mode_setup_duration_custom_helper">Type a direct duration when the presets do not fit.</string>
     <string name="parent_mode_setup_allowed_apps_label">Разрешённые приложения</string>
     <string name="parent_mode_setup_adjust_apps">Изменить в выборе приложений</string>
-    <string name="parent_mode_setup_reload_current_selection">Обновить выбор с главного экрана</string>
+    <string name="app_selection_allowed_apps_title">Выбрать разрешённые приложения</string>
+    <string name="app_selection_allowed_apps_notice">Откроются только выбранные здесь приложения. Все остальные приложения останутся заблокированными.</string>
     <string name="parent_mode_setup_apps_empty">Разрешённые приложения ещё не выбраны.</string>
+    <string name="parent_mode_setup_allowed_apps_overflow">и ещё %1$d</string>
     <string name="parent_mode_active_title">Родительский режим работает</string>
     <string name="parent_mode_expired_title">Время родительского режима истекло</string>
     <string name="parent_mode_ended_title">Родительский режим завершён</string>
@@ -183,6 +190,7 @@
     <string name="parent_mode_active_extend_ten_minutes">Продлить на 10 минут</string>
     <string name="parent_mode_active_end_now">Завершить с PIN опекуна</string>
     <string name="parent_mode_prepare_another_session">Запустить родительский режим снова</string>
+    <string name="parent_mode_expired_end_and_unlock">Завершить родительский режим и разблокировать</string>
 
     <string name="lock_history_menu_title">Посмотреть историю блокировок</string>
     <string name="lock_history_title">История блокировок</string>

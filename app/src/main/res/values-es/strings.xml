@@ -42,6 +42,8 @@
     <string name="block_screen_title">Pausa un momento: estás cumpliendo tu promesa</string>
     <string name="block_screen_message">%1$s está en pausa ahora. Cierra esta pantalla y vuelve a lo que estabas haciendo.</string>
     <string name="block_screen_routine_active_reason">Una rutina activa está protegiendo este horario. Si de verdad necesitas una excepción breve, usa el desbloqueo de emergencia.</string>
+    <string name="block_screen_parent_mode_allowed_apps_reason">Ahora solo se pueden abrir las apps acordadas. Consulta con tu tutor.</string>
+    <string name="block_screen_parent_mode_expired_reason">El tiempo acordado terminó. Consulta con tu tutor.</string>
     <string name="block_screen_first_core_action_feedback">El primer bloqueo funcionó. StopIt seguirá bloqueando las apps seleccionadas mientras StopIt esté activado.</string>
     <string name="block_screen_close">Volver a lo que estaba haciendo</string>
     <string name="permission_dialog_title">Se requiere permiso de accesibilidad</string>
@@ -155,8 +157,9 @@
 
     <string name="parent_mode_setup_title">Modo padres</string>
     <string name="parent_mode_setup_headline">Establece un acuerdo antes de entregar tu teléfono</string>
-    <string name="parent_mode_setup_description">El modo padres carga tus apps seleccionadas actualmente como apps permitidas. Puedes ajustarlas abajo.</string>
-    <string name="parent_mode_setup_allowed_apps_summary">Apps permitidas de la selección actual: %1$d</string>
+    <string name="parent_mode_setup_description">Elige las apps que puede usar tu hijo. Las apps que no elijas quedarán bloqueadas durante el modo padres.</string>
+    <string name="parent_mode_setup_allowed_apps_summary">Solo se abrirán las %1$d apps que elijas. Las demás apps quedarán bloqueadas.</string>
+    <string name="parent_mode_setup_allowed_apps_scope_notice">Si empiezas ahora, se bloquearán todas las apps excepto las %1$d que elegiste.</string>
     <string name="parent_mode_setup_accessibility_summary">Parent Mode setup. Allowed time %1$d minutes. Allowed apps %2$d.</string>
     <string name="parent_mode_active_accessibility_summary">%1$s. Duración %2$d minutos. Apps permitidas %3$d.</string>
     <string name="parent_mode_setup_pin_required_notice">Introduce y confirma un PIN de tutor de 4+ dígitos para iniciar el modo padres.</string>
@@ -167,13 +170,17 @@
     <string name="parent_mode_setup_start">Iniciar modo padres</string>
     <string name="parent_mode_setup_start_disabled">Configuración de PIN necesaria</string>
     <string name="parent_mode_setup_duration_label">Tiempo permitido</string>
+    <string name="parent_mode_setup_duration_hours_minutes">%1$d h %2$d min</string>
+    <string name="cd_parent_mode_duration_picker">Selector de tiempo permitido. %1$d horas %2$d minutos.</string>
+    <string name="parent_mode_guardian_sheet_title">PIN de tutor</string>
+    <string name="parent_mode_guardian_sheet_summary">%1$s · %2$d apps permitidas · el resto queda bloqueado</string>
     <string name="parent_mode_setup_duration_minutes">%1$d min</string>
-    <string name="parent_mode_setup_duration_custom_label">Custom minutes</string>
-    <string name="parent_mode_setup_duration_custom_helper">Type a direct duration when the presets do not fit.</string>
     <string name="parent_mode_setup_allowed_apps_label">Apps permitidas</string>
     <string name="parent_mode_setup_adjust_apps">Ajustar en el selector de apps</string>
-    <string name="parent_mode_setup_reload_current_selection">Recargar selección de Inicio</string>
+    <string name="app_selection_allowed_apps_title">Elegir apps permitidas</string>
+    <string name="app_selection_allowed_apps_notice">Solo se abrirán las apps que elijas aquí. Las demás apps quedarán bloqueadas.</string>
     <string name="parent_mode_setup_apps_empty">Aún no hay apps permitidas seleccionadas.</string>
+    <string name="parent_mode_setup_allowed_apps_overflow">y %1$d más</string>
     <string name="parent_mode_active_title">El modo padres está activo</string>
     <string name="parent_mode_expired_title">El tiempo del modo padres terminó</string>
     <string name="parent_mode_ended_title">Modo padres terminado</string>
@@ -182,6 +189,7 @@
     <string name="parent_mode_active_extend_ten_minutes">Ampliar 10 minutos</string>
     <string name="parent_mode_active_end_now">Terminar con PIN de tutor</string>
     <string name="parent_mode_prepare_another_session">Iniciar otro modo parental</string>
+    <string name="parent_mode_expired_end_and_unlock">Terminar el modo padres y desbloquear</string>
 
     <string name="lock_history_menu_title">Ver historial de bloqueo</string>
     <string name="lock_history_title">Historial de bloqueo</string>

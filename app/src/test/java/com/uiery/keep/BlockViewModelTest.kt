@@ -28,6 +28,9 @@ import com.uiery.keep.data.lockhistory.LockHistoryRepository
 import com.uiery.keep.feature.review.FakeDataStore
 import com.uiery.keep.feature.review.FakeEmergencyUnlockDao
 import com.uiery.keep.data.repeatblock.RepeatBlockRoutineSuggestionStore
+import com.uiery.keep.lockscreen.LockScreenEntry
+import com.uiery.keep.domain.parentmode.ParentModeBlockReason
+import com.uiery.keep.domain.parentmode.ParentModeBlockReasonSource
 import com.uiery.keep.domain.repeatblock.AppCategoryResolver
 import com.uiery.keep.model.RoutineModel
 import com.uiery.keep.service.EmergencyUnlockCoordinator
@@ -505,6 +508,7 @@ class BlockViewModelTest {
         lockHistoryRepository: LockHistoryRepository = LockHistoryRepository(LockHistoryDaoWithSessions(emptyList())),
         routineRepository: RoutineRepository = EmptyRoutineRepository(),
         repeatBlockSuggestionStore: RepeatBlockRoutineSuggestionStore = RepeatBlockRoutineSuggestionStore(dataStore),
+        parentModeBlockReason: ParentModeBlockReason? = null,
     ): BlockViewModel =
         BlockViewModel(
             blockingStateStore = BlockingStateStore(dataStore),
@@ -524,7 +528,57 @@ class BlockViewModelTest {
             routineRepository = routineRepository,
             repeatBlockSuggestionStore = repeatBlockSuggestionStore,
             appCategoryResolver = AppCategoryResolver.FromPackageName,
+            parentModeBlockReasonSource = ParentModeBlockReasonSource { parentModeBlockReason },
         )
+
+    /**
+     * The block screen is the only place a child learns why the phone stopped, and the two parent
+     * mode reasons are not interchangeable: "this app is not on the list" and "the time is over"
+     * send them to their parent with different questions.
+     */
+    @Test
+    fun parentModeBlockCarriesTheReasonIntoTheBlockScreenState() = runBlocking {
+        val viewModel = createViewModel(
+            dataStore = FakeDataStore(),
+            analytics = BlockRecordingKeepAnalytics(),
+            parentModeBlockReason = ParentModeBlockReason.TimeExpired,
+        )
+
+        viewModel.syncParentModeBlockReason(parentModeEntry())
+        awaitUntil { viewModel.container.stateFlow.value.parentModeBlockReason != null }
+
+        assertEquals(
+            ParentModeBlockReason.TimeExpired,
+            viewModel.container.stateFlow.value.parentModeBlockReason,
+        )
+    }
+
+    @Test
+    fun nonParentModeBlockCarriesNoParentModeReason() = runBlocking {
+        val viewModel = createViewModel(
+            dataStore = FakeDataStore(),
+            analytics = BlockRecordingKeepAnalytics(),
+            parentModeBlockReason = ParentModeBlockReason.TimeExpired,
+        )
+
+        viewModel.syncParentModeBlockReason(
+            LockScreenEntry.fromBlockActivity(
+                packageName = "com.example.app",
+                blockSource = AnalyticsBlockSource.ROUTINE,
+                routineId = "1",
+                goalLockId = null,
+            ),
+        )
+
+        assertNull(viewModel.container.stateFlow.value.parentModeBlockReason)
+    }
+
+    private fun parentModeEntry() = LockScreenEntry.fromBlockActivity(
+        packageName = "com.example.app",
+        blockSource = AnalyticsBlockSource.PARENT_MODE,
+        routineId = null,
+        goalLockId = null,
+    )
 
     private fun ordinaryBlockAnalyticsCoordinator(
         dataStore: FakeDataStore,

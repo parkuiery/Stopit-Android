@@ -45,6 +45,7 @@ import com.uiery.keep.analytics.KeepAnalyticsScreen
 import com.uiery.keep.analytics.TrackedBannerAd
 import com.uiery.keep.analytics.toMetadata
 import com.uiery.keep.lockscreen.LockScreenEntry
+import com.uiery.keep.domain.parentmode.ParentModeBlockReason
 import com.uiery.keep.lockscreen.LockScreenMode
 import com.uiery.keep.domain.repeatblock.RepeatBlockRoutineSuggestion
 import com.uiery.keep.service.emergencyUnlockActionUiState
@@ -88,6 +89,7 @@ fun BlockScreen(
 
     LaunchedEffect(lockScreenEntry) {
         viewModel.syncManualTimedLockReentry(lockScreenEntry)
+        viewModel.syncParentModeBlockReason(lockScreenEntry)
         viewModel.trackBlockShown(lockScreenEntry)
     }
 
@@ -253,6 +255,31 @@ internal fun BlockScreenContent(
                             .background(KeepTheme.colors.onSecondary)
                             .padding(horizontal = 14.dp, vertical = 10.dp),
                         text = stringResource(id = R.string.block_screen_routine_active_reason),
+                        textAlign = TextAlign.Center,
+                        color = KeepTheme.colors.surfaceVariant,
+                        fontSize = 13.sp,
+                        lineHeight = 18.sp,
+                    )
+                }
+                // Whoever is looking at this did not set the session up and has no other way to
+                // find out why the phone stopped, so the reason is said plainly and without blame.
+                uiState.parentModeBlockReason?.let { reason ->
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Text(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(14.dp))
+                            .background(KeepTheme.colors.onSecondary)
+                            .padding(horizontal = 14.dp, vertical = 10.dp)
+                            .testTag("block_screen_parent_mode_reason"),
+                        text = stringResource(
+                            id = when (reason) {
+                                ParentModeBlockReason.AllowedAppsOnly ->
+                                    R.string.block_screen_parent_mode_allowed_apps_reason
+                                ParentModeBlockReason.TimeExpired ->
+                                    R.string.block_screen_parent_mode_expired_reason
+                            },
+                        ),
                         textAlign = TextAlign.Center,
                         color = KeepTheme.colors.surfaceVariant,
                         fontSize = 13.sp,

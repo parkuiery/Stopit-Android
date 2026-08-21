@@ -78,6 +78,17 @@ internal fun resolveForegroundBlockRequest(
     if (isCallInProgress && BlockExemptPackagePolicy.isExempt(packageName, prefs.exemptPackages.dialerPackages)) {
         return null
     }
+    val nowMillis = now.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli()
+    // Parent mode is the one lock the person holding the phone did not agree to, so placing a call
+    // cannot depend on the parent having thought to put the dialer on the allowlist. The
+    // self-control locks keep blocking outgoing calls above — there the blocker and the caller are
+    // the same person, and that trade is theirs to make. It is not theirs to make for a child.
+    if (
+        ParentModeRuntimePolicy.blockReason(session = parentModeSession, nowMillis = nowMillis) != null &&
+        BlockExemptPackagePolicy.isExempt(packageName, prefs.exemptPackages.dialerPackages)
+    ) {
+        return null
+    }
     if (parentModeSession != null && packageName in parentControlPackages) return null
 
     val isLockTime = ManualLockTimePolicy.isActiveAt(
@@ -104,7 +115,6 @@ internal fun resolveForegroundBlockRequest(
         )
     }
     val isShouldGoalLockBlock = blockingGoalLock != null
-    val nowMillis = now.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli()
     val isShouldParentModeBlock = parentModeSession?.let { session ->
         ParentModeRuntimePolicy.shouldBlockPackage(
             session = session,

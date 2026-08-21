@@ -8,6 +8,11 @@ import com.uiery.keep.domain.parentmode.ParentModeRuntimePolicy
 import com.uiery.keep.domain.parentmode.ParentModeSession
 import com.uiery.keep.domain.parentmode.ParentModeSessionState
 
+internal enum class ParentModeFinishedAction {
+    EndAndUnlock,
+    StartAnother,
+}
+
 internal enum class ParentModePinState {
     NotConfigured,
     Verified,
@@ -121,6 +126,22 @@ internal object ParentModePolicy {
         packageName = packageName,
         nowMillis = nowMillis,
     )
+
+    /**
+     * What the button under a finished session actually does for the user standing in front of it.
+     *
+     * [ParentModeSessionState.Expired] still has every app locked, so that button is the unlock and
+     * has to be named as one. The other finished states lock nothing, so there it only clears the
+     * screen for another setup.
+     */
+    fun finishedSessionAction(state: ParentModeSessionState): ParentModeFinishedAction = when (state) {
+        ParentModeSessionState.Expired -> ParentModeFinishedAction.EndAndUnlock
+        ParentModeSessionState.Setup,
+        ParentModeSessionState.Active,
+        ParentModeSessionState.UnlockedByPin,
+        ParentModeSessionState.Cancelled,
+        -> ParentModeFinishedAction.StartAnother
+    }
 
     fun requestParentAction(
         session: ParentModeSession,
