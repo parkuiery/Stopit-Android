@@ -10,6 +10,7 @@ import com.uiery.keep.feature.review.FakeDataStore
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -80,7 +81,7 @@ class ParentModeSetupViewModelTest {
                 allowedApps = setOf("com.video.app"),
                 state = ParentModeSessionState.Active,
             ),
-            store.read(),
+            storedSessionWithoutPin(store),
         )
     }
 
@@ -107,7 +108,7 @@ class ParentModeSetupViewModelTest {
         val viewModel = createViewModel(sessionStore = store)
         viewModel.setAllowedApps(setOf("com.video.app"))
 
-        viewModel.startParentMode(pinState = ParentModePinState.NotConfigured)
+        viewModel.startParentMode(guardianPin = "", guardianPinConfirmation = "")
         awaitUntil { viewModel.state.value.setupIssues.isNotEmpty() }
 
         assertEquals(setOf(ParentModeSetupIssue.PinNotVerified), viewModel.state.value.setupIssues)
@@ -124,7 +125,7 @@ class ParentModeSetupViewModelTest {
         viewModel.setDurationMinutes(20)
         viewModel.setAllowedApps(setOf("com.video.app", "com.kids.app"))
 
-        viewModel.startParentMode(pinState = ParentModePinState.Verified)
+        viewModel.startParentMode(guardianPin = "1234", guardianPinConfirmation = "1234")
         awaitUntil { viewModel.sideEffect.value == ParentModeSetupSideEffect.Started }
 
         assertEquals(
@@ -135,7 +136,7 @@ class ParentModeSetupViewModelTest {
                 allowedApps = setOf("com.video.app", "com.kids.app"),
                 state = ParentModeSessionState.Active,
             ),
-            store.read(),
+            storedSessionWithoutPin(store),
         )
         assertEquals(ParentModeSetupSideEffect.Started, viewModel.sideEffect.value)
     }
@@ -173,7 +174,7 @@ class ParentModeSetupViewModelTest {
                 allowedApps = setOf("com.video.app"),
                 state = ParentModeSessionState.Active,
             ),
-            store.read(),
+            storedSessionWithoutPin(store),
         )
     }
 
@@ -272,6 +273,29 @@ class ParentModeSetupViewModelTest {
         assertEquals("", viewModel.state.value.guardianPin)
     }
 
+    /**
+     * Setting a PIN needs two boxes because there is nothing yet to check it against. Extending and
+     * ending have the stored hash, so a second box there would only compare the entry with itself —
+     * which is precisely what let any four digits, typed twice, end someone else's session.
+     */
+    @Test
+    fun onlySettingThePinAsksForAConfirmation() {
+        assertTrue(ParentModeGuardianAction.Start.confirmsNewPin)
+        assertFalse(ParentModeGuardianAction.Extend.confirmsNewPin)
+        assertFalse(ParentModeGuardianAction.End.confirmsNewPin)
+
+        val singleEntry = ParentModeSetupUiState(
+            allowedApps = setOf("com.video.app"),
+            guardianPin = "1234",
+        )
+        assertFalse(singleEntry.canConfirmGuardianAction(ParentModeGuardianAction.Start))
+        assertTrue(singleEntry.canConfirmGuardianAction(ParentModeGuardianAction.Extend))
+        assertTrue(singleEntry.canConfirmGuardianAction(ParentModeGuardianAction.End))
+
+        val tooShort = singleEntry.copy(guardianPin = "123")
+        assertFalse(tooShort.canConfirmGuardianAction(ParentModeGuardianAction.End))
+    }
+
     @Test
     fun theGuardianSheetRoutesExtendAndEndThroughTheSamePinGate() = runBlocking {
         val store = ParentModeSessionStore(FakeDataStore())
@@ -288,7 +312,6 @@ class ParentModeSetupViewModelTest {
         now = 60_000L
         viewModel.requestGuardianAction(ParentModeGuardianAction.Extend)
         viewModel.updateGuardianPin("1234")
-        viewModel.updateGuardianPinConfirmation("1234")
         viewModel.confirmPendingGuardianAction()
         awaitUntil { viewModel.sideEffect.value == ParentModeSetupSideEffect.Extended }
 
@@ -297,7 +320,6 @@ class ParentModeSetupViewModelTest {
 
         viewModel.requestGuardianAction(ParentModeGuardianAction.End)
         viewModel.updateGuardianPin("1234")
-        viewModel.updateGuardianPinConfirmation("1234")
         viewModel.confirmPendingGuardianAction()
         awaitUntil { viewModel.sideEffect.value == ParentModeSetupSideEffect.Ended }
 
@@ -324,11 +346,11 @@ class ParentModeSetupViewModelTest {
         viewModel.refreshActiveSessionStatus()
         awaitUntil { viewModel.state.value.activeSession != null }
 
-        assertEquals(expectedSession, viewModel.state.value.activeSession)
+        assertEquals(expectedSession, viewModel.state.value.activeSession?.copy(guardianPin = null))
     }
 
     @Test
-    fun activeSessionControlsRequireFreshVerifiedPinBeforeExtending() = runBlocking {
+    fun activeSessionControlsRequireThePinTheSessionStartedWithBeforeExtending() = runBlocking {
         var now = 1_000L
         val store = ParentModeSessionStore(FakeDataStore())
         val viewModel = createViewModel(
@@ -351,8 +373,17 @@ class ParentModeSetupViewModelTest {
         assertEquals(ParentModeSetupSideEffect.Started, viewModel.sideEffect.value)
         assertEquals(601_000L, store.read()?.expiresAtMillis)
 
+        // A different PIN, typed as confidently as the real one. This is the case the gate exists
+        // for, and the one it used to wave through: two boxes can only ever agree with each other.
         viewModel.updateGuardianPin("4321")
-        viewModel.updateGuardianPinConfirmation("4321")
+        viewModel.extendActiveSessionByTenMinutes()
+        awaitUntil { viewModel.state.value.guardianPinRejected }
+
+        assertEquals(ParentModeSetupSideEffect.Started, viewModel.sideEffect.value)
+        assertEquals(601_000L, store.read()?.expiresAtMillis)
+        assertEquals("", viewModel.state.value.guardianPin)
+
+        viewModel.updateGuardianPin("1234")
         viewModel.extendActiveSessionByTenMinutes()
         awaitUntil { viewModel.sideEffect.value == ParentModeSetupSideEffect.Extended }
 
@@ -363,8 +394,8 @@ class ParentModeSetupViewModelTest {
             allowedApps = setOf("com.video.app"),
             state = ParentModeSessionState.Active,
         )
-        assertEquals(expectedSession, viewModel.state.value.activeSession)
-        assertEquals(expectedSession, store.read())
+        assertEquals(expectedSession, viewModel.state.value.activeSession?.copy(guardianPin = null))
+        assertEquals(expectedSession, storedSessionWithoutPin(store))
     }
 
     @Test
@@ -383,7 +414,6 @@ class ParentModeSetupViewModelTest {
 
         now = 300_000L
         viewModel.updateGuardianPin("1234")
-        viewModel.updateGuardianPinConfirmation("1234")
         viewModel.endActiveSessionFromSetupInput()
         awaitUntil { viewModel.sideEffect.value == ParentModeSetupSideEffect.Ended }
 
@@ -394,8 +424,8 @@ class ParentModeSetupViewModelTest {
             allowedApps = setOf("com.video.app"),
             state = ParentModeSessionState.UnlockedByPin,
         )
-        assertEquals(expectedSession, viewModel.state.value.activeSession)
-        assertEquals(expectedSession, store.read())
+        assertEquals(expectedSession, viewModel.state.value.activeSession?.copy(guardianPin = null))
+        assertEquals(expectedSession, storedSessionWithoutPin(store))
     }
 
     @Test
@@ -424,8 +454,8 @@ class ParentModeSetupViewModelTest {
             allowedApps = setOf("com.video.app"),
             state = ParentModeSessionState.Expired,
         )
-        assertEquals(expectedSession, viewModel.state.value.activeSession)
-        assertEquals(expectedSession, store.read())
+        assertEquals(expectedSession, viewModel.state.value.activeSession?.copy(guardianPin = null))
+        assertEquals(expectedSession, storedSessionWithoutPin(store))
     }
 
     @Test
@@ -454,8 +484,8 @@ class ParentModeSetupViewModelTest {
             allowedApps = setOf("com.video.app"),
             state = ParentModeSessionState.Expired,
         )
-        assertEquals(expectedSession, viewModel.state.value.activeSession)
-        assertEquals(expectedSession, store.read())
+        assertEquals(expectedSession, viewModel.state.value.activeSession?.copy(guardianPin = null))
+        assertEquals(expectedSession, storedSessionWithoutPin(store))
     }
 
     @Test
@@ -484,8 +514,8 @@ class ParentModeSetupViewModelTest {
             allowedApps = setOf("com.video.app"),
             state = ParentModeSessionState.Expired,
         )
-        assertEquals(expectedSession, viewModel.state.value.activeSession)
-        assertEquals(expectedSession, store.read())
+        assertEquals(expectedSession, viewModel.state.value.activeSession?.copy(guardianPin = null))
+        assertEquals(expectedSession, storedSessionWithoutPin(store))
     }
 
     @Test
@@ -516,6 +546,10 @@ class ParentModeSetupViewModelTest {
         assertEquals("", viewModel.state.value.guardianPinConfirmation)
         assertTrue(viewModel.state.value.canAttemptStart.not())
     }
+
+    private suspend fun storedSessionWithoutPin(
+        store: ParentModeSessionStore,
+    ): ParentModeSession? = store.read()?.copy(guardianPin = null)
 
     private fun createViewModel(
         sessionStore: ParentModeSessionStore = ParentModeSessionStore(FakeDataStore()),

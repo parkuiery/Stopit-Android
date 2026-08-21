@@ -64,6 +64,10 @@ object PreferencesKey {
     val PARENT_MODE_DURATION_MINUTES = intPreferencesKey("parent_mode_duration_minutes")
     val PARENT_MODE_ALLOWED_APPS = stringSetPreferencesKey("parent_mode_allowed_apps")
     val PARENT_MODE_STATE = stringPreferencesKey("parent_mode_state")
+    // 원문이 아니라 salt+hash 만 남는다. 부모 모드는 폰을 든 사람이 세션을 만든 사람이
+    // 아닌 유일한 잠금이라, 다시 타이핑할 수 있는 값이 기기에 남으면 게이트가 무의미하다.
+    val PARENT_MODE_PIN_HASH = stringPreferencesKey("parent_mode_pin_hash")
+    val PARENT_MODE_PIN_SALT = stringPreferencesKey("parent_mode_pin_salt")
     val HAS_CHECKED_INSTALL_REFERRER_ATTRIBUTION = booleanPreferencesKey("has_checked_install_referrer_attribution")
     val USAGE_INSIGHT_DISMISSED = stringPreferencesKey("usage_insight_dismissed")
     val USAGE_INSIGHT_PERMISSION_PROMPTS = intPreferencesKey("usage_insight_permission_prompts")

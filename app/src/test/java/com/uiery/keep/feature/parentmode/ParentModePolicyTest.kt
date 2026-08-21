@@ -3,10 +3,13 @@ package com.uiery.keep.feature.parentmode
 import com.uiery.keep.analytics.AnalyticsParentModeAllowedAppCountBucket
 import com.uiery.keep.analytics.AnalyticsParentModeDurationBucket
 import com.uiery.keep.analytics.AnalyticsParentModeExtensionMinutesBucket
+import com.uiery.keep.domain.parentmode.ParentModeGuardianPinVerdict
 import com.uiery.keep.domain.parentmode.ParentModeSession
 import com.uiery.keep.domain.parentmode.ParentModeSessionState
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotEquals
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -63,6 +66,7 @@ class ParentModePolicyTest {
             startedAtMillis = 1_000L,
             durationMinutes = 10,
             allowedApps = setOf("com.video.app", "com.learning.app"),
+            guardianPin = ParentModePolicy.digestGuardianPin("1234"),
         )
 
         assertEquals(1_000L, session.startedAtMillis)
@@ -70,6 +74,9 @@ class ParentModePolicyTest {
         assertEquals(10, session.durationMinutes)
         assertEquals(setOf("com.video.app", "com.learning.app"), session.allowedApps)
         assertEquals(ParentModeSessionState.Active, session.state)
+        assertNotNull(session.guardianPin)
+        assertNotEquals("1234", session.guardianPin?.hash)
+        assertNotEquals("1234", session.guardianPin?.salt)
     }
 
     @Test
@@ -114,7 +121,7 @@ class ParentModePolicyTest {
         val denied = ParentModePolicy.requestParentAction(
             session = activeSession,
             action = ParentModeParentAction.EndNow,
-            pinState = ParentModePinState.Failed,
+            pinVerdict = ParentModeGuardianPinVerdict.Mismatched,
             nowMillis = 2_000L,
         )
         assertEquals(ParentModeActionDecision.PinRequired, denied)
@@ -122,7 +129,7 @@ class ParentModePolicyTest {
         val allowed = ParentModePolicy.requestParentAction(
             session = activeSession,
             action = ParentModeParentAction.Extend(extensionMinutes = 10),
-            pinState = ParentModePinState.Verified,
+            pinVerdict = ParentModeGuardianPinVerdict.Matched,
             nowMillis = 2_000L,
         )
         assertEquals(
@@ -147,13 +154,13 @@ class ParentModePolicyTest {
         val zeroMinuteExtension = ParentModePolicy.requestParentAction(
             session = activeSession,
             action = ParentModeParentAction.Extend(extensionMinutes = 0),
-            pinState = ParentModePinState.Verified,
+            pinVerdict = ParentModeGuardianPinVerdict.Matched,
             nowMillis = 2_000L,
         )
         val negativeMinuteExtension = ParentModePolicy.requestParentAction(
             session = activeSession,
             action = ParentModeParentAction.Extend(extensionMinutes = -5),
-            pinState = ParentModePinState.Verified,
+            pinVerdict = ParentModeGuardianPinVerdict.Matched,
             nowMillis = 2_000L,
         )
 
@@ -174,13 +181,13 @@ class ParentModePolicyTest {
         val extendDecision = ParentModePolicy.requestParentAction(
             session = expiredByClockSession,
             action = ParentModeParentAction.Extend(extensionMinutes = 10),
-            pinState = ParentModePinState.Verified,
+            pinVerdict = ParentModeGuardianPinVerdict.Matched,
             nowMillis = 61_000L,
         )
         val endDecision = ParentModePolicy.requestParentAction(
             session = expiredByClockSession,
             action = ParentModeParentAction.EndNow,
-            pinState = ParentModePinState.Verified,
+            pinVerdict = ParentModeGuardianPinVerdict.Matched,
             nowMillis = 61_000L,
         )
 
@@ -281,4 +288,74 @@ class ParentModePolicyTest {
         assertEquals(emptyList<String>(), preview.visible)
         assertEquals(0, preview.hiddenCount)
     }
+
+    @Test
+    fun startPinStateComparesTheTwoBoxesAndNothingElse() {
+        assertEquals(ParentModePinState.Verified, ParentModePolicy.setupPinState("1234", "1234"))
+        assertEquals(ParentModePinState.Failed, ParentModePolicy.setupPinState("1234", "9999"))
+        assertEquals(ParentModePinState.NotConfigured, ParentModePolicy.setupPinState("1234", ""))
+        assertEquals(ParentModePinState.Failed, ParentModePolicy.setupPinState("123", "123"))
+    }
+
+    @Test
+    fun extendingOrEndingIsSettledAgainstTheStoredPinNotAgainstASecondBox() {
+        val session = activeSessionWithPin("1234")
+
+        assertEquals(
+            ParentModeGuardianPinVerdict.Matched,
+            ParentModePolicy.verifyGuardianPin(session = session, pinAttempt = "1234"),
+        )
+        assertEquals(
+            ParentModeGuardianPinVerdict.Mismatched,
+            ParentModePolicy.verifyGuardianPin(session = session, pinAttempt = "9999"),
+        )
+        assertEquals(
+            ParentModeActionDecision.PinRequired,
+            ParentModePolicy.requestParentAction(
+                session = session,
+                action = ParentModeParentAction.EndNow,
+                pinVerdict = ParentModePolicy.verifyGuardianPin(session = session, pinAttempt = "9999"),
+                nowMillis = 2_000L,
+            ),
+        )
+    }
+
+    @Test
+    fun theStoredPinIsASaltedHashAndNeverTheDigits() {
+        val session = activeSessionWithPin("1234")
+        val digest = requireNotNull(session.guardianPin)
+
+        assertFalse(digest.hash.contains("1234"))
+        assertFalse(digest.salt.contains("1234"))
+        assertNotEquals(digest.hash, digest.salt)
+        // Two sessions with the same PIN must not produce the same stored value.
+        assertNotEquals(digest.hash, requireNotNull(activeSessionWithPin("1234").guardianPin).hash)
+    }
+
+    @Test
+    fun aSessionStartedBeforePinsWereStoredCanStillBeEnded() {
+        val legacySession = activeSessionWithPin(null)
+
+        val verdict = ParentModePolicy.verifyGuardianPin(session = legacySession, pinAttempt = "")
+        assertEquals(ParentModeGuardianPinVerdict.NoStoredPin, verdict)
+        assertEquals(ParentModePinState.NotConfigured, ParentModePolicy.pinState(verdict))
+        assertEquals(
+            ParentModeActionDecision.End(endedAtMillis = 2_000L),
+            ParentModePolicy.requestParentAction(
+                session = legacySession,
+                action = ParentModeParentAction.EndNow,
+                pinVerdict = verdict,
+                nowMillis = 2_000L,
+            ),
+        )
+    }
+
+    private fun activeSessionWithPin(pin: String?): ParentModeSession = ParentModeSession(
+        startedAtMillis = 1_000L,
+        expiresAtMillis = 61_000L,
+        durationMinutes = 1,
+        allowedApps = setOf("com.video.app"),
+        state = ParentModeSessionState.Active,
+        guardianPin = pin?.let(ParentModePolicy::digestGuardianPin),
+    )
 }

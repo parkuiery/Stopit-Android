@@ -166,8 +166,12 @@
     <string name="parent_mode_setup_pin_required_notice">4桁以上の保護者PINを入力して確認すると、ペアレントモードを開始できます。</string>
     <string name="parent_mode_setup_pin_label">保護者PIN</string>
     <string name="parent_mode_setup_pin_confirm_label">保護者PINを確認</string>
-    <string name="parent_mode_setup_pin_helper">4〜6桁で設定します。PINの値はセッションに保存されません。</string>
+    <string name="parent_mode_setup_pin_helper">数字4〜6桁で設定します。PINはソルト付きハッシュとしてのみ保存され、数字そのものは残りません。</string>
     <string name="parent_mode_setup_pin_mismatch">PINが一致しません。</string>
+    <string name="parent_mode_guardian_pin_recovery_notice">PINを忘れても、残り時間が終われば自動でロックが解除されます。</string>
+    <string name="parent_mode_guardian_pin_wrong">このセッションを開始したときのPINとは異なります。</string>
+    <string name="emergency_unlock_parent_mode_active">ペアレントモード中は緊急解除を使えません</string>
+    <string name="emergency_unlock_parent_mode_active_helper">このロックは今スマホを持っている人が設定したものではないため、保護者のPINか時間の終了でのみ解除されます。通話はそのまま使えます。</string>
     <string name="parent_mode_setup_start">ペアレントモードを開始</string>
     <string name="parent_mode_setup_start_disabled">PIN設定が必要です</string>
     <string name="parent_mode_setup_duration_label">許可する時間</string>
@@ -186,7 +190,7 @@
     <string name="parent_mode_expired_title">保護者モードの時間が終了しました</string>
     <string name="parent_mode_ended_title">保護者モード終了</string>
     <string name="parent_mode_active_summary">時間 %1$d分 · 許可アプリ %2$d個</string>
-    <string name="parent_mode_active_pin_notice">確認済みの保護者PINで、このセッションを延長または終了できます。</string>
+    <string name="parent_mode_active_pin_notice">このセッションを開始したときの保護者PINを入力すると、延長または終了できます。</string>
     <string name="parent_mode_active_extend_ten_minutes">10分延長</string>
     <string name="parent_mode_active_end_now">保護者PINで終了</string>
     <string name="parent_mode_prepare_another_session">もう一度ペアレントモードを開始</string>

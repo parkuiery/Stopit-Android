@@ -217,7 +217,7 @@
     <string name="parent_mode_expired_title">Parent Mode time is over</string>
     <string name="parent_mode_ended_title">Parent Mode ended</string>
     <string name="parent_mode_active_summary">Duration %1$d min · allowed apps %2$d</string>
-    <string name="parent_mode_active_pin_notice">Use the verified guardian PIN to extend or end this session.</string>
+    <string name="parent_mode_active_pin_notice">Enter the guardian PIN this session was started with to extend or end it.</string>
     <string name="parent_mode_active_remaining_label">Time remaining</string>
     <string name="parent_mode_status_active">Running</string>
     <string name="parent_mode_status_expired">Time\'s up</string>
@@ -230,8 +230,12 @@
     <string name="parent_mode_setup_pin_required_notice">Enter and confirm a 4+ digit guardian PIN to start Parent Mode.</string>
     <string name="parent_mode_setup_pin_label">Guardian PIN</string>
     <string name="parent_mode_setup_pin_confirm_label">Confirm guardian PIN</string>
-    <string name="parent_mode_setup_pin_helper">Use 4–6 digits. The PIN value is not saved in the session.</string>
+    <string name="parent_mode_setup_pin_helper">Use 4–6 digits. Only a salted hash of the PIN is stored, never the digits.</string>
     <string name="parent_mode_setup_pin_mismatch">PINs do not match.</string>
+    <string name="parent_mode_guardian_pin_recovery_notice">Forgot the PIN? The lock still opens on its own when the time runs out.</string>
+    <string name="parent_mode_guardian_pin_wrong">That is not the PIN this session started with.</string>
+    <string name="emergency_unlock_parent_mode_active">Emergency unlock is off during parent mode</string>
+    <string name="emergency_unlock_parent_mode_active_helper">This lock was not set by whoever is holding the phone, so only the guardian PIN or the end of the time opens it. Calls still go through.</string>
     <string name="parent_mode_setup_start">Start Parent Mode</string>
     <string name="parent_mode_setup_start_disabled">PIN setup required</string>
     <string name="parent_mode_setup_duration_label">Allowed time</string>

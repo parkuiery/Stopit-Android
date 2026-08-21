@@ -428,26 +428,49 @@ internal fun ParentModeGuardianPinSheet(
             keyboardType = KeyboardType.NumberPassword,
             visualTransformation = PasswordVisualTransformation(),
         )
-        Spacer(modifier = Modifier.height(10.dp))
-        SetupTextField(
-            value = state.guardianPinConfirmation,
-            onValueChange = onGuardianPinConfirmationChanged,
-            placeholder = stringResource(id = R.string.parent_mode_setup_pin_confirm_label),
-            keyboardType = KeyboardType.NumberPassword,
-            visualTransformation = PasswordVisualTransformation(),
-            isError = pinMismatch,
-        )
-        if (pinMismatch || ParentModeSetupIssue.PinNotVerified in state.setupIssues) {
+        // Only setting a PIN needs a second box. Extending and ending are settled against the hash
+        // the session stored, and asking for a confirmation there would compare the entry with
+        // itself — which is exactly how any four digits, typed twice, used to end someone's session.
+        if (action.confirmsNewPin) {
+            Spacer(modifier = Modifier.height(10.dp))
+            SetupTextField(
+                value = state.guardianPinConfirmation,
+                onValueChange = onGuardianPinConfirmationChanged,
+                placeholder = stringResource(id = R.string.parent_mode_setup_pin_confirm_label),
+                keyboardType = KeyboardType.NumberPassword,
+                visualTransformation = PasswordVisualTransformation(),
+                isError = pinMismatch,
+            )
+        }
+        val pinErrorRes = when {
+            state.guardianPinRejected -> R.string.parent_mode_guardian_pin_wrong
+            action.confirmsNewPin &&
+                (pinMismatch || ParentModeSetupIssue.PinNotVerified in state.setupIssues) ->
+                R.string.parent_mode_setup_pin_mismatch
+            else -> null
+        }
+        if (pinErrorRes != null) {
             Spacer(modifier = Modifier.height(6.dp))
             Text(
-                text = stringResource(id = R.string.parent_mode_setup_pin_mismatch),
+                modifier = Modifier.testTag("parent_mode_guardian_pin_error"),
+                text = stringResource(id = pinErrorRes),
                 color = KeepTheme.colors.error,
                 fontSize = 12.sp,
                 lineHeight = 18.sp,
             )
         }
         Spacer(modifier = Modifier.height(6.dp))
-        SetupSectionCaption(text = stringResource(id = R.string.parent_mode_setup_pin_helper))
+        if (action.confirmsNewPin) {
+            SetupSectionCaption(text = stringResource(id = R.string.parent_mode_setup_pin_helper))
+            Spacer(modifier = Modifier.height(4.dp))
+        }
+        // There is no recovery flow to send anyone to, and that is the design: any way back in for a
+        // parent who forgot the PIN is the same way in for the child. Waiting is the one route that
+        // is not, so the screen says so rather than leaving it to be discovered.
+        SetupSectionCaption(
+            modifier = Modifier.testTag("parent_mode_guardian_pin_recovery_notice"),
+            text = stringResource(id = R.string.parent_mode_guardian_pin_recovery_notice),
+        )
         Spacer(modifier = Modifier.height(20.dp))
         KeepButton(
             modifier = Modifier.fillMaxWidth(),
@@ -458,7 +481,7 @@ internal fun ParentModeGuardianPinSheet(
                     ParentModeGuardianAction.End -> R.string.parent_mode_active_end_now
                 },
             ),
-            enabled = state.pinState == ParentModePinState.Verified,
+            enabled = state.canConfirmGuardianAction(action),
             variant = if (action == ParentModeGuardianAction.End) {
                 KeepButtonVariant.CriticalSolid
             } else {

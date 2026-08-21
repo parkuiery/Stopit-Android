@@ -523,6 +523,7 @@ class BlockViewModelTest {
                     blockingStateStore = BlockingStateStore(dataStore),
                     analytics = analytics,
                 ),
+                parentModeBlockReasonSource = { null },
             ),
             lockHistoryRepository = lockHistoryRepository,
             routineRepository = routineRepository,

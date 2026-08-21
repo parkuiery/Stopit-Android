@@ -35,7 +35,10 @@ import com.uiery.keep.Picker
 import com.uiery.keep.R
 import com.uiery.keep.rememberPickerState
 
-private const val MAX_PARENT_MODE_HOURS = 12
+// 부모 모드에는 PIN 분실 복구 경로가 없다 — 만들면 그게 곧 아이의 우회로다. 남은 유일한
+// 복구는 만료를 기다리는 것이고, 그래서 이 상한이 곧 최악의 대기 시간이다. 프리셋이 60분에서
+// 끝나는 것과 달리 휠은 12시간까지 열려 있었는데, 그건 실사용 범위가 아니라 휠의 부산물이었다.
+private const val MAX_PARENT_MODE_HOURS = 4
 private val HOUR_VALUES = (0..MAX_PARENT_MODE_HOURS).map(Int::toString)
 private val MINUTE_VALUES = (0..59).map(Int::toString)
 

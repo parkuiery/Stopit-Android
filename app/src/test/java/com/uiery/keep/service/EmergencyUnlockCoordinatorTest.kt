@@ -15,6 +15,7 @@ import com.uiery.keep.datastore.BlockingStateStore
 import com.uiery.keep.datastore.PendingEmergencyUnlockCompletion
 import com.uiery.keep.datastore.EmergencyUnlockSettingsStore
 import com.uiery.keep.datastore.PreferencesKey
+import com.uiery.keep.domain.parentmode.ParentModeBlockReason
 import com.uiery.keep.feature.review.FakeDataStore
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -47,6 +48,7 @@ class EmergencyUnlockCoordinatorTest {
                 blockingStateStore = BlockingStateStore(dataStore),
                 analytics = analytics,
             ),
+            parentModeBlockReasonSource = { null },
         )
 
         val availability = coordinator.readAvailability()
@@ -305,6 +307,7 @@ class EmergencyUnlockCoordinatorTest {
                 blockingStateStore = BlockingStateStore(dataStore),
                 analytics = analytics,
             ),
+            parentModeBlockReasonSource = { null },
         )
 
         val result =
@@ -329,6 +332,70 @@ class EmergencyUnlockCoordinatorTest {
         assertNull(snapshot[PreferencesKey.EMERGENCY_UNLOCK_EXPIRE_TIME])
     }
 
+    /**
+     * Parent mode is the one lock the person holding the phone did not agree to, so the escape hatch
+     * they built for themselves does not reach it. Reported ahead of the settings reasons: turning
+     * emergency unlock on, or raising the daily limit, must not read as a way through it.
+     */
+    @Test
+    fun activeParentModeClosesEmergencyUnlockAheadOfEverySettingsReason() = runBlocking {
+        val dataStore =
+            FakeDataStore.withPrefs {
+                this[PreferencesKey.EMERGENCY_UNLOCK_ENABLED] = true
+                this[PreferencesKey.EMERGENCY_UNLOCK_DAILY_LIMIT] = 3
+            }
+        val coordinator = createCoordinator(
+            dataStore = dataStore,
+            dao = RecordingEmergencyUnlockDao(todayCount = 0),
+            parentModeBlockReason = ParentModeBlockReason.AllowedAppsOnly,
+        )
+
+        val availability = coordinator.readAvailability()
+
+        assertEquals(EmergencyUnlockAvailabilityReason.ParentModeActive, availability.reason)
+        assertFalse(emergencyUnlockActionUiState(availability.reason).enabled)
+        // The stored setting is untouched — parent mode does not turn the feature off.
+        assertTrue(availability.enabled)
+    }
+
+    /** Re-checked at completion: a sheet opened a moment earlier must not carry a window into it. */
+    @Test
+    fun anUnlockRequestIsRejectedOnceParentModeHasStarted() = runBlocking {
+        val dataStore =
+            FakeDataStore.withPrefs {
+                this[PreferencesKey.EMERGENCY_UNLOCK_ENABLED] = true
+                this[PreferencesKey.EMERGENCY_UNLOCK_DAILY_LIMIT] = 3
+                this[PreferencesKey.EMERGENCY_UNLOCK_DURATION_OPTIONS] = setOf("3")
+                this[PreferencesKey.EMERGENCY_UNLOCK_REASON_REQUIRED] = false
+            }
+        val dao = RecordingEmergencyUnlockDao(todayCount = 0)
+        val analytics = RecordingEmergencyUnlockAnalytics()
+        val coordinator = createCoordinator(
+            dataStore = dataStore,
+            dao = dao,
+            analytics = analytics,
+            parentModeBlockReason = ParentModeBlockReason.AllowedAppsOnly,
+        )
+        EmergencyUnlockState.current = EmergencyUnlockData.EMPTY
+
+        val result = coordinator.completeUnlock(
+            source = AnalyticsSource.BLOCK_SCREEN,
+            reason = EMERGENCY_UNLOCK_REASON_NOT_REQUIRED,
+            customReason = null,
+            apps = setOf("com.video.app"),
+            durationMinutes = 3,
+            nowMillis = 1_000L,
+        )
+
+        assertEquals(
+            EmergencyUnlockAvailabilityReason.ParentModeActive,
+            (result as EmergencyUnlockRequestResult.Rejected).availability.reason,
+        )
+        // Nothing was recorded and no window was opened.
+        assertTrue(dao.inserted.isEmpty())
+        assertEquals(EmergencyUnlockData.EMPTY, EmergencyUnlockState.current)
+    }
+
     private fun createCoordinator(
         dataStore: DataStore<Preferences>,
         todayCount: Int,
@@ -344,6 +411,7 @@ class EmergencyUnlockCoordinatorTest {
         dataStore: DataStore<Preferences>,
         dao: RecordingEmergencyUnlockDao,
         analytics: RecordingEmergencyUnlockAnalytics = RecordingEmergencyUnlockAnalytics(),
+        parentModeBlockReason: ParentModeBlockReason? = null,
     ): EmergencyUnlockCoordinator =
         EmergencyUnlockCoordinator(
             settingsStore = EmergencyUnlockSettingsStore(dataStore),
@@ -354,6 +422,7 @@ class EmergencyUnlockCoordinatorTest {
                 blockingStateStore = BlockingStateStore(dataStore),
                 analytics = analytics,
             ),
+            parentModeBlockReasonSource = { parentModeBlockReason },
         )
 
     private suspend fun completeUnlock(source: String): CompletedUnlockFixture {
@@ -375,6 +444,7 @@ class EmergencyUnlockCoordinatorTest {
                 blockingStateStore = BlockingStateStore(dataStore),
                 analytics = analytics,
             ),
+            parentModeBlockReasonSource = { null },
         )
         EmergencyUnlockState.current = EmergencyUnlockData.EMPTY
 

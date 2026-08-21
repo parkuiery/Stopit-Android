@@ -166,8 +166,12 @@
     <string name="parent_mode_setup_pin_required_notice">Введите и подтвердите родительский PIN не менее 4 цифр, чтобы запустить родительский режим.</string>
     <string name="parent_mode_setup_pin_label">Родительский PIN</string>
     <string name="parent_mode_setup_pin_confirm_label">Подтвердите родительский PIN</string>
-    <string name="parent_mode_setup_pin_helper">Используйте 4–6 цифр. Значение PIN не сохраняется в сессии.</string>
+    <string name="parent_mode_setup_pin_helper">От 4 до 6 цифр. Сохраняется только хеш PIN с солью, но не сами цифры.</string>
     <string name="parent_mode_setup_pin_mismatch">PIN-коды не совпадают.</string>
+    <string name="parent_mode_guardian_pin_recovery_notice">Забыли PIN? Блокировка всё равно снимется, когда закончится время.</string>
+    <string name="parent_mode_guardian_pin_wrong">Это не тот PIN, с которым началась эта сессия.</string>
+    <string name="emergency_unlock_parent_mode_active">Экстренная разблокировка недоступна в родительском режиме</string>
+    <string name="emergency_unlock_parent_mode_active_helper">Эту блокировку установил не тот, кто держит телефон, поэтому снять её можно только родительским PIN или по истечении времени. Звонки по-прежнему работают.</string>
     <string name="parent_mode_setup_start">Запустить родительский режим</string>
     <string name="parent_mode_setup_start_disabled">Требуется настройка PIN</string>
     <string name="parent_mode_setup_duration_label">Разрешённое время</string>
@@ -186,7 +190,7 @@
     <string name="parent_mode_expired_title">Время родительского режима истекло</string>
     <string name="parent_mode_ended_title">Родительский режим завершён</string>
     <string name="parent_mode_active_summary">Длительность %1$d мин · разрешённых приложений: %2$d</string>
-    <string name="parent_mode_active_pin_notice">Используйте подтверждённый PIN опекуна, чтобы продлить или завершить этот сеанс.</string>
+    <string name="parent_mode_active_pin_notice">Введите родительский PIN, с которым началась эта сессия, чтобы продлить или завершить её.</string>
     <string name="parent_mode_active_extend_ten_minutes">Продлить на 10 минут</string>
     <string name="parent_mode_active_end_now">Завершить с PIN опекуна</string>
     <string name="parent_mode_prepare_another_session">Запустить родительский режим снова</string>

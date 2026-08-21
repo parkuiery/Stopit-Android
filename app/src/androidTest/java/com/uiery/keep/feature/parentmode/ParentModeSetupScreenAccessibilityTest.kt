@@ -268,4 +268,65 @@ class ParentModeSetupScreenAccessibilityTest {
 
         assertEquals(1, confirmed)
     }
+
+    /**
+     * The confirmation box belongs to setting a PIN, not to proving one. Extending or ending is
+     * settled against the hash the session stored, so a second box there would compare the entry
+     * with itself — the shape that let any four digits, typed twice, end someone else's session.
+     */
+    @Test
+    fun guardianPinSheetDropsTheConfirmationFieldWhenItIsCheckingAStoredPin() {
+        composeRule.setContent {
+            KeepTheme {
+                ParentModeGuardianPinSheet(
+                    state = ParentModeSetupUiState(
+                        durationMinutes = 45,
+                        allowedApps = setOf("com.example.video"),
+                        guardianPin = "1234",
+                    ),
+                    action = ParentModeGuardianAction.End,
+                    pinMismatch = false,
+                    onGuardianPinChanged = {},
+                    onGuardianPinConfirmationChanged = {},
+                    onConfirm = {},
+                )
+            }
+        }
+
+        composeRule.onNodeWithText(context.getString(R.string.parent_mode_setup_pin_confirm_label))
+            .assertDoesNotExist()
+        composeRule.onNodeWithTag("parent_mode_guardian_pin_recovery_notice").assertIsDisplayed()
+        composeRule.onNodeWithText(context.getString(R.string.parent_mode_active_end_now))
+            .assertIsDisplayed()
+            .assertIsEnabled()
+    }
+
+    @Test
+    fun guardianPinSheetSaysThePinWasWrongRatherThanThatTheBoxesDisagree() {
+        composeRule.setContent {
+            KeepTheme {
+                ParentModeGuardianPinSheet(
+                    state = ParentModeSetupUiState(
+                        durationMinutes = 45,
+                        allowedApps = setOf("com.example.video"),
+                        guardianPin = "",
+                        guardianPinRejected = true,
+                    ),
+                    action = ParentModeGuardianAction.End,
+                    pinMismatch = false,
+                    onGuardianPinChanged = {},
+                    onGuardianPinConfirmationChanged = {},
+                    onConfirm = {},
+                )
+            }
+        }
+
+        composeRule.onNodeWithText(context.getString(R.string.parent_mode_guardian_pin_wrong))
+            .assertIsDisplayed()
+        composeRule.onNodeWithText(context.getString(R.string.parent_mode_setup_pin_mismatch))
+            .assertDoesNotExist()
+        // A rejected PIN empties the box, so the action has nothing to fire with until it is retyped.
+        composeRule.onNodeWithText(context.getString(R.string.parent_mode_active_end_now))
+            .assertIsNotEnabled()
+    }
 }

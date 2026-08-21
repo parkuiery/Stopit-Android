@@ -12,12 +12,22 @@ internal class ParentModeSessionController @Inject constructor(
     private val store: ParentModeSessionStore,
     private val analytics: KeepAnalytics,
 ) {
+    /**
+     * Takes the typed PIN rather than a verdict about it, because this is the one call that has to
+     * turn it into something storable. The plaintext stops here: only the salted digest reaches
+     * [ParentModeSessionStore], and nothing carries it into analytics.
+     */
     suspend fun start(
         durationMinutes: Int,
         allowedApps: Set<String>,
-        pinState: ParentModePinState,
+        guardianPin: String,
+        guardianPinConfirmation: String,
         nowMillis: Long,
     ): ParentModeSessionControllerResult {
+        val pinState = ParentModePolicy.setupPinState(
+            pin = guardianPin,
+            confirmation = guardianPinConfirmation,
+        )
         val validation = ParentModePolicy.validateSetup(
             durationMinutes = durationMinutes,
             allowedAppCount = allowedApps.size,
@@ -31,6 +41,7 @@ internal class ParentModeSessionController @Inject constructor(
             startedAtMillis = nowMillis,
             durationMinutes = durationMinutes,
             allowedApps = allowedApps,
+            guardianPin = ParentModePolicy.digestGuardianPin(guardianPin),
         )
         store.save(session)
 
@@ -48,7 +59,7 @@ internal class ParentModeSessionController @Inject constructor(
 
     suspend fun extend(
         extensionMinutes: Int,
-        pinState: ParentModePinState,
+        pinAttempt: String,
         nowMillis: Long,
     ): ParentModeSessionControllerResult {
         val session = store.read() ?: return ParentModeSessionControllerResult.NoActiveSession
@@ -58,7 +69,7 @@ internal class ParentModeSessionController @Inject constructor(
         val decision = ParentModePolicy.requestParentAction(
             session = session,
             action = ParentModeParentAction.Extend(extensionMinutes),
-            pinState = pinState,
+            pinVerdict = ParentModePolicy.verifyGuardianPin(session = session, pinAttempt = pinAttempt),
             nowMillis = nowMillis,
         )
         return when (decision) {
@@ -85,17 +96,18 @@ internal class ParentModeSessionController @Inject constructor(
     }
 
     suspend fun endNow(
-        pinState: ParentModePinState,
+        pinAttempt: String,
         nowMillis: Long,
     ): ParentModeSessionControllerResult {
         val session = store.read() ?: return ParentModeSessionControllerResult.NoActiveSession
         if (session.state != ParentModeSessionState.Active) {
             return ParentModeSessionControllerResult.NoStateChange(session)
         }
+        val pinVerdict = ParentModePolicy.verifyGuardianPin(session = session, pinAttempt = pinAttempt)
         val decision = ParentModePolicy.requestParentAction(
             session = session,
             action = ParentModeParentAction.EndNow,
-            pinState = pinState,
+            pinVerdict = pinVerdict,
             nowMillis = nowMillis,
         )
         return when (decision) {
@@ -106,8 +118,11 @@ internal class ParentModeSessionController @Inject constructor(
                     state = ParentModeSessionState.UnlockedByPin,
                 )
                 store.save(endedSession)
+                // FAILURE stays unreachable here by design — a failed PIN unlocks nothing, so it
+                // has no place on an "unlocked by pin" event. NOT_CONFIGURED is newly reachable:
+                // it is a session that predates the stored digest ending without a PIN gate.
                 analytics.trackParentModeUnlockedByPin(
-                    pinResult = ParentModePolicy.pinResult(pinState),
+                    pinResult = ParentModePolicy.pinResult(ParentModePolicy.pinState(pinVerdict)),
                     endReason = AnalyticsParentModeEndReason.PIN_UNLOCKED,
                 )
                 analytics.trackParentModeCompleted(

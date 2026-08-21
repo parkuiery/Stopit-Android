@@ -166,8 +166,12 @@
     <string name="parent_mode_setup_pin_required_notice">输入并确认至少 4 位的家长 PIN，即可开始家长模式。</string>
     <string name="parent_mode_setup_pin_label">家长 PIN</string>
     <string name="parent_mode_setup_pin_confirm_label">确认家长 PIN</string>
-    <string name="parent_mode_setup_pin_helper">请使用 4–6 位数字。PIN 值不会保存在会话中。</string>
+    <string name="parent_mode_setup_pin_helper">使用 4–6 位数字。只会保存加盐后的 PIN 哈希，不会留下数字本身。</string>
     <string name="parent_mode_setup_pin_mismatch">PIN 不一致。</string>
+    <string name="parent_mode_guardian_pin_recovery_notice">忘记 PIN 也没关系，剩余时间结束后会自动解锁。</string>
+    <string name="parent_mode_guardian_pin_wrong">这不是开始本次会话时设定的 PIN。</string>
+    <string name="emergency_unlock_parent_mode_active">家长模式期间无法使用紧急解锁</string>
+    <string name="emergency_unlock_parent_mode_active_helper">这道锁不是拿着手机的人设置的，只能用监护人 PIN 或等时间结束才会解开。电话仍可正常拨出。</string>
     <string name="parent_mode_setup_start">开始家长模式</string>
     <string name="parent_mode_setup_start_disabled">需要设置 PIN</string>
     <string name="parent_mode_setup_duration_label">允许时长</string>
@@ -186,7 +190,7 @@
     <string name="parent_mode_expired_title">家长模式时间已结束</string>
     <string name="parent_mode_ended_title">家长模式已结束</string>
     <string name="parent_mode_active_summary">时长 %1$d 分钟 · 允许应用 %2$d 个</string>
-    <string name="parent_mode_active_pin_notice">使用已验证的监护人 PIN 来延长或结束此会话。</string>
+    <string name="parent_mode_active_pin_notice">输入开始本次会话时设定的监护人 PIN，即可延长或结束。</string>
     <string name="parent_mode_active_extend_ten_minutes">延长 10 分钟</string>
     <string name="parent_mode_active_end_now">使用监护人 PIN 结束</string>
     <string name="parent_mode_prepare_another_session">再次启动家长模式</string>
