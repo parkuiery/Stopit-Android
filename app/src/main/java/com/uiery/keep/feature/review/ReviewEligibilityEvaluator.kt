@@ -9,7 +9,11 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 
-private const val SESSION_THRESHOLD = 3
+// 2026-08 readback: 30일 동안 review_prompt_shown 이 3건이었고 skip 사유의 72.4%가
+// BelowSessionThreshold 였다. 성공 세션은 타이머 완주 경로에서만 집계되는데 그 경로는 전체
+// 종료 세션의 3.8%뿐이라(GA4 79/2,054), 3회 누적은 사실상 도달 불가능한 조건이었다.
+// docs/RETENTION_DIAGNOSIS_2026_08.md 2.4 / docs/REVIEW_PROMPT_POST_RELEASE_FOLLOWTHROUGH.md 참조.
+private const val SESSION_THRESHOLD = 1
 private const val COOLDOWN_MILLIS = 90L * 24 * 60 * 60 * 1000
 private const val EMERGENCY_UNLOCK_WINDOW_MILLIS = 7L * 24 * 60 * 60 * 1000
 private const val EMERGENCY_UNLOCK_MAX_COUNT = 2
