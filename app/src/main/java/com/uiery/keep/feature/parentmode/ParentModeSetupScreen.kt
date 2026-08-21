@@ -650,9 +650,12 @@ private fun ParentModeStatusHeroCard(
             )
             Spacer(modifier = Modifier.height(16.dp))
             if (isActive) {
+                // Subordinate to the number below it, but still text: onTertiaryContainer resolves
+                // to gray500 in light theme, which is the disabled/divider tone. On this card's
+                // brandWeak background that measured 1.41:1 on device where body text needs 4.5:1.
                 Text(
                     text = stringResource(id = R.string.parent_mode_active_remaining_label),
-                    color = KeepTheme.colors.onTertiaryContainer,
+                    color = KeepTheme.colors.onSurface,
                     fontSize = 13.sp,
                 )
                 Spacer(modifier = Modifier.height(4.dp))
@@ -682,13 +685,15 @@ private fun ParentModeStatusHeroCard(
                 )
             }
             Spacer(modifier = Modifier.height(16.dp))
+            // Same token, same card: what the parent agreed to is the line they come back to
+            // check, so it cannot be the faintest thing on the screen.
             Text(
                 text = stringResource(
                     id = R.string.parent_mode_active_summary,
                     session.durationMinutes,
                     session.allowedApps.size,
                 ),
-                color = KeepTheme.colors.onTertiaryContainer,
+                color = KeepTheme.colors.onSurface,
                 fontSize = 13.sp,
             )
         }

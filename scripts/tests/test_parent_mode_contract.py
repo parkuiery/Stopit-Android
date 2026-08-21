@@ -555,5 +555,43 @@ class ParentModeContractTest(unittest.TestCase):
         self.assertNotIn("guardianPin = guardianPin,\n                    pinResult", controller)
 
 
+    def test_parent_mode_screen_never_paints_text_with_the_disabled_tone(self):
+        """`onTertiaryContainer` 는 텍스트 색이 아니다.
+
+        라이트 테마에서 이 토큰은 `KeepColor.Light.gray500`(#D1D3D8)로 풀린다. 그건 비활성·구분선
+        톤이지 muted 텍스트 톤이 아니라서, 카드 배경(brandWeak #FFF7E8) 위에서 1.41:1 이 된다 —
+        본문에 필요한 4.5:1 의 3분의 1 이 안 된다. 실기기(SM-G991N) 픽셀 실측값이다.
+
+        같은 파일에서 이미 두 번(시트 요약, duration 휠 단위) 같은 이유로 고쳤는데 진행 중 카드만
+        남아 있었다. 세 번째가 없도록 여기서 잠근다.
+        """
+        for source in (SETUP_SCREEN, DURATION_PICKER):
+            body = source.read_text()
+            offenders = [
+                line.strip()
+                for line in body.splitlines()
+                if "color = KeepTheme.colors.onTertiaryContainer" in line
+                or "tint = KeepTheme.colors.onTertiaryContainer" in line
+            ]
+            self.assertEqual([], offenders, f"{source.name}: {offenders}")
+
+    def test_parent_mode_status_card_states_stay_readable(self):
+        """진행 중 / 만료 / 종료 세 카드가 모두 같은 텍스트 토큰을 쓴다.
+
+        한 상태만 고치면 나머지 두 개가 조용히 남는다 — 카드 배경만 다를 뿐 같은 컴포저블이다.
+        """
+        screen = SETUP_SCREEN.read_text()
+        start = screen.index("private fun ParentModeStatusHeroCard(")
+        end = screen.index("private fun formatParentModeRemaining(")
+        card = screen[start:end]
+
+        # 카드 배경 세 가지가 여전히 이 컴포저블 안에서 갈린다.
+        for variant in ("KeepCardVariant.BrandWeak", "KeepCardVariant.CriticalWeak", "KeepCardVariant.NeutralWeak"):
+            self.assertIn(variant, card)
+        # 그 위의 텍스트는 전부 읽히는 톤이어야 한다.
+        self.assertNotIn("onTertiaryContainer,", card.replace("else -> KeepTheme.colors.onTertiaryContainer", ""))
+        self.assertIn("color = KeepTheme.colors.onSurface,", card)
+
+
 if __name__ == "__main__":
     unittest.main()
