@@ -353,6 +353,11 @@ VOC "부모모드를 사용하면 모든 앱이 잠긴다"를 확인한 결과, 
   무엇이 들어 있는지만 감추게 되기 때문이다. 실기기 확인: 4개는 4행 그대로, 5개는 3행 + `+2 외 2개`.
   다만 접기 행이 앱 행과 같은 높이를 쓰므로 앱 5개부터는 허용 시간 카드가 접히는 선 아래로 내려간다 —
   허용 앱 선택 버튼(`877..943`)은 계속 보이고, 시간은 기본값과 프리셋이 있어 감수한 쪽이다.
+- 히어로 아이콘: `SetupHero`가 `Icon(painter, tint = accent)`로 그리고 있어서 여러 색을 쓴 일러스트가
+  브랜드색 실루엣 하나로 뭉개졌다(`ic_parent_mode` 7색, `ic_goal_lock` 5색). 같은 드로어블을 `MenuItem`은
+  `Image`로 틴트 없이 그린다 — 렌더러가 갈렸던 것이지 에셋 문제가 아니었다. `Image`로 바꾸고 24dp → 30dp로
+  키웠다. 실기기 픽셀 확인: 배지 영역에서 `#8A94A0`/`#FFC84D`/`#FF9000`/`#AFB7C0`/`#FF8800`이 검출되어
+  `ic_parent_mode.xml`의 `fillColor`와 일치한다. 공용 컴포넌트라 목표 잠금 생성/편집 히어로도 함께 복구된다.
 - 회귀: `ParentModeSetupViewModelTest`의 duration 3건(`durationWheelStartsParentModeWithTheHourAndMinuteTheParentDialled`,
   `durationWheelCarriesHoursIntoTheStoredSessionMinutes`, `presetDurationReplacesWhateverTheWheelWasShowing`)과
   guardian sheet 4건(`theStartCtaOpensTheGuardianSheetInsteadOfStartingTheSessionOutright`,
