@@ -634,6 +634,77 @@ class KeepAccessibilityServiceBlockDecisionTest {
         )
     }
 
+
+    /**
+     * Emergency unlock is the escape hatch its own author built for themselves. Parent mode is the
+     * one lock whose author is not the person holding the phone, so the hatch stops here — a button
+     * that opens everything three times a day would leave the guardian PIN guarding nothing.
+     */
+    @Test
+    fun emergencyUnlockDoesNotOpenWhatParentModeIsBlocking() {
+        val request = resolveForegroundBlockRequest(
+            packageName = SETTINGS,
+            prefs = AccessibilityBlockingPreferences(
+                exemptPackages = BlockExemptPackages(homePackages = setOf(HOME_LAUNCHER)),
+            ),
+            cachedRoutines = emptyList(),
+            parentModeSession = activeParentModeSession(allowedApps = emptySet()),
+            now = LocalDateTime.of(2026, 5, 27, 10, 0),
+            isEmergencyUnlocked = true,
+            isDuplicateBlock = false,
+        )
+
+        assertEquals(
+            ForegroundBlockRequest(
+                packageName = SETTINGS,
+                blockSource = AnalyticsBlockSource.PARENT_MODE,
+            ),
+            request,
+        )
+    }
+
+    /** The self-control locks are still the escapee's own, so the hatch keeps working on them. */
+    @Test
+    fun emergencyUnlockStillOpensTheSelfControlLocks() {
+        val request = resolveForegroundBlockRequest(
+            packageName = SETTINGS,
+            prefs = AccessibilityBlockingPreferences(
+                isKeep = true,
+                selectedAppPackages = setOf(SETTINGS),
+            ),
+            cachedRoutines = emptyList(),
+            parentModeSession = null,
+            now = LocalDateTime.of(2026, 5, 27, 10, 0),
+            isEmergencyUnlocked = true,
+            isDuplicateBlock = false,
+        )
+
+        assertNull(request)
+    }
+
+    /**
+     * A live call outranks both. The dialer exemption sits ahead of parent mode in the decision, so
+     * closing the emergency-unlock route never closed the route that matters.
+     */
+    @Test
+    fun parentModeStillLetsACallThroughWithNoEmergencyUnlockLeft() {
+        val request = resolveForegroundBlockRequest(
+            packageName = DIALER,
+            prefs = AccessibilityBlockingPreferences(
+                exemptPackages = BlockExemptPackages(
+                    sensitiveRoles = mapOf(DIALER to SensitiveAppRole.DIALER),
+                ),
+            ),
+            cachedRoutines = emptyList(),
+            parentModeSession = activeParentModeSession(allowedApps = emptySet()),
+            now = LocalDateTime.of(2026, 5, 27, 10, 0),
+            isEmergencyUnlocked = false,
+            isDuplicateBlock = false,
+        )
+
+        assertNull(request)
+    }
+
     private fun activeParentModeSession(
         allowedApps: Set<String> = setOf("com.video.app"),
     ): ParentModeSession = ParentModeSession(

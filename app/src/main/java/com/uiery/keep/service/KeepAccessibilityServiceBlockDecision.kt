@@ -68,7 +68,6 @@ internal fun resolveForegroundBlockRequest(
     isDuplicateBlock: Boolean,
     isCallInProgress: Boolean = false,
 ): ForegroundBlockRequest? {
-    if (isEmergencyUnlocked) return null
     // Unconditional: a blocked home launcher leaves no way back to the device.
     if (BlockExemptPackagePolicy.isExempt(packageName, prefs.exemptPackages.homePackages)) return null
     // The user chose to block the dialer, but they did not choose to receive this call. With the
@@ -122,6 +121,12 @@ internal fun resolveForegroundBlockRequest(
             nowMillis = nowMillis,
         )
     } ?: false
+    // Emergency unlock opens the self-control locks and stops at this one. Those were set by the
+    // person now asking to escape them, so the escape hatch is theirs to use; parent mode was not,
+    // and a button that opens everything three times a day would leave the guardian PIN guarding
+    // nothing. The genuine emergency — placing a call — is already exempt above, ahead of parent
+    // mode, so it never depended on this.
+    if (isEmergencyUnlocked && !isShouldParentModeBlock) return null
     val isBlocking = prefs.isKeep ||
         isLockTime ||
         isShouldRoutineBlock ||

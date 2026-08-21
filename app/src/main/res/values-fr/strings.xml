@@ -166,8 +166,12 @@
     <string name="parent_mode_setup_pin_required_notice">Saisissez et confirmez un code PIN parental d\'au moins 4 chiffres pour démarrer le mode parental.</string>
     <string name="parent_mode_setup_pin_label">Code PIN parental</string>
     <string name="parent_mode_setup_pin_confirm_label">Confirmer le code PIN parental</string>
-    <string name="parent_mode_setup_pin_helper">Utilisez 4 à 6 chiffres. La valeur du PIN n\'est pas enregistrée dans la session.</string>
+    <string name="parent_mode_setup_pin_helper">4 à 6 chiffres. Seul un hachage salé du PIN est conservé, jamais les chiffres.</string>
     <string name="parent_mode_setup_pin_mismatch">Les codes PIN ne correspondent pas.</string>
+    <string name="parent_mode_guardian_pin_recovery_notice">PIN oublié ? Le verrou s\'ouvre quand même à la fin du temps imparti.</string>
+    <string name="parent_mode_guardian_pin_wrong">Ce n\'est pas le PIN avec lequel cette session a démarré.</string>
+    <string name="emergency_unlock_parent_mode_active">Le déverrouillage d\'urgence est désactivé en mode parental</string>
+    <string name="emergency_unlock_parent_mode_active_helper">Ce verrou n\'a pas été mis en place par la personne qui tient le téléphone : seul le PIN du parent ou la fin du temps l\'ouvre. Les appels restent possibles.</string>
     <string name="parent_mode_setup_start">Démarrer le mode parental</string>
     <string name="parent_mode_setup_start_disabled">Configuration du PIN requise</string>
     <string name="parent_mode_setup_duration_label">Temps autorisé</string>
@@ -186,7 +190,7 @@
     <string name="parent_mode_expired_title">Le temps du mode parent est écoulé</string>
     <string name="parent_mode_ended_title">Mode parent terminé</string>
     <string name="parent_mode_active_summary">Durée %1$d min · apps autorisées %2$d</string>
-    <string name="parent_mode_active_pin_notice">Utilisez le PIN tuteur vérifié pour prolonger ou terminer cette session.</string>
+    <string name="parent_mode_active_pin_notice">Saisis le PIN du parent utilisé au démarrage de cette session pour la prolonger ou y mettre fin.</string>
     <string name="parent_mode_active_extend_ten_minutes">Prolonger de 10 minutes</string>
     <string name="parent_mode_active_end_now">Terminer avec le PIN tuteur</string>
     <string name="parent_mode_prepare_another_session">Démarrer un autre mode parent</string>

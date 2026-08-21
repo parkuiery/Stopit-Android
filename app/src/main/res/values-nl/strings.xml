@@ -166,8 +166,12 @@
     <string name="parent_mode_setup_pin_required_notice">Voer een ouder-PIN van minstens 4 cijfers in en bevestig deze om de oudermodus te starten.</string>
     <string name="parent_mode_setup_pin_label">Ouder-PIN</string>
     <string name="parent_mode_setup_pin_confirm_label">Ouder-PIN bevestigen</string>
-    <string name="parent_mode_setup_pin_helper">Gebruik 4–6 cijfers. De PIN-waarde wordt niet in de sessie opgeslagen.</string>
+    <string name="parent_mode_setup_pin_helper">Gebruik 4–6 cijfers. Alleen een gesalte hash van de PIN wordt opgeslagen, nooit de cijfers zelf.</string>
     <string name="parent_mode_setup_pin_mismatch">PIN-codes komen niet overeen.</string>
+    <string name="parent_mode_guardian_pin_recovery_notice">PIN vergeten? De vergrendeling gaat alsnog open als de tijd om is.</string>
+    <string name="parent_mode_guardian_pin_wrong">Dat is niet de PIN waarmee deze sessie is gestart.</string>
+    <string name="emergency_unlock_parent_mode_active">Noodontgrendeling is uit tijdens de oudermodus</string>
+    <string name="emergency_unlock_parent_mode_active_helper">Deze vergrendeling is niet ingesteld door wie de telefoon vasthoudt, dus alleen de PIN van de ouder of het einde van de tijd opent hem. Bellen kan nog wel.</string>
     <string name="parent_mode_setup_start">Oudermodus starten</string>
     <string name="parent_mode_setup_start_disabled">PIN-instelling vereist</string>
     <string name="parent_mode_setup_duration_label">Toegestane tijd</string>
@@ -186,7 +190,7 @@
     <string name="parent_mode_expired_title">Tijd voor oudermodus is voorbij</string>
     <string name="parent_mode_ended_title">Oudermodus beëindigd</string>
     <string name="parent_mode_active_summary">Duur %1$d min · toegestane apps %2$d</string>
-    <string name="parent_mode_active_pin_notice">Gebruik de geverifieerde ouder-PIN om deze sessie te verlengen of te beëindigen.</string>
+    <string name="parent_mode_active_pin_notice">Voer de PIN van de ouder in waarmee deze sessie is gestart om te verlengen of te beëindigen.</string>
     <string name="parent_mode_active_extend_ten_minutes">10 minuten verlengen</string>
     <string name="parent_mode_active_end_now">Beëindigen met ouder-PIN</string>
     <string name="parent_mode_prepare_another_session">Start nog een oudermodus</string>

@@ -64,6 +64,7 @@ internal class ParentModeSetupViewModel @Inject constructor(
         _state.update { current ->
             current.copy(
                 guardianPin = pin.filter(Char::isDigit).take(MAX_GUARDIAN_PIN_LENGTH),
+                guardianPinRejected = false,
                 setupIssues = current.setupIssues - ParentModeSetupIssue.PinNotVerified,
             )
         }
@@ -73,6 +74,7 @@ internal class ParentModeSetupViewModel @Inject constructor(
         _state.update { current ->
             current.copy(
                 guardianPinConfirmation = pinConfirmation.filter(Char::isDigit).take(MAX_GUARDIAN_PIN_LENGTH),
+                guardianPinRejected = false,
                 setupIssues = current.setupIssues - ParentModeSetupIssue.PinNotVerified,
             )
         }
@@ -88,6 +90,7 @@ internal class ParentModeSetupViewModel @Inject constructor(
                 pendingGuardianAction = action,
                 guardianPin = "",
                 guardianPinConfirmation = "",
+                guardianPinRejected = false,
                 setupIssues = current.setupIssues - ParentModeSetupIssue.PinNotVerified,
             )
         }
@@ -99,6 +102,7 @@ internal class ParentModeSetupViewModel @Inject constructor(
                 pendingGuardianAction = null,
                 guardianPin = "",
                 guardianPinConfirmation = "",
+                guardianPinRejected = false,
                 setupIssues = current.setupIssues - ParentModeSetupIssue.PinNotVerified,
             )
         }
@@ -114,16 +118,24 @@ internal class ParentModeSetupViewModel @Inject constructor(
     }
 
     fun startParentModeFromSetupInput() {
-        startParentMode(pinState = state.value.pinState)
+        val snapshot = state.value
+        startParentMode(
+            guardianPin = snapshot.guardianPin,
+            guardianPinConfirmation = snapshot.guardianPinConfirmation,
+        )
     }
 
-    fun startParentMode(pinState: ParentModePinState) {
+    fun startParentMode(
+        guardianPin: String,
+        guardianPinConfirmation: String,
+    ) {
         val snapshot = state.value
         viewModelScope.launch(Dispatchers.IO) {
             when (val result = sessionController.start(
                 durationMinutes = snapshot.durationMinutes,
                 allowedApps = snapshot.allowedApps,
-                pinState = pinState,
+                guardianPin = guardianPin,
+                guardianPinConfirmation = guardianPinConfirmation,
                 nowMillis = clock.nowMillis(),
             )) {
                 is ParentModeSessionControllerResult.SetupBlocked -> {
@@ -149,7 +161,7 @@ internal class ParentModeSetupViewModel @Inject constructor(
         viewModelScope.launch(Dispatchers.IO) {
             when (val result = sessionController.extend(
                 extensionMinutes = DEFAULT_EXTENSION_MINUTES,
-                pinState = state.value.pinState,
+                pinAttempt = state.value.guardianPin,
                 nowMillis = clock.nowMillis(),
             )) {
                 is ParentModeSessionControllerResult.Extended -> {
@@ -158,11 +170,7 @@ internal class ParentModeSetupViewModel @Inject constructor(
                 is ParentModeSessionControllerResult.Expired -> {
                     updateActiveSession(result.session, ParentModeSetupSideEffect.Expired)
                 }
-                ParentModeSessionControllerResult.PinRequired -> {
-                    _state.update { current ->
-                        current.copy(setupIssues = setOf(ParentModeSetupIssue.PinNotVerified))
-                    }
-                }
+                ParentModeSessionControllerResult.PinRequired -> rejectGuardianPin()
                 ParentModeSessionControllerResult.InvalidExtension,
                 ParentModeSessionControllerResult.Cleared,
                 ParentModeSessionControllerResult.NoActiveSession,
@@ -178,7 +186,7 @@ internal class ParentModeSetupViewModel @Inject constructor(
     fun endActiveSessionFromSetupInput() {
         viewModelScope.launch(Dispatchers.IO) {
             when (val result = sessionController.endNow(
-                pinState = state.value.pinState,
+                pinAttempt = state.value.guardianPin,
                 nowMillis = clock.nowMillis(),
             )) {
                 is ParentModeSessionControllerResult.Ended -> {
@@ -187,11 +195,7 @@ internal class ParentModeSetupViewModel @Inject constructor(
                 is ParentModeSessionControllerResult.Expired -> {
                     updateActiveSession(result.session, ParentModeSetupSideEffect.Expired)
                 }
-                ParentModeSessionControllerResult.PinRequired -> {
-                    _state.update { current ->
-                        current.copy(setupIssues = setOf(ParentModeSetupIssue.PinNotVerified))
-                    }
-                }
+                ParentModeSessionControllerResult.PinRequired -> rejectGuardianPin()
                 ParentModeSessionControllerResult.InvalidExtension,
                 ParentModeSessionControllerResult.Cleared,
                 ParentModeSessionControllerResult.NoActiveSession,
@@ -222,6 +226,7 @@ internal class ParentModeSetupViewModel @Inject constructor(
                             activeSession = null,
                             guardianPin = "",
                             guardianPinConfirmation = "",
+                            guardianPinRejected = false,
                             pendingGuardianAction = null,
                         )
                     }
@@ -236,6 +241,21 @@ internal class ParentModeSetupViewModel @Inject constructor(
                 is ParentModeSessionControllerResult.Started,
                 -> Unit
             }
+        }
+    }
+
+    /**
+     * The sheet stays open and the box empties. A wrong PIN is the case this gate exists for, so it
+     * has to be retryable in place — and the digits that failed are worth nothing to the next try.
+     */
+    private fun rejectGuardianPin() {
+        _state.update { current ->
+            current.copy(
+                guardianPin = "",
+                guardianPinConfirmation = "",
+                guardianPinRejected = true,
+                setupIssues = setOf(ParentModeSetupIssue.PinNotVerified),
+            )
         }
     }
 
@@ -269,6 +289,7 @@ internal class ParentModeSetupViewModel @Inject constructor(
                 activeSession = session,
                 guardianPin = "",
                 guardianPinConfirmation = "",
+                guardianPinRejected = false,
                 pendingGuardianAction = null,
             )
         }
@@ -279,10 +300,14 @@ internal class ParentModeSetupViewModel @Inject constructor(
 private const val DEFAULT_EXTENSION_MINUTES = 10
 
 /** What the guardian PIN sheet is currently standing in front of. */
-internal enum class ParentModeGuardianAction {
-    Start,
-    Extend,
-    End,
+internal enum class ParentModeGuardianAction(val confirmsNewPin: Boolean) {
+    /** Sets the PIN. It is typed twice because there is nothing stored yet to check it against. */
+    Start(confirmsNewPin = true),
+
+    /** Checked against what [Start] stored, so one box is the entire question. Asking for a second
+     *  box here is what made the gate meaningless: two boxes can only agree with each other. */
+    Extend(confirmsNewPin = false),
+    End(confirmsNewPin = false),
 }
 
 internal data class ParentModeSetupUiState(
@@ -290,30 +315,46 @@ internal data class ParentModeSetupUiState(
     val allowedApps: Set<String> = emptySet(),
     val guardianPin: String = "",
     val guardianPinConfirmation: String = "",
+    /** The last attempt was held against the stored PIN and did not match. */
+    val guardianPinRejected: Boolean = false,
     val setupIssues: Set<ParentModeSetupIssue> = emptySet(),
     val activeSession: ParentModeSession? = null,
     val pendingGuardianAction: ParentModeGuardianAction? = null,
 ) {
     val durationHoursPart: Int = durationMinutes / MINUTES_PER_HOUR
     val durationMinutesPart: Int = durationMinutes % MINUTES_PER_HOUR
-    val pinState: ParentModePinState = if (
-        guardianPin.length >= MIN_GUARDIAN_PIN_LENGTH &&
-        guardianPin == guardianPinConfirmation
-    ) {
-        ParentModePinState.Verified
-    } else if (guardianPin.isBlank() || guardianPinConfirmation.isBlank()) {
-        ParentModePinState.NotConfigured
-    } else {
-        ParentModePinState.Failed
-    }
+
+    /**
+     * Only ever describes the *start* of a session — two boxes agreeing with each other.
+     *
+     * Extending or ending is not a question this screen can answer: it is settled against the hash
+     * the session stored, which lives behind [ParentModeSessionController].
+     */
+    val pinState: ParentModePinState = ParentModePolicy.setupPinState(
+        pin = guardianPin,
+        confirmation = guardianPinConfirmation,
+    )
 
     /** The promise itself is complete without a PIN; the PIN is asked for in the sheet after this. */
     val canRequestStart: Boolean = durationMinutes > 0 && allowedApps.isNotEmpty()
     val canAttemptStart: Boolean = canRequestStart && pinState == ParentModePinState.Verified
+
+    /**
+     * Whether the sheet's button can fire — not whether the PIN is right.
+     *
+     * For [ParentModeGuardianAction.Start] that is the same thing. For the others it deliberately
+     * is not: only the stored hash can settle those, so the button unlocks on a plausible entry and
+     * the verdict comes back from the controller.
+     */
+    fun canConfirmGuardianAction(action: ParentModeGuardianAction): Boolean =
+        if (action.confirmsNewPin) {
+            pinState == ParentModePinState.Verified
+        } else {
+            guardianPin.length >= MIN_GUARDIAN_PIN_LENGTH
+        }
 }
 
 internal const val MINUTES_PER_HOUR = 60
-private const val MIN_GUARDIAN_PIN_LENGTH = 4
 private const val MAX_GUARDIAN_PIN_LENGTH = 6
 
 internal enum class ParentModeSetupSideEffect {

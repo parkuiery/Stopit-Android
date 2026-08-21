@@ -226,6 +226,7 @@ private fun createViewModel(
                 blockingStateStore = BlockingStateStore(dataStore),
                 analytics = analytics,
             ),
+        parentModeBlockReasonSource = { null },
         ),
         analytics = analytics,
     )

@@ -6,6 +6,7 @@ import com.uiery.keep.data.emergencyunlock.EmergencyUnlockRepository
 import com.uiery.keep.datastore.BlockingStateStore
 import com.uiery.keep.datastore.EmergencyUnlockSettingsSnapshot
 import com.uiery.keep.datastore.EmergencyUnlockSettingsStore
+import com.uiery.keep.domain.parentmode.ParentModeBlockReasonSource
 import java.util.Calendar
 import javax.inject.Inject
 import kotlinx.coroutines.CancellationException
@@ -27,6 +28,16 @@ enum class EmergencyUnlockAvailabilityReason {
     Disabled,
     DailyLimitZero,
     DailyLimitExhausted,
+
+    /**
+     * Parent mode is running, and it is the one lock the person holding the phone did not agree to.
+     *
+     * The self-control locks can be escaped by their own author because the blocker and the escapee
+     * are the same person; that trade is theirs to make. Here they are not the same person, so a
+     * button that opens everything three times a day would undo the PIN gate entirely. Placing a
+     * call is exempt further up the block decision and does not depend on this.
+     */
+    ParentModeActive,
 }
 
 internal sealed interface EmergencyUnlockRequestResult {
@@ -57,11 +68,18 @@ class EmergencyUnlockCoordinator
         private val repository: EmergencyUnlockRepository,
         private val analytics: KeepAnalytics,
         private val completionCoordinator: EmergencyUnlockCompletionCoordinator,
+        private val parentModeBlockReasonSource: ParentModeBlockReasonSource,
     ) {
-        internal suspend fun readAvailability(): EmergencyUnlockAvailability {
+        internal suspend fun readAvailability(
+            nowMillis: Long = System.currentTimeMillis(),
+        ): EmergencyUnlockAvailability {
             val settings = readSettings()
             val usedCount = readUnlockCount(settings)
-            return availability(settings = settings, usedUnlockCount = usedCount)
+            return availability(
+                settings = settings,
+                usedUnlockCount = usedCount,
+                parentModeActive = isParentModeBlocking(nowMillis),
+            )
         }
 
         internal suspend fun markManualReset(nowMillis: Long = System.currentTimeMillis()) {
@@ -78,7 +96,12 @@ class EmergencyUnlockCoordinator
         ): EmergencyUnlockRequestResult {
             val settings = readSettings()
             val usedCount = readUnlockCount(settings)
-            if (!canCompleteEmergencyUnlockRequest(
+            // Re-checked here and not only in the UI: the sheet can have been opened a moment
+            // before a parent mode session started, and EmergencyUnlockState carries an approved
+            // window straight into it.
+            val parentModeActive = isParentModeBlocking(nowMillis)
+            if (parentModeActive ||
+                !canCompleteEmergencyUnlockRequest(
                     settings = EmergencyUnlockSettings(
                         enabled = settings.enabled,
                         dailyLimit = settings.dailyLimit,
@@ -91,7 +114,11 @@ class EmergencyUnlockCoordinator
                 )
             ) {
                 return EmergencyUnlockRequestResult.Rejected(
-                    availability = availability(settings = settings, usedUnlockCount = usedCount),
+                    availability = availability(
+                        settings = settings,
+                        usedUnlockCount = usedCount,
+                        parentModeActive = parentModeActive,
+                    ),
                 )
             }
 
@@ -148,11 +175,18 @@ class EmergencyUnlockCoordinator
                 repository.countSince(settings.manualResetAtMillis)
             }
 
+        private suspend fun isParentModeBlocking(nowMillis: Long): Boolean =
+            parentModeBlockReasonSource.blockReason(nowMillis) != null
+
         private fun availability(
             settings: EmergencyUnlockSettingsSnapshot,
             usedUnlockCount: Int,
+            parentModeActive: Boolean,
         ): EmergencyUnlockAvailability {
             val reason = when {
+                // Ahead of the settings checks: turning emergency unlock on or raising the daily
+                // limit must not read as a way through a lock somebody else set.
+                parentModeActive -> EmergencyUnlockAvailabilityReason.ParentModeActive
                 !settings.enabled -> EmergencyUnlockAvailabilityReason.Disabled
                 settings.dailyLimit <= 0 -> EmergencyUnlockAvailabilityReason.DailyLimitZero
                 isEmergencyUnlockDailyLimitReached(
@@ -162,6 +196,8 @@ class EmergencyUnlockCoordinator
                 else -> EmergencyUnlockAvailabilityReason.Available
             }
             return EmergencyUnlockAvailability(
+                // Stays the user's setting. Whether the hatch can be used right now is [reason]
+                // — folding parent mode in here would make one field mean two things.
                 enabled = settings.enabled,
                 dailyLimit = settings.dailyLimit,
                 durationOptions = settings.durationOptions,

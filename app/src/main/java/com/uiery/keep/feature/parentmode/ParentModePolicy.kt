@@ -4,6 +4,9 @@ import com.uiery.keep.analytics.AnalyticsParentModeAllowedAppCountBucket
 import com.uiery.keep.analytics.AnalyticsParentModeDurationBucket
 import com.uiery.keep.analytics.AnalyticsParentModeExtensionMinutesBucket
 import com.uiery.keep.analytics.AnalyticsParentModePinResult
+import com.uiery.keep.domain.parentmode.ParentModeGuardianPin
+import com.uiery.keep.domain.parentmode.ParentModeGuardianPinDigest
+import com.uiery.keep.domain.parentmode.ParentModeGuardianPinVerdict
 import com.uiery.keep.domain.parentmode.ParentModeRuntimePolicy
 import com.uiery.keep.domain.parentmode.ParentModeSession
 import com.uiery.keep.domain.parentmode.ParentModeSessionState
@@ -57,6 +60,39 @@ internal sealed interface ParentModeActionDecision {
 }
 
 internal object ParentModePolicy {
+    /**
+     * The PIN check at the *start* of a session, and the only place two fields are the right shape.
+     *
+     * There is nothing stored to compare against yet, so agreement between the box and its
+     * confirmation is all this can mean. Every later check is [verifyGuardianPin] instead, against
+     * what this start actually saved — comparing the two boxes again would accept any PIN at all.
+     */
+    fun setupPinState(
+        pin: String,
+        confirmation: String,
+    ): ParentModePinState = when {
+        pin.length >= MIN_GUARDIAN_PIN_LENGTH && pin == confirmation -> ParentModePinState.Verified
+        pin.isBlank() || confirmation.isBlank() -> ParentModePinState.NotConfigured
+        else -> ParentModePinState.Failed
+    }
+
+    /** The PIN check for extending or ending a running session: one box, against the stored hash. */
+    fun verifyGuardianPin(
+        session: ParentModeSession,
+        pinAttempt: String,
+    ): ParentModeGuardianPinVerdict = ParentModeGuardianPin.verify(
+        pin = pinAttempt,
+        digest = session.guardianPin,
+    )
+
+    fun digestGuardianPin(pin: String): ParentModeGuardianPinDigest = ParentModeGuardianPin.digest(pin)
+
+    fun pinState(verdict: ParentModeGuardianPinVerdict): ParentModePinState = when (verdict) {
+        ParentModeGuardianPinVerdict.Matched -> ParentModePinState.Verified
+        ParentModeGuardianPinVerdict.Mismatched -> ParentModePinState.Failed
+        ParentModeGuardianPinVerdict.NoStoredPin -> ParentModePinState.NotConfigured
+    }
+
     fun validateSetup(
         durationMinutes: Int,
         allowedAppCount: Int,
@@ -74,12 +110,14 @@ internal object ParentModePolicy {
         startedAtMillis: Long,
         durationMinutes: Int,
         allowedApps: Set<String>,
+        guardianPin: ParentModeGuardianPinDigest?,
     ): ParentModeSession = ParentModeSession(
         startedAtMillis = startedAtMillis,
         expiresAtMillis = startedAtMillis + durationMinutes * MILLIS_PER_MINUTE,
         durationMinutes = durationMinutes,
         allowedApps = allowedApps,
         state = ParentModeSessionState.Active,
+        guardianPin = guardianPin,
     )
 
     fun durationBucket(durationMinutes: Int): String = when {
@@ -143,16 +181,23 @@ internal object ParentModePolicy {
         -> ParentModeFinishedAction.StartAnother
     }
 
+    /**
+     * Takes a [ParentModeGuardianPinVerdict] and not a [ParentModePinState] on purpose.
+     *
+     * A state can be produced by whoever is asking; a verdict can only come from holding the typed
+     * PIN against the one the session stored. Accepting the former is what let any four digits,
+     * typed twice, end someone else's session.
+     */
     fun requestParentAction(
         session: ParentModeSession,
         action: ParentModeParentAction,
-        pinState: ParentModePinState,
+        pinVerdict: ParentModeGuardianPinVerdict,
         nowMillis: Long,
     ): ParentModeActionDecision {
         if (resolveState(session, nowMillis) == ParentModeSessionState.Expired) {
             return ParentModeActionDecision.Expired
         }
-        if (pinState != ParentModePinState.Verified) return ParentModeActionDecision.PinRequired
+        if (!pinVerdict.opensGate) return ParentModeActionDecision.PinRequired
 
         return when (action) {
             ParentModeParentAction.EndNow -> ParentModeActionDecision.End(endedAtMillis = nowMillis)
@@ -171,3 +216,5 @@ internal object ParentModePolicy {
 
     private const val MILLIS_PER_MINUTE = 60_000L
 }
+
+internal const val MIN_GUARDIAN_PIN_LENGTH = 4

@@ -166,8 +166,12 @@
     <string name="parent_mode_setup_pin_required_notice">Gib eine mindestens 4-stellige Eltern-PIN ein und bestätige sie, um den Eltern-Modus zu starten.</string>
     <string name="parent_mode_setup_pin_label">Eltern-PIN</string>
     <string name="parent_mode_setup_pin_confirm_label">Eltern-PIN bestätigen</string>
-    <string name="parent_mode_setup_pin_helper">Verwende 4–6 Ziffern. Der PIN-Wert wird nicht in der Sitzung gespeichert.</string>
+    <string name="parent_mode_setup_pin_helper">4–6 Ziffern. Gespeichert wird nur ein gesalzener Hash der PIN, niemals die Ziffern selbst.</string>
     <string name="parent_mode_setup_pin_mismatch">PINs stimmen nicht überein.</string>
+    <string name="parent_mode_guardian_pin_recovery_notice">PIN vergessen? Die Sperre öffnet sich trotzdem, sobald die Zeit abläuft.</string>
+    <string name="parent_mode_guardian_pin_wrong">Das ist nicht die PIN, mit der diese Sitzung gestartet wurde.</string>
+    <string name="emergency_unlock_parent_mode_active">Notfall-Entsperrung ist im Elternmodus deaktiviert</string>
+    <string name="emergency_unlock_parent_mode_active_helper">Diese Sperre wurde nicht von der Person eingerichtet, die das Telefon hält. Nur die Eltern-PIN oder das Ende der Zeit öffnet sie. Anrufe sind weiter möglich.</string>
     <string name="parent_mode_setup_start">Eltern-Modus starten</string>
     <string name="parent_mode_setup_start_disabled">PIN-Einrichtung erforderlich</string>
     <string name="parent_mode_setup_duration_label">Erlaubte Zeit</string>
@@ -186,7 +190,7 @@
     <string name="parent_mode_expired_title">Eltern-Modus-Zeit ist abgelaufen</string>
     <string name="parent_mode_ended_title">Eltern-Modus beendet</string>
     <string name="parent_mode_active_summary">Dauer %1$d Min. · erlaubte Apps %2$d</string>
-    <string name="parent_mode_active_pin_notice">Verwende die bestätigte Eltern-PIN, um diese Sitzung zu verlängern oder zu beenden.</string>
+    <string name="parent_mode_active_pin_notice">Gib die Eltern-PIN ein, mit der diese Sitzung gestartet wurde, um sie zu verlängern oder zu beenden.</string>
     <string name="parent_mode_active_extend_ten_minutes">10 Minuten verlängern</string>
     <string name="parent_mode_active_end_now">Mit Eltern-PIN beenden</string>
     <string name="parent_mode_prepare_another_session">Weiteren Elternmodus starten</string>

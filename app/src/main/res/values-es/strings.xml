@@ -165,8 +165,12 @@
     <string name="parent_mode_setup_pin_required_notice">Introduce y confirma un PIN de tutor de 4+ dígitos para iniciar el modo padres.</string>
     <string name="parent_mode_setup_pin_label">PIN de tutor</string>
     <string name="parent_mode_setup_pin_confirm_label">Confirmar PIN de tutor</string>
-    <string name="parent_mode_setup_pin_helper">Usa de 4 a 6 dígitos. El valor del PIN no se guarda en la sesión.</string>
+    <string name="parent_mode_setup_pin_helper">Usa de 4 a 6 dígitos. Solo se guarda un hash con sal del PIN, nunca los dígitos.</string>
     <string name="parent_mode_setup_pin_mismatch">Los PIN no coinciden.</string>
+    <string name="parent_mode_guardian_pin_recovery_notice">¿Olvidaste el PIN? El bloqueo se abre igualmente cuando se acaba el tiempo.</string>
+    <string name="parent_mode_guardian_pin_wrong">Ese no es el PIN con el que empezó esta sesión.</string>
+    <string name="emergency_unlock_parent_mode_active">El desbloqueo de emergencia está desactivado en el modo de padres</string>
+    <string name="emergency_unlock_parent_mode_active_helper">Este bloqueo no lo puso quien tiene el teléfono, así que solo se abre con el PIN del tutor o al terminar el tiempo. Las llamadas siguen funcionando.</string>
     <string name="parent_mode_setup_start">Iniciar modo padres</string>
     <string name="parent_mode_setup_start_disabled">Configuración de PIN necesaria</string>
     <string name="parent_mode_setup_duration_label">Tiempo permitido</string>
@@ -185,7 +189,7 @@
     <string name="parent_mode_expired_title">El tiempo del modo padres terminó</string>
     <string name="parent_mode_ended_title">Modo padres terminado</string>
     <string name="parent_mode_active_summary">Duración %1$d min · apps permitidas %2$d</string>
-    <string name="parent_mode_active_pin_notice">Usa el PIN de tutor verificado para ampliar o terminar esta sesión.</string>
+    <string name="parent_mode_active_pin_notice">Introduce el PIN del tutor con el que empezó esta sesión para ampliarla o terminarla.</string>
     <string name="parent_mode_active_extend_ten_minutes">Ampliar 10 minutos</string>
     <string name="parent_mode_active_end_now">Terminar con PIN de tutor</string>
     <string name="parent_mode_prepare_another_session">Iniciar otro modo parental</string>

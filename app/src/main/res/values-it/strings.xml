@@ -166,8 +166,12 @@
     <string name="parent_mode_setup_pin_required_notice">Inserisci e conferma un PIN genitore di almeno 4 cifre per avviare la modalità genitori.</string>
     <string name="parent_mode_setup_pin_label">PIN genitore</string>
     <string name="parent_mode_setup_pin_confirm_label">Conferma PIN genitore</string>
-    <string name="parent_mode_setup_pin_helper">Usa da 4 a 6 cifre. Il valore del PIN non viene salvato nella sessione.</string>
+    <string name="parent_mode_setup_pin_helper">Usa da 4 a 6 cifre. Viene salvato solo un hash con sale del PIN, mai le cifre.</string>
     <string name="parent_mode_setup_pin_mismatch">I PIN non corrispondono.</string>
+    <string name="parent_mode_guardian_pin_recovery_notice">PIN dimenticato? Il blocco si apre comunque allo scadere del tempo.</string>
+    <string name="parent_mode_guardian_pin_wrong">Non è il PIN con cui è iniziata questa sessione.</string>
+    <string name="emergency_unlock_parent_mode_active">Lo sblocco di emergenza è disattivato in modalità genitori</string>
+    <string name="emergency_unlock_parent_mode_active_helper">Questo blocco non è stato impostato da chi ha il telefono in mano: si apre solo con il PIN del tutore o alla fine del tempo. Le chiamate funzionano ancora.</string>
     <string name="parent_mode_setup_start">Avvia modalità genitori</string>
     <string name="parent_mode_setup_start_disabled">Configurazione del PIN necessaria</string>
     <string name="parent_mode_setup_duration_label">Tempo consentito</string>
@@ -186,7 +190,7 @@
     <string name="parent_mode_expired_title">Il tempo della modalità genitore è finito</string>
     <string name="parent_mode_ended_title">Modalità genitore terminata</string>
     <string name="parent_mode_active_summary">Durata %1$d min · app consentite %2$d</string>
-    <string name="parent_mode_active_pin_notice">Usa il PIN tutore verificato per estendere o terminare questa sessione.</string>
+    <string name="parent_mode_active_pin_notice">Inserisci il PIN del tutore con cui è iniziata questa sessione per prolungarla o terminarla.</string>
     <string name="parent_mode_active_extend_ten_minutes">Estendi di 10 minuti</string>
     <string name="parent_mode_active_end_now">Termina con PIN tutore</string>
     <string name="parent_mode_prepare_another_session">Avvia un altro Parent Mode</string>

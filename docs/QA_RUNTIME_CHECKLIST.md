@@ -1624,11 +1624,17 @@ cd <repo-root>
 - issue #874 stale Active guard: 만료 시각을 지난 active session에서 10분 연장/즉시 종료를 누르면 연장 또는 `PIN_UNLOCKED`가 아니라 `expired` state + `parent_mode_completed(end_reason=time_expired)`가 우선 저장되는지
 - PR #1078 finished-session no-op guard: 이미 `expired` / `unlocked_by_pin` / `cancelled`로 종료된 session에서 `extend(...)` / `endNow(...)` 경로가 다시 호출되어도 session이 재활성화되지 않고 `parent_mode_completed` analytics가 중복으로 남지 않는지
 - `ParentModeSessionController.markExpiredIfNeeded(...)`가 active session의 시간 만료를 `expired` state와 `parent_mode_completed(end_reason=time_expired)`로 한 번만 commit하고, 재호출/비활성 state에서는 no-op인지
-- `ParentModeSetupViewModel`이 setup 화면의 10/20/30/60분 preset, 시/분 휠 duration 다이얼, PR #946 active controls fresh guardian PIN 재입력 전 연장/종료 차단, active 상태 10분 연장, 보호자 PIN 즉시 종료, 만료 상태 동기화를 `ParentModeSessionController`와 DataStore session에 반영하는지
+- `ParentModeSetupViewModel`이 setup 화면의 10/20/30/60분 preset, 시/분 휠 duration 다이얼, PR #946 active controls fresh guardian PIN 게이트와 #1177 저장된 PIN 해시 대조(다른 PIN 연장/종료 차단), active 상태 10분 연장, 보호자 PIN 즉시 종료, 만료 상태 동기화를 `ParentModeSessionController`와 DataStore session에 반영하는지
 - `ParentModeSetupScreenAccessibilityTest`가 setup/active/expired 화면의 TalkBack summary, duration 휠, PR #946 active controls guardian PIN 게이트, 연장/종료 CTA와 보호자 PIN 시트 enabled/disabled 상태를 반복 가능한 Compose baseline으로 고정하는지
 - `ParentModeSetupViewModelTest.durationWheelStartsParentModeWithTheHourAndMinuteTheParentDialled`로 12차 duration 휠 값이 `durationMinutes` source of truth와 session `expiresAtMillis`에 반영되는지 확인한다 (PR #870 직접 분 입력 필드를 대체한 direct duration spot-check)
 - `ParentModeSetupViewModelTest.theStartCtaOpensTheGuardianSheetInsteadOfStartingTheSessionOutright` / `ParentModeSetupViewModelTest.theGuardianSheetRoutesExtendAndEndThroughTheSamePinGate`로 시작·연장·종료가 모두 보호자 PIN 시트를 거치고, 시트 밖에서는 session이 바뀌지 않는지 확인한다
+- `ParentModeSetupViewModelTest.activeSessionControlsRequireThePinTheSessionStartedWithBeforeExtending` / `onlySettingThePinAsksForAConfirmation`, `ParentModePolicyTest`의 PIN 대조/해시 저장/레거시 세션 케이스, `ParentModeSessionControllerTest`의 원문 미저장·clear 케이스로 #1177 PIN 게이트를 고정한다
+- `KeepAccessibilityServiceBlockDecisionTest.emergencyUnlockDoesNotOpenWhatParentModeIsBlocking` / `emergencyUnlockStillOpensTheSelfControlLocks` / `parentModeStillLetsACallThroughWithNoEmergencyUnlockLeft`, `EmergencyUnlockCoordinatorTest.activeParentModeClosesEmergencyUnlockAheadOfEverySettingsReason` / `anUnlockRequestIsRejectedOnceParentModeHasStarted`로 #1177 긴급 해제 경계를 고정한다
 - 부모 모드 active/expired/extended/cancelled state transition
+- 보호자 PIN 저장 경계(#1177): 세션 시작 시 정한 PIN과 **다른** PIN으로는 연장/즉시 종료가 되지 않고, PIN 원문이 DataStore/로그/analytics 어디에도 남지 않는지(`PARENT_MODE_PIN_HASH` / `PARENT_MODE_PIN_SALT`만 저장). 연장/종료 시트는 확인란 없이 한 칸만 받는지
+- 레거시 세션 경계(#1177): PIN 해시가 저장되기 전에 시작된 active session은 사라지지 않고 계속 차단하되, PIN 없이 종료할 수 있고 `pin_result=not_configured`로 남는지
+- 긴급 해제 경계(#1177): 부모 모드 차단 화면에서 긴급 해제 버튼이 비활성(`ParentModeActive`)이고, 이미 승인된 해제 창이 열려 있어도 부모 모드 차단을 열지 않는지. 자기통제 잠금(수동/타이머/루틴/목표)에는 그대로 통하고, dialer 예외로 전화는 계속 걸리는지
+- 분실 복구 경계(#1177): 별도 복구 경로가 없고 만료 대기가 유일한 복구인지, 시트가 `parent_mode_guardian_pin_recovery_notice`로 이를 안내하는지, 세션 상한이 4시간(`MAX_PARENT_MODE_HOURS`)인지
 - 보호자 PIN 성공 후에도 0분/음수 extension은 거부하고, 양수 extension만 만료 시각을 늘리는 parent-action guard
 - `parent_mode_*` analytics payload가 `duration_minutes_bucket`, `allowed_app_count_bucket`, `pin_result`, `end_reason`, `extension_minutes_bucket`, `block_context` 같은 enum/bucket만 사용하고 아이 이름/앱 이름/package/raw session history/허용 앱 원문 목록/PIN 원문을 보내지 않는지
 - Parent Mode-origin 차단 화면 진입 시 기존 `app_block_intercepted(block_source=parent_mode)`와 dedicated `parent_mode_block_intercepted(block_context=disallowed_app)`가 함께 남고, dedicated 이벤트에는 앱 package/PIN/session 원문이 들어가지 않는지
@@ -1683,7 +1689,7 @@ cd <repo-root>
 - 원격 자녀 기기 관리, 가족 계정, 서버 동기화, FCM 기반 원격 연장/해제는 #471 MVP runtime QA의 pass/fail 기준이 아니라 후속 gate다.
 - 부모 모드 PIN과 긴급해제 quota/analytics를 섞지 않는다.
 - GA4 Admin 등록/metadata 확인 전에는 `parent_mode_*` 세부 breakdown을 제품 결론으로 과대해석하지 않는다.
-- PR #519/#584/#748/#870/#873/#897/#913/#946/#970/#980/#1078 이후 `develop`에 반영된 repo-internal foothold를 “구현 전”, “active controls 미구현”, “직접 설정 미구현”, “TalkBack baseline 미정의”, “PIN 없는 active 연장/종료 허용”, “dedicated block analytics 미구현”, “setup screen_view 미계측”, “종료 후 재시작 경로 없음”, “finished session 재호출 guard 없음”으로 되돌리지 않는다. 남은 실제 경계는 release-candidate device UX spot-check와 실제 기기 screenshot/TalkBack 확인, release/tag/Play deploy, GA4 Admin metadata/readback이다.
+- PR #519/#584/#748/#870/#873/#897/#913/#946/#970/#980/#1078/#1177 이후 `develop`에 반영된 repo-internal foothold를 “구현 전”, “active controls 미구현”, “직접 설정 미구현”, “TalkBack baseline 미정의”, “PIN 없는 active 연장/종료 허용”, “dedicated block analytics 미구현”, “setup screen_view 미계측”, “종료 후 재시작 경로 없음”, “finished session 재호출 guard 없음”으로 되돌리지 않는다. 남은 실제 경계는 release-candidate device UX spot-check와 실제 기기 screenshot/TalkBack 확인, release/tag/Play deploy, GA4 Admin metadata/readback이다.
 
 ### Usage Access 개인화 discovery QA baseline
 
