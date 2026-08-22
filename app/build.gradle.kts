@@ -95,9 +95,15 @@ android {
 
         // Hard per-device monthly cap on events sent to Amplitude, so ingestion never
         // exceeds the free tier (2M events/mo) and never triggers billing.
-        // Guarantee: cap x maxMTU must stay < 2,000,000. Default 180 x 10,000 = 1.8M.
-        // Raise it when the active user base is well below the 10,000 MTU free ceiling.
-        buildConfigField("int", "AMPLITUDE_MONTHLY_EVENT_CAP", "180")
+        // Guarantee: cap x maxMTU must stay < 2,000,000. Current 950 x 2,000 = 1.9M.
+        //
+        // 180 was sized for the 10,000 MTU free ceiling. 2026-08 readback measured MAU 894,
+        // so that cap was 11x over-conservative and was silently truncating exactly the
+        // heaviest users -- the ones whose retention we most need to read. 950 keeps the
+        // hard guarantee with 2.2x growth headroom over today's MAU.
+        // See docs/RETENTION_DIAGNOSIS_2026_08.md and the tuning table in
+        // docs/analytics/AMPLITUDE_EVENT_SCHEMA.md before changing this.
+        buildConfigField("int", "AMPLITUDE_MONTHLY_EVENT_CAP", "950")
 
         // Amplitude client key (single project). Empty -> Amplitude backend is a no-op.
         // Only the prod flavor actually sends (see AMPLITUDE_ENABLED per flavor).

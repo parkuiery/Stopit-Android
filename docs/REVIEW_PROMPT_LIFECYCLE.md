@@ -111,7 +111,8 @@
 | 3 | `dev` flavor | `DevFlavor` |
 | 4 | 접근성 권한/상태 미충족 | `AccessibilityOff` |
 | 5 | quiet hours (로컬 시간 01:00~05:59) | `QuietHours` |
-| 6 | `SUCCESSFUL_SESSION_COUNT < 3` | `BelowSessionThreshold` |
+| 6 | `SUCCESSFUL_SESSION_COUNT < 1` | `BelowSessionThreshold` |
+| 6-1 | 수동 종료 세션이 `MANUAL_SESSION_MIN_MILLIS` 미만 | `BelowManualSessionDuration` |
 | 7 | 최근 90일 내 prompt shown 기록 존재 | `WithinCooldown` |
 | 8 | background 이력 없음 | `NoBackgroundingObserved` |
 | 9 | 마지막 background 후 1.5초 이내 같은 세션으로 판단 | `WithinSameSession` |
@@ -121,6 +122,32 @@
 `NoRecentSuccess` 판단은 홈 복귀 직전에 arm 평가를 트리거한 **방금 끝난 성공 세션도 포함**한다. 즉, 아직 `lock_history`에 current session insert가 반영되기 전이라도 현재 성공 세션 자체 때문에 최근 성공 조건을 만족할 수 있다.
 
 모든 조건을 통과하면 `Eligible`이다.
+
+### 조건 6 임계값 변경 (2026-08)
+
+`SESSION_THRESHOLD`는 `3`에서 `1`로 내렸다. 조건 6은 evaluator 안에서만 보면 완화처럼 보이지만, 실제로는 **arm 트리거 경로가 좁았던 것이 1차 원인**이었고 임계값이 2차로 겹친 구조였다.
+
+- 2026-08-21 readback: 30일 `review_prompt_shown` **3건**, `review_prompt_skipped` 76건 중 `BelowSessionThreshold`가 **55건(72.4%)**.
+- arm 평가는 `LockViewModel`의 타이머 완주 경로에서만 호출됐는데, 그 경로는 GA4 기준 종료 세션의 **3.8%**(`79 / 2,054`)뿐이다.
+- 즉 96%의 수동 종료 세션은 성공 세션 카운터를 올리지도, 평가를 받지도 못했다. 그 상태에서 3회 누적은 사실상 도달 불가능했다.
+
+근거와 배포 후 판정 기준은 `docs/RETENTION_DIAGNOSIS_2026_08.md` 2.4와 `docs/REVIEW_PROMPT_POST_RELEASE_FOLLOWTHROUGH.md`의 2026-08-21 재측정 절을 본다.
+
+### 수동 종료(`user_toggle_off`) arm 경로 (2026-08 신설)
+
+수동 종료도 성공 세션으로 인정한다. 단 켜자마자 끄는 오조작을 리뷰 후보로 만들지 않기 위해 최소 지속 시간 하한을 둔다.
+
+| 항목 | 값 / 위치 |
+| --- | --- |
+| 공용 arm 진입점 | `ReviewPromptArmer.arm(...)` (`feature/review/ReviewPromptArmer.kt`) |
+| 타이머·루틴 완주 경로 | `LockViewModel` → `minimumDurationMillis = 0` (완주 자체가 의도된 성공) |
+| 수동 종료 경로 | `HomeViewModel` 토글 오프 → `minimumDurationMillis = MANUAL_SESSION_MIN_MILLIS` |
+| 하한 값 | `MANUAL_SESSION_MIN_MILLIS = 10분` |
+| 하한 미달 시 | `SkipReason.BelowManualSessionDuration`. **성공 세션 카운터를 올리지 않는다** |
+
+카운터 증가 전에 하한을 검사하는 것이 계약이다. 짧은 오조작이 `SUCCESSFUL_SESSION_COUNT`를 밀어 올리면 조건 6 완화가 곧바로 품질 저하로 이어지기 때문이다.
+
+`MANUAL_SESSION_MIN_MILLIS = 10분`은 **데이터 근거가 없는 초기 추정치**다. `lock_session_end`에는 지속 시간 속성이 없어 수동 세션 길이 분포를 조회할 수 없었다. 배포 +7일 readback에서 `BelowManualSessionDuration` 비중을 보고 조정하며, 조정이 필요하면 `lock_session_end`에 duration bucket을 추가하는 계측 변경을 먼저 검토한다(`docs/ANALYTICS_EVENT_DICTIONARY.md` 갱신 동반).
 
 ### evaluateLive()와의 차이
 

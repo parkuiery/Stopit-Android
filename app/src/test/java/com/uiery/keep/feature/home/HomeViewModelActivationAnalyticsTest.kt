@@ -44,6 +44,7 @@ import com.uiery.keep.feature.review.FakeReviewRemoteConfig
 import com.uiery.keep.feature.review.InAppReviewManager
 import com.uiery.keep.feature.review.ReviewBuildConfig
 import com.uiery.keep.feature.review.ReviewEligibilityEvaluator
+import com.uiery.keep.feature.review.ReviewPromptArmer
 import com.uiery.keep.feature.review.fakeReviewEligibilityRepository
 import com.uiery.keep.service.LockHistoryRecorder
 import java.time.Clock
@@ -1265,6 +1266,15 @@ class HomeViewModelActivationAnalyticsTest {
             homeUsageInsightRepository(dataStore),
     ): HomeViewModel {
         val reviewPromptStateStore = ReviewPromptStateStore(dataStore)
+        val reviewEligibilityEvaluator = ReviewEligibilityEvaluator(
+            blockingStateStore = BlockingStateStore(dataStore),
+            reviewPromptStateStore = reviewPromptStateStore,
+            remoteConfig = FakeReviewRemoteConfig(enabled = true),
+            accessibilityChecker = FakeAccessibilityChecker(enabled = true),
+            repository = fakeReviewEligibilityRepository(recentSuccessCount = 2),
+            clock = clock,
+            buildConfig = ReviewBuildConfig(isDebug = false, flavor = "prod"),
+        )
         return HomeViewModel(
             dataStore = dataStore,
             blockingStateStore = BlockingStateStore(dataStore),
@@ -1278,14 +1288,13 @@ class HomeViewModelActivationAnalyticsTest {
             routineRepository = routineRepository,
             repeatBlockSuggestionStore = RepeatBlockRoutineSuggestionStore(dataStore),
             usageInsightRepository = usageInsightRepository,
-            reviewEligibility = ReviewEligibilityEvaluator(
+            reviewEligibility = reviewEligibilityEvaluator,
+            reviewPromptArmer = ReviewPromptArmer(
                 blockingStateStore = BlockingStateStore(dataStore),
                 reviewPromptStateStore = reviewPromptStateStore,
-                remoteConfig = FakeReviewRemoteConfig(enabled = true),
-                accessibilityChecker = FakeAccessibilityChecker(enabled = true),
-                repository = fakeReviewEligibilityRepository(recentSuccessCount = 2),
+                reviewEligibility = reviewEligibilityEvaluator,
+                analytics = analytics,
                 clock = clock,
-                buildConfig = ReviewBuildConfig(isDebug = false, flavor = "prod"),
             ),
             inAppReviewManager = InAppReviewManager(
                 launcher = FakeReviewLauncher(),

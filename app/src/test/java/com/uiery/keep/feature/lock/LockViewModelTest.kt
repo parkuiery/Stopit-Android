@@ -21,6 +21,7 @@ import com.uiery.keep.feature.review.FakeLockHistoryDao
 import com.uiery.keep.feature.review.FakeReviewRemoteConfig
 import com.uiery.keep.feature.review.ReviewBuildConfig
 import com.uiery.keep.feature.review.ReviewEligibilityEvaluator
+import com.uiery.keep.feature.review.ReviewPromptArmer
 import com.uiery.keep.feature.review.fakeReviewEligibilityRepository
 import com.uiery.keep.data.routine.RoutineRepository
 import com.uiery.keep.model.RoutineModel
@@ -143,7 +144,6 @@ class LockViewModelTest {
             lockHistoryRecorder = LockHistoryRecorder(dataStore, LockHistorySessionWriter(FakeLockHistoryDao())),
             dataStore = dataStore,
             blockingStateStore = BlockingStateStore(dataStore),
-            reviewPromptStateStore = reviewPromptStateStore,
             emergencyUnlockCoordinator = EmergencyUnlockCoordinator(
                 settingsStore = EmergencyUnlockSettingsStore(dataStore),
                 blockingStateStore = BlockingStateStore(dataStore),
@@ -157,7 +157,13 @@ class LockViewModelTest {
         ),
             notificationHelper = Mockito.mock(EmergencyUnlockNotificationHelper::class.java),
             analytics = analytics,
-            reviewEligibility = reviewEligibility,
+            reviewPromptArmer = ReviewPromptArmer(
+                blockingStateStore = BlockingStateStore(dataStore),
+                reviewPromptStateStore = reviewPromptStateStore,
+                reviewEligibility = reviewEligibility,
+                analytics = analytics,
+                clock = clock,
+            ),
             clock = clock,
             firstPromisePracticeStore = FirstPromisePracticeStore(dataStore),
         )
@@ -212,7 +218,6 @@ class LockViewModelTest {
             lockHistoryRecorder = LockHistoryRecorder(dataStore, LockHistorySessionWriter(lockHistoryDao)),
             dataStore = dataStore,
             blockingStateStore = BlockingStateStore(dataStore),
-            reviewPromptStateStore = reviewPromptStateStore,
             emergencyUnlockCoordinator = EmergencyUnlockCoordinator(
                 settingsStore = EmergencyUnlockSettingsStore(dataStore),
                 blockingStateStore = BlockingStateStore(dataStore),
@@ -226,7 +231,13 @@ class LockViewModelTest {
         ),
             notificationHelper = Mockito.mock(EmergencyUnlockNotificationHelper::class.java),
             analytics = analytics,
-            reviewEligibility = reviewEligibility,
+            reviewPromptArmer = ReviewPromptArmer(
+                blockingStateStore = BlockingStateStore(dataStore),
+                reviewPromptStateStore = reviewPromptStateStore,
+                reviewEligibility = reviewEligibility,
+                analytics = analytics,
+                clock = clock,
+            ),
             clock = clock,
             firstPromisePracticeStore = FirstPromisePracticeStore(dataStore),
         )
@@ -275,7 +286,6 @@ class LockViewModelTest {
             lockHistoryRecorder = LockHistoryRecorder(dataStore, LockHistorySessionWriter(lockHistoryDao)),
             dataStore = dataStore,
             blockingStateStore = BlockingStateStore(dataStore),
-            reviewPromptStateStore = reviewPromptStateStore,
             emergencyUnlockCoordinator = EmergencyUnlockCoordinator(
                 settingsStore = EmergencyUnlockSettingsStore(dataStore),
                 blockingStateStore = BlockingStateStore(dataStore),
@@ -289,7 +299,13 @@ class LockViewModelTest {
         ),
             notificationHelper = Mockito.mock(EmergencyUnlockNotificationHelper::class.java),
             analytics = analytics,
-            reviewEligibility = reviewEligibility,
+            reviewPromptArmer = ReviewPromptArmer(
+                blockingStateStore = BlockingStateStore(dataStore),
+                reviewPromptStateStore = reviewPromptStateStore,
+                reviewEligibility = reviewEligibility,
+                analytics = analytics,
+                clock = clock,
+            ),
             clock = clock,
             firstPromisePracticeStore = FirstPromisePracticeStore(dataStore),
         )
@@ -337,7 +353,6 @@ class LockViewModelTest {
                 lockHistoryRecorder = LockHistoryRecorder(dataStore, LockHistorySessionWriter(lockHistoryDao)),
                 dataStore = dataStore,
                 blockingStateStore = BlockingStateStore(dataStore),
-                reviewPromptStateStore = reviewPromptStateStore,
                 emergencyUnlockCoordinator = EmergencyUnlockCoordinator(
                     settingsStore = EmergencyUnlockSettingsStore(dataStore),
                     blockingStateStore = BlockingStateStore(dataStore),
@@ -351,7 +366,13 @@ class LockViewModelTest {
         ),
                 notificationHelper = Mockito.mock(EmergencyUnlockNotificationHelper::class.java),
                 analytics = analytics,
-                reviewEligibility = reviewEligibility,
+                reviewPromptArmer = ReviewPromptArmer(
+                    blockingStateStore = BlockingStateStore(dataStore),
+                    reviewPromptStateStore = reviewPromptStateStore,
+                    reviewEligibility = reviewEligibility,
+                    analytics = analytics,
+                    clock = clock,
+                ),
                 clock = clock,
                 firstPromisePracticeStore = FirstPromisePracticeStore(dataStore),
             )
