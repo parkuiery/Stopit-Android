@@ -103,11 +103,22 @@ class ReviewEligibilityEvaluatorTest {
         )
     }
 
+    // SESSION_THRESHOLD 는 2026-08 에 3 -> 1 로 내렸다. 성공 세션이 한 번도 없을 때만
+    // BelowSessionThreshold 다. docs/REVIEW_PROMPT_LIFECYCLE.md 조건 6 참조.
     @Test
     fun belowSessionThresholdIsIneligible() {
-        val prefs = baselinePrefs().apply { set(PreferencesKey.SUCCESSFUL_SESSION_COUNT, 2) }
+        val prefs = baselinePrefs().apply { set(PreferencesKey.SUCCESSFUL_SESSION_COUNT, 0) }
         assertEquals(
             ReviewEligibilityDecision.Ineligible(SkipReason.BelowSessionThreshold),
+            evaluate(newEvaluator(prefs = prefs)),
+        )
+    }
+
+    @Test
+    fun singleSuccessfulSessionMeetsThreshold() {
+        val prefs = baselinePrefs().apply { set(PreferencesKey.SUCCESSFUL_SESSION_COUNT, 1) }
+        assertEquals(
+            ReviewEligibilityDecision.Eligible,
             evaluate(newEvaluator(prefs = prefs)),
         )
     }

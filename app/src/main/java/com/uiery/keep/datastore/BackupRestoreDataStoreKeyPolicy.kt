@@ -54,6 +54,8 @@ object BackupRestoreDataStoreKeyPolicy {
         PreferencesKey.PARENT_MODE_DURATION_MINUTES,
         PreferencesKey.PARENT_MODE_ALLOWED_APPS,
         PreferencesKey.PARENT_MODE_STATE,
+        PreferencesKey.PARENT_MODE_PIN_HASH,
+        PreferencesKey.PARENT_MODE_PIN_SALT,
         PreferencesKey.HAS_CHECKED_INSTALL_REFERRER_ATTRIBUTION,
         PreferencesKey.USAGE_INSIGHT_DISMISSED,
         PreferencesKey.USAGE_INSIGHT_PERMISSION_PROMPTS,

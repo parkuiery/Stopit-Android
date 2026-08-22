@@ -72,6 +72,9 @@ SUITES: dict[str, list[str]] = {
         "com.uiery.keep.service.EmergencyUnlockExpiryIntegrationTest#finishEmergencyUnlockWindow_withoutReservationSendsNothing",
         "com.uiery.keep.service.KeepMessagingServiceIntegrationTest",
         "com.uiery.keep.service.KeepAccessibilityServiceIntegrationTest",
+        # 화면 회귀가 아니라 저장 계약이다. 보호자 PIN 원문이 실제 DataStore 파일에 남지 않는지는
+        # 가짜 store 로는 보일 수 없고, 그게 이 PIN 이 존재하는 이유다. (#1177)
+        "com.uiery.keep.feature.parentmode.ParentModeGuardianPinDeviceTest",
     ],
     "android_ci_exact_alarm_default": [
         "com.uiery.keep.feature.routine.RoutineExactAlarmPermissionIntegrationTest#defaultExactAlarmAppOpsFollowsAlarmManagerAvailability",

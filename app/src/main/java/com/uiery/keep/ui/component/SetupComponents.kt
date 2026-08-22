@@ -85,11 +85,13 @@ fun SetupHero(
                 .background(accent.copy(alpha = 0.18f)),
             contentAlignment = Alignment.Center,
         ) {
-            Icon(
-                modifier = Modifier.size(24.dp),
+            // 히어로에 넘어오는 건 단색 글리프가 아니라 여러 색을 쓴 일러스트다(`ic_parent_mode`는
+            // 7색, `ic_goal_lock`은 5색). `Icon`은 모든 path를 tint 하나로 덮어 그림을 브랜드색
+            // 실루엣으로 만들어 버렸다. 메뉴가 같은 드로어블을 그리는 방식대로 `Image`로 둔다.
+            Image(
+                modifier = Modifier.size(30.dp),
                 painter = painterResource(id = iconResId),
                 contentDescription = null,
-                tint = accent,
             )
         }
         Spacer(modifier = Modifier.width(14.dp))

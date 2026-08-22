@@ -12,7 +12,10 @@ import com.uiery.keep.domain.parentmode.ParentModeSessionState
 import com.uiery.keep.feature.review.FakeDataStore
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotEquals
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class ParentModeSessionControllerTest {
@@ -25,7 +28,8 @@ class ParentModeSessionControllerTest {
         val result = controller.start(
             durationMinutes = 0,
             allowedApps = emptySet(),
-            pinState = ParentModePinState.NotConfigured,
+            guardianPin = "",
+            guardianPinConfirmation = "",
             nowMillis = 1_000L,
         )
 
@@ -52,7 +56,8 @@ class ParentModeSessionControllerTest {
         val result = controller.start(
             durationMinutes = 20,
             allowedApps = setOf("com.video.app", "com.learning.app"),
-            pinState = ParentModePinState.Verified,
+            guardianPin = "1234",
+            guardianPinConfirmation = "1234",
             nowMillis = 1_000L,
         )
 
@@ -63,8 +68,17 @@ class ParentModeSessionControllerTest {
             allowedApps = setOf("com.video.app", "com.learning.app"),
             state = ParentModeSessionState.Active,
         )
-        assertEquals(ParentModeSessionControllerResult.Started(expectedSession), result)
-        assertEquals(expectedSession, store.read())
+        val storedSession = store.read()
+        assertEquals(
+            ParentModeSessionControllerResult.Started(expectedSession),
+            (result as ParentModeSessionControllerResult.Started).let {
+                ParentModeSessionControllerResult.Started(it.session.copy(guardianPin = null))
+            },
+        )
+        assertEquals(expectedSession, storedSession?.copy(guardianPin = null))
+        // The PIN survives the restart the parent will need it across, but only as a digest.
+        assertNotNull(storedSession?.guardianPin)
+        assertNotEquals("1234", storedSession?.guardianPin?.hash)
         assertEquals(
             listOf(
                 ParentModeAnalyticsRecord.DurationSelected(AnalyticsParentModeDurationBucket.ELEVEN_TO_TWENTY),
@@ -87,6 +101,7 @@ class ParentModeSessionControllerTest {
             durationMinutes = 10,
             allowedApps = setOf("com.video.app"),
             state = ParentModeSessionState.Active,
+            guardianPin = GUARDIAN_PIN,
         )
         store.save(active)
         val analytics = RecordingParentModeAnalytics()
@@ -94,7 +109,7 @@ class ParentModeSessionControllerTest {
 
         val result = controller.extend(
             extensionMinutes = 10,
-            pinState = ParentModePinState.Failed,
+            pinAttempt = "9999",
             nowMillis = 10_000L,
         )
 
@@ -113,6 +128,7 @@ class ParentModeSessionControllerTest {
                 durationMinutes = 10,
                 allowedApps = setOf("com.video.app"),
                 state = ParentModeSessionState.Active,
+                guardianPin = GUARDIAN_PIN,
             ),
         )
         val analytics = RecordingParentModeAnalytics()
@@ -120,7 +136,7 @@ class ParentModeSessionControllerTest {
 
         val result = controller.extend(
             extensionMinutes = 10,
-            pinState = ParentModePinState.Verified,
+            pinAttempt = "1234",
             nowMillis = 10_000L,
         )
 
@@ -130,6 +146,7 @@ class ParentModeSessionControllerTest {
             durationMinutes = 20,
             allowedApps = setOf("com.video.app"),
             state = ParentModeSessionState.Active,
+            guardianPin = GUARDIAN_PIN,
         )
         assertEquals(ParentModeSessionControllerResult.Extended(updatedSession), result)
         assertEquals(updatedSession, store.read())
@@ -149,13 +166,14 @@ class ParentModeSessionControllerTest {
                 durationMinutes = 20,
                 allowedApps = setOf("com.video.app"),
                 state = ParentModeSessionState.Active,
+                guardianPin = GUARDIAN_PIN,
             ),
         )
         val analytics = RecordingParentModeAnalytics()
         val controller = ParentModeSessionController(store, analytics)
 
         val result = controller.endNow(
-            pinState = ParentModePinState.Verified,
+            pinAttempt = "1234",
             nowMillis = 60_000L,
         )
 
@@ -165,6 +183,7 @@ class ParentModeSessionControllerTest {
             durationMinutes = 20,
             allowedApps = setOf("com.video.app"),
             state = ParentModeSessionState.UnlockedByPin,
+            guardianPin = GUARDIAN_PIN,
         )
         assertEquals(ParentModeSessionControllerResult.Ended(endedSession), result)
         assertEquals(endedSession, store.read())
@@ -197,6 +216,7 @@ class ParentModeSessionControllerTest {
                 durationMinutes = 1,
                 allowedApps = setOf("com.video.app"),
                 state = finishedState,
+                guardianPin = GUARDIAN_PIN,
             )
             store.save(finishedSession)
             val analytics = RecordingParentModeAnalytics()
@@ -204,7 +224,7 @@ class ParentModeSessionControllerTest {
 
             val result = controller.extend(
                 extensionMinutes = 10,
-                pinState = ParentModePinState.Verified,
+                pinAttempt = "1234",
                 nowMillis = 62_000L,
             )
 
@@ -228,13 +248,14 @@ class ParentModeSessionControllerTest {
                 durationMinutes = 1,
                 allowedApps = setOf("com.video.app"),
                 state = finishedState,
+                guardianPin = GUARDIAN_PIN,
             )
             store.save(finishedSession)
             val analytics = RecordingParentModeAnalytics()
             val controller = ParentModeSessionController(store, analytics)
 
             val result = controller.endNow(
-                pinState = ParentModePinState.Verified,
+                pinAttempt = "1234",
                 nowMillis = 62_000L,
             )
 
@@ -254,6 +275,7 @@ class ParentModeSessionControllerTest {
                 durationMinutes = 1,
                 allowedApps = setOf("com.video.app"),
                 state = ParentModeSessionState.Active,
+                guardianPin = GUARDIAN_PIN,
             ),
         )
         val analytics = RecordingParentModeAnalytics()
@@ -261,7 +283,7 @@ class ParentModeSessionControllerTest {
 
         val result = controller.extend(
             extensionMinutes = 10,
-            pinState = ParentModePinState.Verified,
+            pinAttempt = "1234",
             nowMillis = 61_000L,
         )
 
@@ -271,6 +293,7 @@ class ParentModeSessionControllerTest {
             durationMinutes = 1,
             allowedApps = setOf("com.video.app"),
             state = ParentModeSessionState.Expired,
+            guardianPin = GUARDIAN_PIN,
         )
         assertEquals(ParentModeSessionControllerResult.Expired(expiredSession), result)
         assertEquals(expiredSession, store.read())
@@ -295,13 +318,14 @@ class ParentModeSessionControllerTest {
                 durationMinutes = 1,
                 allowedApps = setOf("com.video.app"),
                 state = ParentModeSessionState.Active,
+                guardianPin = GUARDIAN_PIN,
             ),
         )
         val analytics = RecordingParentModeAnalytics()
         val controller = ParentModeSessionController(store, analytics)
 
         val result = controller.endNow(
-            pinState = ParentModePinState.Verified,
+            pinAttempt = "1234",
             nowMillis = 61_000L,
         )
 
@@ -311,6 +335,7 @@ class ParentModeSessionControllerTest {
             durationMinutes = 1,
             allowedApps = setOf("com.video.app"),
             state = ParentModeSessionState.Expired,
+            guardianPin = GUARDIAN_PIN,
         )
         assertEquals(ParentModeSessionControllerResult.Expired(expiredSession), result)
         assertEquals(expiredSession, store.read())
@@ -335,6 +360,7 @@ class ParentModeSessionControllerTest {
                 durationMinutes = 1,
                 allowedApps = setOf("com.video.app"),
                 state = ParentModeSessionState.Active,
+                guardianPin = GUARDIAN_PIN,
             ),
         )
         val analytics = RecordingParentModeAnalytics()
@@ -349,6 +375,7 @@ class ParentModeSessionControllerTest {
             durationMinutes = 1,
             allowedApps = setOf("com.video.app"),
             state = ParentModeSessionState.Expired,
+            guardianPin = GUARDIAN_PIN,
         )
         assertEquals(ParentModeSessionControllerResult.Expired(expiredSession), firstResult)
         assertEquals(ParentModeSessionControllerResult.NoStateChange(expiredSession), secondResult)
@@ -363,7 +390,115 @@ class ParentModeSessionControllerTest {
             analytics.records,
         )
     }
+
+    @Test
+    fun endNowRejectsAPinThatIsNotTheOneTheSessionStarted() = runBlocking {
+        val store = ParentModeSessionStore(FakeDataStore())
+        val active = ParentModeSession(
+            startedAtMillis = 1_000L,
+            expiresAtMillis = 1_201_000L,
+            durationMinutes = 20,
+            allowedApps = setOf("com.video.app"),
+            state = ParentModeSessionState.Active,
+            guardianPin = GUARDIAN_PIN,
+        )
+        store.save(active)
+        val analytics = RecordingParentModeAnalytics()
+        val controller = ParentModeSessionController(store, analytics)
+
+        // The digits agree with themselves, which used to be the whole check.
+        val rejected = controller.endNow(pinAttempt = "9999", nowMillis = 60_000L)
+
+        assertEquals(ParentModeSessionControllerResult.PinRequired, rejected)
+        assertEquals(active, store.read())
+        assertEquals(emptyList<ParentModeAnalyticsRecord>(), analytics.records)
+
+        val accepted = controller.endNow(pinAttempt = "1234", nowMillis = 60_000L)
+
+        assertEquals(
+            ParentModeSessionState.UnlockedByPin,
+            (accepted as ParentModeSessionControllerResult.Ended).session.state,
+        )
+    }
+
+    @Test
+    fun theTypedPinNeverReachesTheStoredPreferences() = runBlocking {
+        val dataStore = FakeDataStore()
+        val store = ParentModeSessionStore(dataStore)
+        val controller = ParentModeSessionController(store, RecordingParentModeAnalytics())
+
+        controller.start(
+            durationMinutes = 20,
+            allowedApps = setOf("com.video.app"),
+            guardianPin = "482913",
+            guardianPinConfirmation = "482913",
+            nowMillis = 1_000L,
+        )
+
+        val storedValues = dataStore.snapshot().asMap().values.map(Any::toString)
+        assertTrue(storedValues.none { it.contains("482913") })
+        assertNotNull(store.read()?.guardianPin)
+    }
+
+    @Test
+    fun clearingASessionAlsoClearsTheStoredPinDigest() = runBlocking {
+        val dataStore = FakeDataStore()
+        val store = ParentModeSessionStore(dataStore)
+        val controller = ParentModeSessionController(store, RecordingParentModeAnalytics())
+        controller.start(
+            durationMinutes = 20,
+            allowedApps = setOf("com.video.app"),
+            guardianPin = "1234",
+            guardianPinConfirmation = "1234",
+            nowMillis = 1_000L,
+        )
+        controller.endNow(pinAttempt = "1234", nowMillis = 60_000L)
+
+        controller.clearFinishedSession()
+
+        assertNull(store.read())
+        assertTrue(dataStore.snapshot().asMap().keys.none { it.name.startsWith("parent_mode_pin") })
+    }
+
+    @Test
+    fun aSessionStoredBeforePinsWereSavedCanStillBeEndedByTheParent() = runBlocking {
+        val store = ParentModeSessionStore(FakeDataStore())
+        // Exactly what an upgrade finds on disk: a running session with no digest beside it.
+        store.save(
+            ParentModeSession(
+                startedAtMillis = 1_000L,
+                expiresAtMillis = 1_201_000L,
+                durationMinutes = 20,
+                allowedApps = setOf("com.video.app"),
+                state = ParentModeSessionState.Active,
+                guardianPin = null,
+            ),
+        )
+        val analytics = RecordingParentModeAnalytics()
+        val controller = ParentModeSessionController(store, analytics)
+
+        assertNull(store.read()?.guardianPin)
+
+        val result = controller.endNow(pinAttempt = "", nowMillis = 60_000L)
+
+        assertEquals(
+            ParentModeSessionState.UnlockedByPin,
+            (result as ParentModeSessionControllerResult.Ended).session.state,
+        )
+        assertEquals(
+            ParentModeAnalyticsRecord.UnlockedByPin(
+                pinResult = AnalyticsParentModePinResult.NOT_CONFIGURED,
+                endReason = AnalyticsParentModeEndReason.PIN_UNLOCKED,
+            ),
+            analytics.records.first(),
+        )
+    }
 }
+
+
+/** One digest for the whole file: the salt is random per call, so a shared value keeps the
+ *  seeded sessions comparable with what the store reads back. */
+private val GUARDIAN_PIN = ParentModePolicy.digestGuardianPin("1234")
 
 private class RecordingParentModeAnalytics : KeepAnalytics {
     val records = mutableListOf<ParentModeAnalyticsRecord>()

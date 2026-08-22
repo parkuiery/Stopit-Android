@@ -304,6 +304,83 @@ class KeepAccessibilityServiceBlockDecisionTest {
         )
     }
 
+    /**
+     * The person holding the phone during parent mode is not the person who set the lock up, so an
+     * emergency call cannot depend on the parent having thought to put the dialer on the allowlist.
+     * The self-control locks keep blocking outgoing calls — there the blocker and the caller are the
+     * same person — but a supervised session cannot make that trade on someone else's behalf.
+     */
+    @Test
+    fun parentModeKeepsTheDialerReachableForOutgoingEmergencyCalls() {
+        val request = resolveForegroundBlockRequest(
+            packageName = DIALER,
+            prefs = AccessibilityBlockingPreferences(
+                exemptPackages = BlockExemptPackages(
+                    sensitiveRoles = mapOf(DIALER to SensitiveAppRole.DIALER),
+                ),
+            ),
+            cachedRoutines = emptyList(),
+            parentModeSession = activeParentModeSession(allowedApps = emptySet()),
+            now = LocalDateTime.of(2026, 5, 27, 10, 0),
+            isEmergencyUnlocked = false,
+            isDuplicateBlock = false,
+            isCallInProgress = false,
+        )
+
+        assertNull(request)
+    }
+
+    @Test
+    fun expiredParentModeAlsoKeepsTheDialerReachable() {
+        val request = resolveForegroundBlockRequest(
+            packageName = DIALER,
+            prefs = AccessibilityBlockingPreferences(
+                exemptPackages = BlockExemptPackages(
+                    sensitiveRoles = mapOf(DIALER to SensitiveAppRole.DIALER),
+                ),
+            ),
+            cachedRoutines = emptyList(),
+            parentModeSession = activeParentModeSession(allowedApps = setOf(DIALER)),
+            // The session ran out an hour ago, which is when every app including the allowed ones
+            // gets blocked. The dialer is the one that must not.
+            now = LocalDateTime.of(2026, 5, 27, 12, 0),
+            isEmergencyUnlocked = false,
+            isDuplicateBlock = false,
+            isCallInProgress = false,
+        )
+
+        assertNull(request)
+    }
+
+    /**
+     * Without a parent mode session the existing trade stands: the user blocked their own dialer on
+     * purpose, and only a live incoming call steps aside for it.
+     */
+    @Test
+    fun selfControlLocksStillBlockOutgoingCallsToADeliberatelyBlockedDialer() {
+        val request = resolveForegroundBlockRequest(
+            packageName = DIALER,
+            prefs = AccessibilityBlockingPreferences(
+                isKeep = true,
+                selectedAppPackages = setOf(DIALER),
+                exemptPackages = BlockExemptPackages(
+                    sensitiveRoles = mapOf(DIALER to SensitiveAppRole.DIALER),
+                ),
+            ),
+            cachedRoutines = emptyList(),
+            parentModeSession = null,
+            now = LocalDateTime.of(2026, 5, 27, 10, 0),
+            isEmergencyUnlocked = false,
+            isDuplicateBlock = false,
+            isCallInProgress = false,
+        )
+
+        assertEquals(
+            ForegroundBlockRequest(packageName = DIALER, blockSource = AnalyticsBlockSource.MANUAL_KEEP),
+            request,
+        )
+    }
+
     @Test
     fun parentModeStillCannotBlockTheHomeLauncher() {
         val request = resolveForegroundBlockRequest(
@@ -555,6 +632,77 @@ class KeepAccessibilityServiceBlockDecisionTest {
             ),
             expiredRequest,
         )
+    }
+
+
+    /**
+     * Emergency unlock is the escape hatch its own author built for themselves. Parent mode is the
+     * one lock whose author is not the person holding the phone, so the hatch stops here — a button
+     * that opens everything three times a day would leave the guardian PIN guarding nothing.
+     */
+    @Test
+    fun emergencyUnlockDoesNotOpenWhatParentModeIsBlocking() {
+        val request = resolveForegroundBlockRequest(
+            packageName = SETTINGS,
+            prefs = AccessibilityBlockingPreferences(
+                exemptPackages = BlockExemptPackages(homePackages = setOf(HOME_LAUNCHER)),
+            ),
+            cachedRoutines = emptyList(),
+            parentModeSession = activeParentModeSession(allowedApps = emptySet()),
+            now = LocalDateTime.of(2026, 5, 27, 10, 0),
+            isEmergencyUnlocked = true,
+            isDuplicateBlock = false,
+        )
+
+        assertEquals(
+            ForegroundBlockRequest(
+                packageName = SETTINGS,
+                blockSource = AnalyticsBlockSource.PARENT_MODE,
+            ),
+            request,
+        )
+    }
+
+    /** The self-control locks are still the escapee's own, so the hatch keeps working on them. */
+    @Test
+    fun emergencyUnlockStillOpensTheSelfControlLocks() {
+        val request = resolveForegroundBlockRequest(
+            packageName = SETTINGS,
+            prefs = AccessibilityBlockingPreferences(
+                isKeep = true,
+                selectedAppPackages = setOf(SETTINGS),
+            ),
+            cachedRoutines = emptyList(),
+            parentModeSession = null,
+            now = LocalDateTime.of(2026, 5, 27, 10, 0),
+            isEmergencyUnlocked = true,
+            isDuplicateBlock = false,
+        )
+
+        assertNull(request)
+    }
+
+    /**
+     * A live call outranks both. The dialer exemption sits ahead of parent mode in the decision, so
+     * closing the emergency-unlock route never closed the route that matters.
+     */
+    @Test
+    fun parentModeStillLetsACallThroughWithNoEmergencyUnlockLeft() {
+        val request = resolveForegroundBlockRequest(
+            packageName = DIALER,
+            prefs = AccessibilityBlockingPreferences(
+                exemptPackages = BlockExemptPackages(
+                    sensitiveRoles = mapOf(DIALER to SensitiveAppRole.DIALER),
+                ),
+            ),
+            cachedRoutines = emptyList(),
+            parentModeSession = activeParentModeSession(allowedApps = emptySet()),
+            now = LocalDateTime.of(2026, 5, 27, 10, 0),
+            isEmergencyUnlocked = false,
+            isDuplicateBlock = false,
+        )
+
+        assertNull(request)
     }
 
     private fun activeParentModeSession(

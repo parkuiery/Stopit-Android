@@ -97,6 +97,7 @@ fun CategoryBottomSheetContent(
     websiteSelectionEnabled: Boolean = false,
     storeSelectedWebDomains: Set<String> = emptySet(),
     onCompleteTargets: ((selectedApps: Set<String>, selectedWebDomains: Set<String>) -> Unit)? = null,
+    purpose: AppSelectionPurpose = AppSelectionPurpose.Block,
 ) {
     val context = LocalContext.current
     val blockExemptPackageProvider = remember(context) {
@@ -134,6 +135,7 @@ fun CategoryBottomSheetContent(
         websiteSelectionEnabled = websiteSelectionEnabled,
         storeSelectedWebDomains = storeSelectedWebDomains,
         onCompleteTargets = onCompleteTargets,
+        purpose = purpose,
     )
 }
 
@@ -150,6 +152,7 @@ fun CategoryBottomSheetLoadedContent(
     websiteSelectionEnabled: Boolean = false,
     storeSelectedWebDomains: Set<String> = emptySet(),
     onCompleteTargets: ((selectedApps: Set<String>, selectedWebDomains: Set<String>) -> Unit)? = null,
+    purpose: AppSelectionPurpose = AppSelectionPurpose.Block,
 ) {
     val initialSelectedAppPackages = remember(apps, selectionMode) {
         when (selectionMode) {
@@ -206,12 +209,27 @@ fun CategoryBottomSheetLoadedContent(
             Spacer(modifier = Modifier.padding(top = 40.dp))
             Text(
                 text = stringResource(
-                    if (websiteSelectionEnabled) R.string.lock_target_selection else R.string.activity_selection,
+                    when (appSelectionHeading(purpose = purpose, websiteSelectionEnabled = websiteSelectionEnabled)) {
+                        AppSelectionHeading.LockTargets -> R.string.lock_target_selection
+                        AppSelectionHeading.Activities -> R.string.activity_selection
+                        AppSelectionHeading.AllowedApps -> R.string.app_selection_allowed_apps_title
+                    },
                 ),
                 fontWeight = FontWeight.Bold,
                 fontSize = 32.sp,
                 color = KeepTheme.colors.onSurfaceVariant,
             )
+            // An allowlist inverts what a tap means, and the list itself cannot say so. Without this
+            // the parent reads it as "apps to stop" and picks exactly the wrong set.
+            if (purpose == AppSelectionPurpose.Allow) {
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    modifier = Modifier.testTag("app_selection_allow_notice"),
+                    text = stringResource(R.string.app_selection_allowed_apps_notice),
+                    color = KeepTheme.colors.onSurfaceVariant,
+                    style = KeepTheme.typography.bodyMedium,
+                )
+            }
         } else {
             Spacer(modifier = Modifier.padding(top = 20.dp))
         }
@@ -415,10 +433,11 @@ fun CategoryBottomSheetLoadedContent(
                 }
                 // Single selection is one deliberate tap on a named app, so it carries its own
                 // disclosure. Everything else can arrive through select all and has to be confirmed.
-                val hasSensitiveSelections = BlockExemptPackagePolicy.sensitiveSelections(
+                val hasSensitiveSelections = requiresSensitiveBlockConfirmation(
+                    purpose = purpose,
                     selectedPackages = selectedAppPackages,
                     exemptPackages = exemptPackages,
-                ).isNotEmpty()
+                )
                 if (hasSensitiveSelections) {
                     pendingSensitiveCompletion = selectedAppPackages
                 } else {
@@ -763,6 +782,59 @@ internal fun updateSelectableAppSelection(
     AppSelectionMode.Multiple -> toggleSelectableAppSelection(currentSelection, packageName)
     AppSelectionMode.Single -> setOf(packageName)
 }
+
+/**
+ * What the caller does with the packages this sheet returns.
+ *
+ * The list looks the same either way, but the two readings are opposites: [Block] saves the apps to
+ * stop, [Allow] saves the only apps that stay open while everything else is stopped. Parent mode
+ * reads its selection as [Allow], and describing that selection with block copy is how a parent
+ * ends up locking the whole device without meaning to. The purpose is passed in rather than
+ * inferred because nothing in the selection itself distinguishes the two.
+ */
+enum class AppSelectionPurpose {
+    Block,
+    Allow,
+}
+
+/** The heading this sheet shows. Kept separate from the string resources so it stays JVM-testable. */
+internal enum class AppSelectionHeading {
+    LockTargets,
+    Activities,
+    AllowedApps,
+}
+
+internal fun appSelectionHeading(
+    purpose: AppSelectionPurpose,
+    websiteSelectionEnabled: Boolean,
+): AppSelectionHeading = when (purpose) {
+    // An allowlist has no website half to switch between, so the tab set does not change the name
+    // of what is being picked.
+    AppSelectionPurpose.Allow -> AppSelectionHeading.AllowedApps
+    AppSelectionPurpose.Block -> if (websiteSelectionEnabled) {
+        AppSelectionHeading.LockTargets
+    } else {
+        AppSelectionHeading.Activities
+    }
+}
+
+/**
+ * Whether saving this selection has to confirm the device-role apps it is about to block.
+ *
+ * Only [AppSelectionPurpose.Block] can. Under an allowlist both halves of that confirmation are
+ * inverted — selecting the dialer is what keeps it reachable, and the dialog's "exclude" action is
+ * what would actually block it — so showing it there would talk a parent into the opposite of what
+ * they wanted.
+ */
+internal fun requiresSensitiveBlockConfirmation(
+    purpose: AppSelectionPurpose,
+    selectedPackages: Set<String>,
+    exemptPackages: BlockExemptPackages,
+): Boolean = purpose == AppSelectionPurpose.Block &&
+    BlockExemptPackagePolicy.sensitiveSelections(
+        selectedPackages = selectedPackages,
+        exemptPackages = exemptPackages,
+    ).isNotEmpty()
 
 internal fun areAllSelectableAppsSelected(
     currentSelection: Set<String>,

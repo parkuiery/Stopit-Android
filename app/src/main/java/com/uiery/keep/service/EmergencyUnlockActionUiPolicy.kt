@@ -28,6 +28,11 @@ internal fun emergencyUnlockActionUiState(
             textRes = R.string.emergency_unlock_daily_limit_zero,
             helperTextRes = R.string.emergency_unlock_daily_limit_zero_helper,
         )
+        EmergencyUnlockAvailabilityReason.ParentModeActive -> EmergencyUnlockActionUiState(
+            enabled = false,
+            textRes = R.string.emergency_unlock_parent_mode_active,
+            helperTextRes = R.string.emergency_unlock_parent_mode_active_helper,
+        )
         EmergencyUnlockAvailabilityReason.DailyLimitExhausted -> EmergencyUnlockActionUiState(
             enabled = false,
             textRes = R.string.emergency_unlock_daily_limit_reached,

@@ -20,6 +20,7 @@ import com.uiery.keep.domain.repeatblock.RepeatBlockRoutineSuggestion
 import com.uiery.keep.domain.repeatblock.RepeatBlockSuggestionReason
 import com.uiery.keep.domain.repeatblock.RepeatBlockTimeBucket
 import com.uiery.keep.domain.repeatblock.RoutineCoverageState
+import com.uiery.keep.domain.parentmode.ParentModeBlockReason
 import com.uiery.keep.lockscreen.LockScreenMode
 import com.uiery.keep.service.EmergencyUnlockAvailabilityReason
 import kotlinx.datetime.LocalTime
@@ -63,6 +64,54 @@ class BlockScreenContentIntegrationTest {
 
         composeRule.onNodeWithTag("block_screen_close_cta").assertIsDisplayed().assertIsEnabled()
         composeRule.onNodeWithText(context.getString(R.string.block_screen_close)).assertIsDisplayed()
+    }
+
+    /**
+     * The person reading this during parent mode did not set the session up, so the screen has to
+     * name the reason. Mid-session it is "not this app"; after expiry nothing opens at all, and
+     * saying the wrong one sends a child to their parent with the wrong question.
+     */
+    @Test
+    fun parentModeBlockExplainsWhichOfTheTwoReasonsPutTheScreenUp() {
+        composeRule.setContent {
+            KeepTheme {
+                BlockScreenContent(
+                    appName = "YouTube",
+                    blockMode = LockScreenMode.ParentMode,
+                    uiState = BlockUiState(
+                        parentModeBlockReason = ParentModeBlockReason.AllowedAppsOnly,
+                    ),
+                    showBannerAd = false,
+                    onShowEmergencyUnlock = {},
+                    onClose = {},
+                )
+            }
+        }
+
+        composeRule.onNodeWithTag("block_screen_parent_mode_reason").assertIsDisplayed()
+        composeRule
+            .onNodeWithText(context.getString(R.string.block_screen_parent_mode_allowed_apps_reason))
+            .assertIsDisplayed()
+    }
+
+    @Test
+    fun expiredParentModeBlockSaysTheAgreedTimeIsOver() {
+        composeRule.setContent {
+            KeepTheme {
+                BlockScreenContent(
+                    appName = "YouTube",
+                    blockMode = LockScreenMode.ParentMode,
+                    uiState = BlockUiState(parentModeBlockReason = ParentModeBlockReason.TimeExpired),
+                    showBannerAd = false,
+                    onShowEmergencyUnlock = {},
+                    onClose = {},
+                )
+            }
+        }
+
+        composeRule
+            .onNodeWithText(context.getString(R.string.block_screen_parent_mode_expired_reason))
+            .assertIsDisplayed()
     }
 
     @Test

@@ -65,6 +65,66 @@
 
 다만 이 aggregate smoke는 `eventName × appVersion × customEvent:reason` breakdown을 대체하지 않는다. 2026-06-14 재확인 기준 PR #308(`cfff411898fbaac43a5c5bbafb48651091e66be2`)과 PR #312(`e920ea3049bb0a3e192de29d0011298ae9b0a2b5`)는 `origin/develop`에는 포함되어 있지만 `origin/main` `20b8ff4a`와 최신 SemVer tag `v1.7.7`에는 아직 포함되지 않았다. 따라서 `shown = 0` / `skipped 증가`는 **post-PR-308/#312 회귀가 아니라 release/tag/Play deploy 전 baseline smoke**로만 기록하고, D+14 표를 채우기 전까지 #307을 닫지 않는다.
 
+## 2026-08-21 post-release 재측정 — 판단 규칙 C 발동
+
+PR #308/#312를 포함한 버전이 배포되고 충분한 창이 지난 뒤의 첫 정식 재측정이다. 전체 진단 맥락은 `docs/RETENTION_DIAGNOSIS_2026_08.md`가 source of truth다.
+
+GA4 `30daysAgo..yesterday` = `2026-07-22..2026-08-20`, property `502544175`. 최근 7일 기준 `1.9.x` active share `358 / 560 = 63.9%`로 `docs/VERSION_ADOPTION_METRICS_GATE.md` 기준 `충분`이므로, 이 수치는 **post-fix 결과로 해석 가능**하다.
+
+### 앱 내부 lifecycle 표
+
+| 이벤트 | eventCount | users | 2026-06-02 baseline (users) |
+| --- | ---: | ---: | ---: |
+| `review_prompt_eligible` | 5 | 5 | 0 |
+| `review_prompt_shown` | 3 | 3 | 0 |
+| `review_prompt_skipped` | 76 | 61 | 27 |
+| `review_prompt_failed` | 0 | 0 | 0 |
+| `activeUsers` (분모) | — | 894 | 681 |
+| `app_block_intercepted` (성공 사용 신호) | 24,070 | 530 | 343 |
+
+### skip/failure breakdown 표
+
+| reason | eventCount | 비중 | 해석 |
+| --- | ---: | ---: | --- |
+| `BelowSessionThreshold` | 55 | `55/76 = 72.4%` | **지배적.** 2026-06-02의 "post-release에도 지속되면 threshold를 본다" 조건 충족 |
+| `QuietHours` | 9 | 11.8% | 제품 조건상 정상 보류. 판단 규칙 B에 따라 강제 완화하지 않는다 |
+| `RecentEmergencyUnlock` | 6 | 7.9% | 안전 guardrail. 완화 후보로 보지 않는다 |
+| `WithinCooldown` | 5 | 6.6% | 90일 cooldown 정상 동작 |
+| `AccessibilityOff` | 1 | 1.3% | 무시 가능 |
+
+`review_prompt_failed`는 0이므로 **판단 규칙 A는 해당 없다.** launcher/Play Core 경로는 건강하다.
+
+### 판정
+
+`eligible = 5`는 `activeUsers 894` 대비 사실상 0이고, 성공 사용 신호(`app_block_intercepted` 530명)는 충분하다. **판단 규칙 C**(`eligible = 0`, 성공 사용 신호는 충분함 → eligibility threshold 확인)에 해당한다.
+
+규칙 C가 지시하는 `SUCCESSFUL_SESSION_COUNT` 확인 결과, 원인 사슬이 코드까지 특정됐다.
+
+1. `LockViewModel.kt:191` — `maybeArmReviewPrompt(...)`가 **`TIMER_ELAPSED` 경로에서만** 호출된다.
+2. GA4 기준 타이머 완주 세션은 `79 / 2,054 = 3.8%`. 즉 종료된 세션의 3.8%만 arm 평가 대상이 된다. 나머지 `1,975`건은 `user_toggle_off`로 끝나며 평가 자체가 일어나지 않는다.
+3. 그 3.8% 안에서 다시 `ReviewEligibilityEvaluator.kt:12`의 `SESSION_THRESHOLD = 3`(`docs/REVIEW_PROMPT_LIFECYCLE.md` 조건 6)을 요구한다. **성공 세션 3회 누적은 사실상 도달 불가능하다.**
+
+즉 threshold 하나가 아니라 **arm 트리거 경로가 좁은 것이 1차 원인**이고, threshold가 2차로 겹친 구조다.
+
+### 다음 실행 (code lane)
+
+| 작업 | 대상 | 값 |
+| --- | --- | --- |
+| arm 경로 확장 | `LockViewModel.kt:191` 호출 조건 | 일정 시간 이상 지속된 `user_toggle_off` 세션도 성공 세션으로 인정 |
+| threshold 완화 | `ReviewEligibilityEvaluator.kt:12` `SESSION_THRESHOLD` | `3 → 1` |
+
+`docs/REVIEW_PROMPT_LIFECYCLE.md`의 조건 6과 arm 트리거 서술을 **같은 PR에서** 갱신한다. 상수만 바꾸고 문서를 두면 계약이 어긋난다.
+
+`QuietHours` / `RecentEmergencyUnlock`은 건드리지 않는다. 판단 규칙 B와 D의 "긴급해제/안전/핵심 차단 흐름에서 리뷰를 압박하는 실험은 금지한다"를 그대로 유지한다.
+
+### Play Console 후행 지표
+
+이번 readback에서는 기록하지 않았다. 유입이 `google-play organic 540 / direct 65 / google organic 1`로 **100% 오가닉**이라 리뷰가 사실상 유일한 성장 엔진이므로, 위 code lane 배포 후 +14일에 rating count / 평균 평점 / 최근 리뷰 톤을 반드시 같이 기록한다. `shown > 0`이 되어도 rating 개선이 없으면 **판단 규칙 D**로 넘어간다.
+
+### issue #307 closure 판단
+
+아직 닫지 않는다. 위 code lane 배포와 +14일 재측정, Play Console 수동 기록이 남아 있다. PR은 계속 `Refs #307`을 쓴다.
+
 ## 관련 source of truth
 
 - 코드 계약: `docs/REVIEW_PROMPT_LIFECYCLE.md`

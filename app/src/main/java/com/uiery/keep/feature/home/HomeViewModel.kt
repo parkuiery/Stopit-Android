@@ -52,8 +52,10 @@ import com.uiery.keep.domain.websiteblocking.WebsiteLockRecommendation
 import com.uiery.keep.domain.websiteblocking.WebsiteLockRecommendationPolicy
 import com.uiery.keep.feature.home.component.UsageInsightCardUiState
 import com.uiery.keep.feature.review.InAppReviewManager
+import com.uiery.keep.feature.review.MANUAL_SESSION_MIN_MILLIS
 import com.uiery.keep.feature.review.ReviewEligibilityDecision
 import com.uiery.keep.feature.review.ReviewEligibilityEvaluator
+import com.uiery.keep.feature.review.ReviewPromptArmer
 import com.uiery.keep.feature.review.SkipReason
 import com.uiery.keep.service.LockHistoryRecorder
 import com.uiery.keep.util.timeNow
@@ -93,6 +95,7 @@ class HomeViewModel
         private val usageInsightRepository: UsageInsightRepository,
         private val reviewEligibility: ReviewEligibilityEvaluator,
         private val inAppReviewManager: InAppReviewManager,
+        private val reviewPromptArmer: ReviewPromptArmer,
         private val timedLockStarter: TimedLockStarter,
         private val firstPromiseRecovery: FirstPromiseHomeRecovery = NoOpFirstPromiseHomeRecovery,
         private val firstLockDelivery: FirstLockConfiguredDeliveryCoordinator =
@@ -213,6 +216,17 @@ class HomeViewModel
                         isRoutine = false,
                     )
                     storeBlockTime(System.currentTimeMillis() - state.startTime)
+                    // 수동 종료도 성공 세션이다. 이 경로가 빠져 있어서 종료 세션의 96%가
+                    // arm 평가조차 받지 못했다. docs/RETENTION_DIAGNOSIS_2026_08.md 2.4 참조.
+                    // startTime 이 아직 기록되지 않은 상태(복원 직후 등)면 지속 시간을 신뢰할 수
+                    // 없으므로 건너뛴다.
+                    if (state.startTime > 0) {
+                        reviewPromptArmer.arm(
+                            sessionStartMillis = state.startTime,
+                            isRoutine = false,
+                            minimumDurationMillis = MANUAL_SESSION_MIN_MILLIS,
+                        )
+                    }
                 }
                 reduce {
                     state.copy(

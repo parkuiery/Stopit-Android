@@ -1,8 +1,30 @@
 import pathlib
 import unittest
+import xml.etree.ElementTree as ET
 
 
 REPO_ROOT = pathlib.Path(__file__).resolve().parents[2]
+RES_DIR = REPO_ROOT / "app" / "src" / "main" / "res"
+APP_SRC = REPO_ROOT / "app" / "src" / "main" / "java" / "com" / "uiery" / "keep"
+SETUP_SCREEN = APP_SRC / "feature" / "parentmode" / "ParentModeSetupScreen.kt"
+SETUP_VIEW_MODEL = APP_SRC / "feature" / "parentmode" / "ParentModeSetupViewModel.kt"
+APP_SELECTION_SHEET = APP_SRC / "ui" / "component" / "CategoryBottomSheetContent.kt"
+PARENT_MODE_POLICY = APP_SRC / "feature" / "parentmode" / "ParentModePolicy.kt"
+PARENT_MODE_SESSION = APP_SRC / "domain" / "parentmode" / "ParentModeSession.kt"
+PARENT_MODE_SESSION_STORE = APP_SRC / "data" / "parentmode" / "ParentModeSessionStore.kt"
+DURATION_PICKER = APP_SRC / "feature" / "parentmode" / "component" / "ParentModeDurationPicker.kt"
+BLOCK_DECISION = APP_SRC / "service" / "KeepAccessibilityServiceBlockDecision.kt"
+EMERGENCY_UNLOCK_COORDINATOR = APP_SRC / "service" / "EmergencyUnlockCoordinator.kt"
+
+
+def load_strings(strings_xml: pathlib.Path) -> dict[str, str]:
+    root = ET.parse(strings_xml).getroot()
+    return {
+        node.attrib["name"]: "".join(node.itertext()).strip()
+        for node in root.findall("string")
+    }
+
+
 RUNBOOK = REPO_ROOT / "docs" / "PARENT_MODE_MVP.md"
 PRODUCT_DASHBOARD = REPO_ROOT / "docs" / "PRODUCT_METRICS_DASHBOARD.md"
 METRICS_ANALYSIS = REPO_ROOT / "docs" / "METRICS_ANALYSIS.md"
@@ -145,7 +167,18 @@ class ParentModeContractTest(unittest.TestCase):
             "Menu의 `아이에게 폰 주기` entrypoint",
             "ParentModeSetupRoute",
             "setup 화면 foothold",
-            "현재 선택 앱을 setup allowed-app seed로 읽어오는 경계",
+            # 4차 foothold의 seed 경계는 10차에서 걷어냈다. 문서는 그 전환을 남기고,
+            # 계약은 되돌아간 상태가 아니라 현재 경계를 잠근다.
+            "10차 code-lane allowlist 경계",
+            "11차 code-lane 차단 이유 · 탈출 경로 · 긴급 전화 경계",
+            "block_screen_parent_mode_expired_reason",
+            "parent_mode_expired_end_and_unlock",
+            "ParentModeBlockReasonSource",
+            "자기통제 잠금(수동/타이머/루틴/목표)은 그대로\n  발신을 막는다",
+            "BlockingStateStore",
+            "parent_mode_setup_allowed_apps_scope_notice",
+            "AppSelectionPurpose",
+            "app_selection_allowed_apps_notice",
             "5차 code-lane foothold",
             "실제 PIN 입력 UI와 setup CTA enablement",
             "PIN 불일치/미충족 상태에서는 session 저장을 막는 경계",
@@ -279,9 +312,16 @@ class ParentModeContractTest(unittest.TestCase):
         self.assertIn("PR #946", qa_checklist)
         self.assertIn("ParentModeSetupScreenAccessibilityTest", qa_checklist)
         self.assertIn("TalkBack summary", qa_checklist)
-        self.assertIn("직접 분 입력 custom duration", qa_checklist)
-        self.assertIn("customDurationInputStartsParentModeWithDirectMinuteValue", qa_checklist)
+        self.assertIn("시/분 휠 duration 다이얼", qa_checklist)
+        self.assertIn(
+            "ParentModeSetupViewModelTest.durationWheelStartsParentModeWithTheHourAndMinuteTheParentDialled",
+            qa_checklist,
+        )
         self.assertIn("direct duration spot-check", qa_checklist)
+        self.assertIn(
+            "ParentModeSetupViewModelTest.theGuardianSheetRoutesExtendAndEndThroughTheSamePinGate",
+            qa_checklist,
+        )
         self.assertIn("ParentModePolicyTest", qa_checklist)
         self.assertIn("BlockViewModelTest.parentModeBlockTracksDedicatedPrivacySafeInterceptEvent", qa_checklist)
         self.assertIn("FirebaseKeepAnalyticsTest.parentModeBlockInterceptedUsesSafeBlockContextOnly", qa_checklist)
@@ -338,6 +378,56 @@ class ParentModeContractTest(unittest.TestCase):
         ]:
             self.assertIn(phrase, runbook)
 
+    def test_setup_screen_states_the_allowlist_scope_and_never_seeds_the_blocking_selection(self):
+        """부모 모드는 허용목록이라 고르지 않은 앱이 전부 잠긴다.
+
+        차단 앱 목록을 허용 앱으로 씨딩하면 부모가 평소 막아 두던 앱만 열리고 나머지 기기 전체가
+        잠긴다. VOC "부모모드를 쓰면 모든 앱이 잠긴다"가 정확히 이 경로다. 씨딩 경로를 없애고,
+        시작 전에 무엇이 잠기는지 화면이 직접 말하게 한다.
+        """
+        setup_screen = SETUP_SCREEN.read_text()
+        setup_view_model = SETUP_VIEW_MODEL.read_text()
+
+        for removed in [
+            "parent_mode_setup_reload_current_selection",
+            "onReloadCurrentSelection",
+        ]:
+            self.assertNotIn(removed, setup_screen)
+
+        for removed in [
+            "readSelectedAppPackages",
+            "BlockingStateStore",
+            "loadAllowedAppsFromCurrentSelection",
+        ]:
+            self.assertNotIn(removed, setup_view_model)
+
+        self.assertIn("parent_mode_setup_allowed_apps_scope_notice", setup_screen)
+        self.assertIn("AppSelectionPurpose.Allow", setup_screen)
+
+    def test_app_selection_sheet_carries_allow_mode_copy(self):
+        """같은 시트가 차단 대상 선택과 허용 앱 선택 양쪽에 쓰인다.
+
+        허용 모드에서 "차단 대상 선택" 제목과 "차단하면 인증번호를 못 받아요" 확인 다이얼로그는
+        의미가 정반대다. 특히 그 다이얼로그의 제외 버튼은 허용 목록에서는 오히려 그 앱을 잠근다.
+        """
+        sheet = APP_SELECTION_SHEET.read_text()
+        default_strings = load_strings(RES_DIR / "values" / "strings.xml")
+
+        self.assertIn("enum class AppSelectionPurpose", sheet)
+        self.assertIn("appSelectionHeading(", sheet)
+        self.assertIn("requiresSensitiveBlockConfirmation(", sheet)
+        self.assertIn("app_selection_allowed_apps_title", sheet)
+        self.assertIn("app_selection_allowed_apps_notice", sheet)
+
+        for key in [
+            "app_selection_allowed_apps_title",
+            "app_selection_allowed_apps_notice",
+            "parent_mode_setup_allowed_apps_scope_notice",
+        ]:
+            self.assertIn(key, default_strings)
+
+        self.assertNotIn("parent_mode_setup_reload_current_selection", default_strings)
+
     def test_runbook_points_future_lanes_to_contract_regression(self):
         runbook = RUNBOOK.read_text()
 
@@ -346,6 +436,161 @@ class ParentModeContractTest(unittest.TestCase):
             runbook,
         )
         self.assertIn("parent-mode contract regression", runbook)
+
+
+    def test_guardian_pin_is_stored_as_a_hash_and_checked_against_it(self):
+        """보호자 PIN은 두 입력 칸이 아니라 세션이 저장한 해시와 대조한다 (#1177).
+
+        두 칸은 서로하고만 일치하면 되므로, 그 판정만으로는 아무 4자리나 두 번 치면 통과한다. 폰을
+        든 아이가 치더라도 마찬가지다. 부모 모드는 잠근 사람과 푸는 사람이 다른 유일한 잠금이라
+        이 판정이 곧 기능의 전부다.
+        """
+        policy = PARENT_MODE_POLICY.read_text()
+        session = PARENT_MODE_SESSION.read_text()
+        store = PARENT_MODE_SESSION_STORE.read_text()
+        view_model = SETUP_VIEW_MODEL.read_text()
+        setup_screen = SETUP_SCREEN.read_text()
+
+        # 세션이 PIN을 들고 다니고, 저장되는 것은 salt+hash 뿐이다.
+        self.assertIn("guardianPin: ParentModeGuardianPinDigest?", session)
+        self.assertIn("PARENT_MODE_PIN_HASH", store)
+        self.assertIn("PARENT_MODE_PIN_SALT", store)
+
+        # 게이트는 호출자가 만들어 낼 수 있는 상태가 아니라 대조 결과를 받는다.
+        self.assertIn("pinVerdict: ParentModeGuardianPinVerdict", policy)
+        self.assertIn("if (!pinVerdict.opensGate) return ParentModeActionDecision.PinRequired", policy)
+        self.assertIn("fun verifyGuardianPin(", policy)
+        self.assertNotIn("pinState: ParentModePinState,\n        nowMillis: Long,\n    ): ParentModeActionDecision", policy)
+
+        # 확인란은 PIN을 정할 때만 붙는다.
+        self.assertIn("confirmsNewPin", view_model)
+        self.assertIn("Start(confirmsNewPin = true)", view_model)
+        self.assertIn("Extend(confirmsNewPin = false)", view_model)
+        self.assertIn("if (action.confirmsNewPin) {", setup_screen)
+
+        # 분실 복구는 만료 대기 단독이고, 화면이 그 사실을 말한다.
+        self.assertIn("parent_mode_guardian_pin_recovery_notice", setup_screen)
+        self.assertIn("MAX_PARENT_MODE_HOURS = 4", DURATION_PICKER.read_text())
+
+    def test_emergency_unlock_does_not_open_parent_mode(self):
+        """긴급 해제는 자기통제 잠금에만 통한다 (#1177).
+
+        버튼 하나로 하루 3회 전면 해제할 수 있으면 PIN 게이트를 고쳐도 결함이 그대로 남는다. 거는
+        사람과 푸는 사람이 같은 잠금에서는 그 거래가 본인 것이지만, 부모 모드에서는 아니다.
+        """
+        block_decision = BLOCK_DECISION.read_text()
+        coordinator = EMERGENCY_UNLOCK_COORDINATOR.read_text()
+
+        self.assertIn("if (isEmergencyUnlocked && !isShouldParentModeBlock) return null", block_decision)
+        # 부모 모드 판정보다 앞서면 안 된다. 그게 원래 형태였다.
+        self.assertLess(
+            block_decision.index("val isShouldParentModeBlock"),
+            block_decision.index("if (isEmergencyUnlocked"),
+        )
+        # 진짜 긴급 상황인 전화는 부모 모드보다 앞에 남아 있어야 한다.
+        self.assertLess(
+            block_decision.index("exemptPackages.dialerPackages"),
+            block_decision.index("if (isEmergencyUnlocked"),
+        )
+        self.assertIn("ParentModeActive", coordinator)
+        self.assertIn("parentModeBlockReasonSource", coordinator)
+        # UI 뿐 아니라 완료 경로에서도 다시 확인한다.
+        self.assertIn("val parentModeActive = isParentModeBlocking(nowMillis)", coordinator)
+
+    def test_runbook_tracks_the_pin_persistence_and_emergency_unlock_boundary(self):
+        runbook = RUNBOOK.read_text()
+        qa_checklist = QA_RUNTIME_CHECKLIST.read_text()
+        product_context = PRODUCT_CONTEXT.read_text()
+        metrics_context = METRICS_CONTEXT.read_text()
+
+        for phrase in [
+            "13차 code-lane 보호자 PIN 영속화 · 긴급 해제 경계 · 세션 상한",
+            "ParentModeGuardianPinDigest",
+            "PARENT_MODE_PIN_HASH",
+            "ParentModeGuardianPinVerdict",
+            "NoStoredPin",
+            "EmergencyUnlockAvailabilityReason.ParentModeActive",
+            "분실 복구 = 만료 대기",
+            "MAX_PARENT_MODE_HOURS",
+            "세션 상한 12h → 4h",
+        ]:
+            self.assertIn(phrase, runbook)
+
+        # 되돌아가면 안 되는 상태를 이름으로 고정한다. (본문이 정정 대상 문구를 인용하므로
+        # 문구 자체는 strings.xml 쪽에서 확인한다.)
+        self.assertNotIn(
+            "여전히 남은 경계는 11차와 같다: 보호자 PIN은 저장되지 않으므로",
+            runbook,
+        )
+        for locale in ("values", "values-ko"):
+            helper = load_strings(RES_DIR / locale / "strings.xml")["parent_mode_setup_pin_helper"]
+            self.assertNotIn("저장하지 않습니다", helper)
+            self.assertNotIn("not saved", helper)
+
+        for phrase in [
+            "보호자 PIN 저장 경계(#1177)",
+            "레거시 세션 경계(#1177)",
+            "긴급 해제 경계(#1177)",
+            "분실 복구 경계(#1177)",
+        ]:
+            self.assertIn(phrase, qa_checklist)
+
+        self.assertIn("저장한 PIN 해시와 대조", product_context)
+        self.assertIn("만료 대기 단독", product_context)
+        self.assertIn("not_configured", metrics_context)
+
+    def test_pin_plaintext_never_reaches_storage_or_analytics(self):
+        """원문은 어디에도 남지 않는다 — analytics는 이미 enum만 보내고, 저장은 해시만 한다."""
+        store = PARENT_MODE_SESSION_STORE.read_text()
+        controller = (APP_SRC / "feature" / "parentmode" / "ParentModeSessionController.kt").read_text()
+
+        # 저장되는 것은 digest 필드뿐이다.
+        self.assertIn("guardianPin.hash", store)
+        self.assertIn("guardianPin.salt", store)
+        # clear 가 해시까지 지운다. 남겨두면 다음 세션이 이전 PIN을 물려받는다.
+        self.assertIn("preferences.remove(PreferencesKey.PARENT_MODE_PIN_HASH)", store)
+        self.assertIn("preferences.remove(PreferencesKey.PARENT_MODE_PIN_SALT)", store)
+        # analytics 로 나가는 것은 여전히 enum 하나뿐이다.
+        self.assertIn("pinResult = ParentModePolicy.pinResult(", controller)
+        self.assertNotIn("guardianPin = guardianPin,\n                    pinResult", controller)
+
+
+    def test_parent_mode_screen_never_paints_text_with_the_disabled_tone(self):
+        """`onTertiaryContainer` 는 텍스트 색이 아니다.
+
+        라이트 테마에서 이 토큰은 `KeepColor.Light.gray500`(#D1D3D8)로 풀린다. 그건 비활성·구분선
+        톤이지 muted 텍스트 톤이 아니라서, 카드 배경(brandWeak #FFF7E8) 위에서 1.41:1 이 된다 —
+        본문에 필요한 4.5:1 의 3분의 1 이 안 된다. 실기기(SM-G991N) 픽셀 실측값이다.
+
+        같은 파일에서 이미 두 번(시트 요약, duration 휠 단위) 같은 이유로 고쳤는데 진행 중 카드만
+        남아 있었다. 세 번째가 없도록 여기서 잠근다.
+        """
+        for source in (SETUP_SCREEN, DURATION_PICKER):
+            body = source.read_text()
+            offenders = [
+                line.strip()
+                for line in body.splitlines()
+                if "color = KeepTheme.colors.onTertiaryContainer" in line
+                or "tint = KeepTheme.colors.onTertiaryContainer" in line
+            ]
+            self.assertEqual([], offenders, f"{source.name}: {offenders}")
+
+    def test_parent_mode_status_card_states_stay_readable(self):
+        """진행 중 / 만료 / 종료 세 카드가 모두 같은 텍스트 토큰을 쓴다.
+
+        한 상태만 고치면 나머지 두 개가 조용히 남는다 — 카드 배경만 다를 뿐 같은 컴포저블이다.
+        """
+        screen = SETUP_SCREEN.read_text()
+        start = screen.index("private fun ParentModeStatusHeroCard(")
+        end = screen.index("private fun formatParentModeRemaining(")
+        card = screen[start:end]
+
+        # 카드 배경 세 가지가 여전히 이 컴포저블 안에서 갈린다.
+        for variant in ("KeepCardVariant.BrandWeak", "KeepCardVariant.CriticalWeak", "KeepCardVariant.NeutralWeak"):
+            self.assertIn(variant, card)
+        # 그 위의 텍스트는 전부 읽히는 톤이어야 한다.
+        self.assertNotIn("onTertiaryContainer,", card.replace("else -> KeepTheme.colors.onTertiaryContainer", ""))
+        self.assertIn("color = KeepTheme.colors.onSurface,", card)
 
 
 if __name__ == "__main__":

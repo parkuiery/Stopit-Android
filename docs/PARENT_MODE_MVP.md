@@ -198,11 +198,11 @@ cd <repo-root>
 
 ### 4차 code-lane foothold
 
-이 code-lane foothold에서 Menu의 `아이에게 폰 주기` entrypoint와 `ParentModeSetupRoute`/setup 화면 foothold를 추가했다. 이 foothold는 사용자가 앱 안에서 부모 모드 준비 화면까지 도달하고 현재 선택 앱을 setup allowed-app seed로 읽어오는 경계를 코드와 JVM 테스트로 고정한다.
+이 code-lane foothold에서 Menu의 `아이에게 폰 주기` entrypoint와 `ParentModeSetupRoute`/setup 화면 foothold를 추가했다. 이 foothold는 사용자가 앱 안에서 부모 모드 준비 화면까지 도달하는 경계를 코드와 JVM 테스트로 고정한다. 당시에는 현재 차단 선택 앱을 setup allowed-app seed로 읽어왔지만, 아래 `10차 code-lane allowlist 경계`에서 그 seed를 걷어냈다.
 
 - `MenuScreen` / `MenuNavigation` / `KeepApp`: Menu에서 부모 모드 setup route로 이동하는 entrypoint를 연결한다.
 - `ParentModeSetupScreen`: 현재 선택 앱 수와 보호자 PIN 입력 필드를 보여주고, verified PIN일 때만 setup CTA를 활성화한다.
-- `ParentModeSetupViewModelTest`: 현재 차단 선택 앱을 부모 모드 허용 앱으로 seed하고, PIN 불일치/미충족 상태에서는 session 저장을 막는 경계를 검증한다.
+- `ParentModeSetupViewModelTest`: PIN 불일치/미충족 상태에서는 session 저장을 막는 경계를 검증한다.
 
 ### 5차 code-lane foothold
 
@@ -251,9 +251,56 @@ PR #883 merge commit `2ea625f3bdb082966332ac8d5e28ae870ad3838a`에서 issue #874
 - `ParentModeSetupScreen`: active session의 `expiresAtMillis`까지 남은 시간을 계산해 자동 refresh를 예약한다.
 - `ParentModePolicyTest`, `ParentModeSessionControllerTest`, `ParentModeSetupViewModelTest`: stale Active 연장/종료 차단, finished session 연장/종료 no-op, 자동 refresh delay 계산, `TIME_EXPIRED` analytics 경계를 검증한다.
 
-- `ParentModeSetupScreen`: duration preset 선택 UI와 직접 분 입력 필드, active/expired/ended status copy, active controls fresh guardian PIN 입력/확인 필드, 10분 연장 CTA, 보호자 PIN 종료 CTA, finished session 이후 `부모 모드 다시 시작` CTA를 제공한다.
+- `ParentModeSetupScreen`: duration preset 선택 UI와 직접 분 입력 필드, active/expired/ended status copy, active controls guardian PIN 시트(연장/종료는 확인란 없이 한 칸, 저장된 해시와 대조), 10분 연장 CTA, 보호자 PIN 종료 CTA, finished session 이후 `부모 모드 다시 시작` CTA를 제공한다.
 - `ParentModeSetupViewModel`: setup 화면에서 `ParentModeSessionController.extend(...)`, `endNow(...)`, `markExpiredIfNeeded(...)`, `clearFinishedSession(...)`를 호출해 session 저장소와 화면 state를 함께 갱신하고, active controls가 fresh PIN 재입력 전에는 연장/종료를 시도하지 못하도록 guardian PIN input을 검증한다. Active session은 새 setup으로 지우지 않고, expired/unlocked_by_pin 같은 finished session만 clear 후 다른 부모 모드 setup으로 돌아간다.
-- `ParentModeSetupViewModelTest`: 직접 입력한 custom duration으로 session이 시작되는지, active controls fresh guardian PIN 재입력 전 연장/종료가 차단되는지, verified PIN 기반 10분 연장, 즉시 종료, 만료 상태 동기화, finished session clear 후 다른 setup 재진입이 DataStore session과 화면 `activeSession`에 반영되는지 검증한다.
+- `ParentModeSetupViewModelTest`: 직접 입력한 custom duration으로 session이 시작되는지, 세션을 시작할 때 저장한 PIN 해시와 대조해 다른 PIN의 연장/종료가 차단되는지, 맞는 PIN 기반 10분 연장, 즉시 종료, 만료 상태 동기화, finished session clear 후 다른 setup 재진입이 DataStore session과 화면 `activeSession`에 반영되는지 검증한다.
+
+### 10차 code-lane allowlist 경계
+
+VOC "부모모드를 사용하면 모든 앱이 잠긴다"를 확인한 결과, 재현되는 동작은 사양 그대로였다. 부모 모드는 허용목록이라
+허용 앱으로 고르지 않은 앱은 전부 잠긴다. 문제는 그 사실을 사용자가 알 수 있는 지점이 하나도 없었다는 것이다.
+
+- 씨딩 제거: `ParentModeSetupViewModel`이 더 이상 `BlockingStateStore`를 읽지 않는다. 차단 선택 앱을 허용 앱으로
+  seed하면 부모가 평소 막아 두던 앱만 열리고 기기 전체가 잠긴다. 화면 진입은 `refreshActiveSessionStatus()`만 호출하고,
+  허용 앱은 부모가 직접 고른다. `홈 선택 다시 불러오기` CTA와 `parent_mode_setup_reload_current_selection`도 함께 걷어냈다.
+- 차단 범위 고지: setup 화면이 시작 CTA 위에서 `parent_mode_setup_allowed_apps_scope_notice`로 "고른 N개 외 모든 앱이
+  잠긴다"를 명시한다. UX 원칙의 "시작 전 부모가 무엇이 허용되고 무엇이 차단되는지 짧게 확인할 수 있어야 한다"를 코드로 고정한 것이다.
+- 허용 모드 시트 copy: `AppSelectionPurpose`(`Block`/`Allow`)를 공용 앱 선택 시트에 추가했다. `Allow`에서는 제목이
+  `app_selection_allowed_apps_title`이 되고 `app_selection_allowed_apps_notice`가 함께 붙으며, 민감 앱 차단 확인
+  다이얼로그는 뜨지 않는다. 그 다이얼로그는 "차단하면 인증번호를 못 받는다"고 경고하고 제외 버튼이 선택에서 앱을 빼는데,
+  허용목록에서는 그 제외가 곧 차단이라 의미가 정반대다.
+- 회귀: `ParentModeSetupViewModelTest.openingParentModeSetupLeavesAllowedAppsEmptyInsteadOfSeedingTheBlockingSelection`,
+  `AppSelectionPurposeCopyPolicyTest`, `CategoryBottomSheetContentIntegrationTest`의 allow-purpose 2건,
+  `scripts.tests.test_parent_mode_contract`의 setup/시트 copy 계약.
+
+남은 VOC 후속 후보는 이 경계에 포함하지 않았다: 차단 화면의 부모 모드 전용 copy, 만료 상태 해제 CTA 문구,
+`시스템 필수 기능/설정 화면은 막지 않는다`는 문서 계약과 현재 구현(허용하지 않은 설정 앱 차단)의 불일치.
+
+### 11차 code-lane 차단 이유 · 탈출 경로 · 긴급 전화 경계
+
+10차에서 부모가 시작 전에 무엇이 잠기는지 알게 됐다면, 이번 경계는 잠긴 뒤를 다룬다. 폰을 들고 있는 쪽은
+세션을 만든 사람이 아니라서, 왜 멈췄는지·어떻게 푸는지·긴급 상황에 무엇을 할 수 있는지가 모두 화면에 없었다.
+
+- 차단 이유 노출: `ParentModeRuntimePolicy.blockReason(...)`이 `AllowedAppsOnly` / `TimeExpired`를 나누고,
+  `ParentModeBlockReasonSource`(public seam, 세션 원문은 넘기지 않는다)를 통해 `BlockUiState.parentModeBlockReason`으로
+  들어간다. 차단 화면은 루틴 사유 칩과 같은 자리에 `block_screen_parent_mode_allowed_apps_reason` /
+  `block_screen_parent_mode_expired_reason`을 띄운다. UX 원칙의 "아이에게는 시간 만료 이유를 비난 없이 보여준다"를
+  코드로 고정한 것이다.
+- 만료 탈출 경로 문구: `ParentModePolicy.finishedSessionAction(...)`이 `Expired`에서만 `EndAndUnlock`을 돌려주고,
+  setup 화면은 그때 `parent_mode_expired_end_and_unlock`을 쓴다. 만료 상태는 모든 앱이 잠긴 상태이고 이 버튼이
+  유일한 해제인데, 이전에는 `부모 모드 다시 시작`으로 적혀 있어 해제 경로가 새 잠금을 거는 이름 뒤에 숨어 있었다.
+- 긴급 전화 발신: 부모 모드 세션이 유효한 동안(`Active`/`Expired`) 다이얼러는 허용 앱 여부와 무관하게 차단하지 않는다.
+  기존 예외는 통화가 이미 걸려온 동안뿐이라 발신이 막혔고, 허용 앱에 다이얼러를 넣을지는 부모가 결정하는 값이라
+  아이가 전화를 걸 수 있는지가 부모의 설정 실수에 달려 있었다. 자기통제 잠금(수동/타이머/루틴/목표)은 그대로
+  발신을 막는다 — 거기서는 막은 사람과 거는 사람이 같다.
+- 회귀: `ParentModeRuntimePolicyTest`의 blockReason 2건, `ParentModePolicyTest.finishedSessionActionSaysUnlockOnlyWhileTheDeviceIsStillLocked`,
+  `KeepAccessibilityServiceBlockDecisionTest`의 다이얼러 3건(부모 모드 활성/만료 예외 + 자기통제 잠금 비예외),
+  `BlockViewModelTest`의 reason 전달 2건, `BlockScreenContentIntegrationTest`의 부모 모드 사유 2건.
+
+이 시점에 남아 있던 경계: 보호자 PIN은 저장되지 않아 입력 확인란에 불과했다(`pinState`는 두 입력이 일치하는지만
+봤다). 13차에서 해시 영속화로 닫았다. 만료 해제 CTA에 PIN 게이트를 달지 않는 것은 실효 문제가 아니라 결정으로
+확정됐다 — 만료 대기가 유일한 분실 복구 경로이기 때문이다(#1177). 허용하지 않은 설정 앱을 차단하는 현재 구현과
+`시스템 필수 기능/설정 화면은 막지 않는다`는 위 계약의 불일치는 미해결로 남는다.
 
 ### 다음 경계
 
@@ -269,6 +316,119 @@ PR #883 merge commit `2ea625f3bdb082966332ac8d5e28ae870ad3838a`에서 issue #874
 - 원격 연장/해제 승인
 - 자녀별 프로필/정책 템플릿
 - 강한 anti-circumvention mode
+
+### 12차 code-lane 설정 화면 UX — PIN 게이트 분리 · duration 휠
+
+11차까지가 "무엇이 잠기는지, 왜 잠겼는지"를 말하게 만든 lane이라면, 이번 경계는 부모가 그 약속을 만드는
+화면 자체를 다룬다. 실기기 확인에서 두 가지가 걸렸다: 비밀번호를 시간·앱 선택과 같은 페이지에서 받는 것이
+어색하고, 시간 선택이 칩이라 같은 값이 화면에 세 번(헤더 라벨·선택된 칩·직접 입력 필드) 나와 있었다.
+
+- 보호자 PIN 게이트 분리: PIN은 설정값이 아니라 폰이 손을 바꾸는 순간의 관문이라, 폼에서 빼고
+  `ParentModeGuardianAction`(`Start`/`Extend`/`End`)이 여는 `ParentModeGuardianPinSheet` 한 곳에서만 받는다.
+  `ParentModeSetupUiState.canRequestStart`(시간·앱만)와 `canAttemptStart`(거기에 PIN 확인)를 분리해 setup CTA는
+  약속이 완성되면 활성화되고, PIN은 그 뒤 시트에서 묻는다. 시트를 열거나 닫을 때마다 입력값을 비워
+  이전 시트에 남은 PIN이 다음 행동에 재사용되지 않게 한다.
+- 진행 중 화면의 죽은 카드 제거: 연장/종료 버튼은 이제 같은 시트를 열기 때문에 항상 살아 있고, 종료된
+  세션에서는 `보호자 인증` 카드를 비활성 상태로 그리는 대신 아예 그리지 않는다. 만료 화면에 남는 것은
+  `parent_mode_expired_end_and_unlock` 하나뿐이다.
+- duration 휠: `ParentModeDurationPicker`(시/분 2열, `Picker`/`rememberPickerState` 재사용)가 값이 사는 유일한
+  자리다. 앱은 이미 수동 카운트다운 잠금을 `CountDownPicker` 휠로 받고 있었고, 부모 모드의 허용 시간도 같은
+  종류의 값인데 혼자 칩+숫자 필드를 쓰고 있었다. 프리셋 칩(10/20/30/60)은 남되 값의 두 번째 사본이 아니라
+  휠을 움직이는 바로가기다 — 칩을 누르면 휠이 remount되어 그 값으로 간다. 직접 입력 필드와
+  `parent_mode_setup_duration_custom_label` / `..._custom_helper` 문자열은 삭제했다.
+- 접히는 선 예산: 첫 배치(휠 5행 + 카드 순서 시간→앱)를 SM-G991N(1080×2400, density 480)에서 재보니 허용 시간
+  카드가 콘텐츠 영역 `1714px`의 `957px`(56%)를 먹고, 허용 앱을 고르는 유일한 버튼이 `5px`만 남아 사실상
+  접혀 있었다. 기본값과 프리셋이 있는 시간이 VOC의 본론인 허용 앱을 밀어낸 셈이라 셋을 되돌렸다:
+  카드 순서를 앱 → 시간으로 바꾸고(히어로 문구가 이미 앱을 먼저 말한다), 휠을 5행 → 3행(`565px` → `339px`)으로
+  줄이고, 카드 안에서는 프리셋 칩을 휠 위로 올렸다. 카드가 아래부터 잘릴 때 남아야 하는 건 휠이 아니라
+  프리셋이기 때문이다. 재측정: 허용 앱 카드 전체와 `앱 선택 화면에서 조정`(`877..943`), 허용 시간 헤더와
+  프리셋 칩(`1670..1726`)이 모두 접히는 선(`1935`) 위에 들어온다. 컨트롤 사용법을 설명하던
+  `parent_mode_setup_duration_helper` 캡션은 삭제했다 — 설명이 필요한 컨트롤이라는 신호였다.
+- 허용 앱 목록 상한: 목록은 편집기가 아니라 확인용이고 편집은 `앱 선택 화면에서 조정`이 맡으므로,
+  `allowedAppsPreview(...)`가 앞의 3개만 남기고 나머지를 접는다. 상한이 없던 동안에는 앱을 고를수록
+  카드가 자라 아래 허용 시간 카드를 계속 밀어냈다.
+  접기 표시는 여백에 놓인 캡션이 아니라 `AllowedAppsOverflowRow`, 즉 앱 행과 같은 배경·같은 높이(`66px`)의
+  목록 마지막 행이다. 캡션일 때는 목록이 이어진다는 신호를 주지 못했고, 아이콘 자리에 남은 개수(`+2`)를
+  세워야 비로소 "더 있다"가 읽혔다.
+  한 개만 접히는 경우(앱 4개)에는 접지 않는다. 접기 행도 한 줄을 쓰므로 줄 수가 그대로여서, 아낀 것 없이
+  무엇이 들어 있는지만 감추게 되기 때문이다. 실기기 확인: 4개는 4행 그대로, 5개는 3행 + `+2 외 2개`.
+  다만 접기 행이 앱 행과 같은 높이를 쓰므로 앱 5개부터는 허용 시간 카드가 접히는 선 아래로 내려간다 —
+  허용 앱 선택 버튼(`877..943`)은 계속 보이고, 시간은 기본값과 프리셋이 있어 감수한 쪽이다.
+- 히어로 아이콘: `SetupHero`가 `Icon(painter, tint = accent)`로 그리고 있어서 여러 색을 쓴 일러스트가
+  브랜드색 실루엣 하나로 뭉개졌다(`ic_parent_mode` 7색, `ic_goal_lock` 5색). 같은 드로어블을 `MenuItem`은
+  `Image`로 틴트 없이 그린다 — 렌더러가 갈렸던 것이지 에셋 문제가 아니었다. `Image`로 바꾸고 24dp → 30dp로
+  키웠다. 실기기 픽셀 확인: 배지 영역에서 `#8A94A0`/`#FFC84D`/`#FF9000`/`#AFB7C0`/`#FF8800`이 검출되어
+  `ic_parent_mode.xml`의 `fillColor`와 일치한다. 공용 컴포넌트라 목표 잠금 생성/편집 히어로도 함께 복구된다.
+- 회귀: `ParentModeSetupViewModelTest`의 duration 3건(`durationWheelStartsParentModeWithTheHourAndMinuteTheParentDialled`,
+  `durationWheelCarriesHoursIntoTheStoredSessionMinutes`, `presetDurationReplacesWhateverTheWheelWasShowing`)과
+  guardian sheet 4건(`theStartCtaOpensTheGuardianSheetInsteadOfStartingTheSessionOutright`,
+  `confirmingTheGuardianSheetWithAMatchingPinStartsTheSessionAndClosesTheSheet`,
+  `aMismatchedPinKeepsTheGuardianSheetOpenAndLeavesTheSessionAlone`,
+  `dismissingOrReopeningTheGuardianSheetClearsTheTypedPin`,
+  `theGuardianSheetRoutesExtendAndEndThroughTheSamePinGate`), `ParentModeSetupScreenAccessibilityTest`의
+  폼/진행 중/만료/시트 baseline 6건.
+
+이 lane이 남긴 경계는 11차와 같았다: 보호자 PIN은 저장되지 않으므로 시트로 옮긴 뒤에도 보안 강도는 그대로였고,
+시트는 "매번 새로 정한다"는 당시 동작을 더 정직하게 드러낼 뿐이었다. PIN 해시 영속화는 13차에서 닫았다.
+
+### 13차 code-lane 보호자 PIN 영속화 · 긴급 해제 경계 · 세션 상한
+
+11차와 12차가 각각 "남은 경계"로 남겨둔 그 항목이다 (#1177). 보호자 PIN은 저장된 적이 없었고,
+`pinState`는 입력 칸과 확인 칸이 서로 같은지만 봤다. 두 칸은 서로하고만 일치하면 되므로 아무 4자리나
+두 번 치면 통과했다 — 폰을 든 아이가 치더라도 마찬가지였다. PIN을 시트로 옮긴 12차는 화면 배치만
+바꿨을 뿐 그 판정에는 손대지 않았다.
+
+- **PIN 영속화**: `ParentModeSession.guardianPin`이 `ParentModeGuardianPinDigest`(salt + PBKDF2-HMAC-SHA256
+  120k iterations)를 들고, `ParentModeSessionStore`가 `PARENT_MODE_PIN_HASH` / `PARENT_MODE_PIN_SALT`로
+  저장한다. 원문은 어디에도 남지 않는다. 4자리는 후보가 1만 개뿐이라 스트레칭이 무한정 보호해주지는
+  않지만, 값싼 해시였다면 preferences 파일을 얻은 쪽이 즉시 되돌린다.
+- **검증 지점 분리**: 시작은 저장된 값이 없으므로 두 칸 일치(`ParentModePolicy.setupPinState`)가 물어볼 수
+  있는 전부다. 연장·종료는 저장된 해시와 대조한다(`verifyGuardianPin` →
+  `ParentModeGuardianPinVerdict`). `requestParentAction`은 이제 호출자가 만들어 낼 수 있는
+  `ParentModePinState`가 아니라 대조 결과인 verdict를 받는다 — 전자를 받은 것이 이 결함의 형태였다.
+  시트도 이에 맞춰 `Start`에서만 확인란을 그린다(`ParentModeGuardianAction.confirmsNewPin`).
+- **레거시 세션**: 이 필드가 배포되기 전에 시작된 세션에는 대조할 해시가 없다(`NoStoredPin`). 그 세션까지
+  잠그면 부모가 자기가 건 잠금을 끝낼 방법이 사라지므로 게이트는 비켜준다. 세션을 통째로 버리는 대안은
+  업데이트 시점에 진행 중이던 부모 모드가 즉시 풀리므로 택하지 않았다. `pin_result`는 이 경우
+  `not_configured`로 남는다 — 이 값이 실제로 발생하기 시작하는 첫 경로다. `failure`는 여전히 도달하지
+  않는다: 실패한 PIN은 아무것도 열지 않으므로 `parent_mode_unlocked_by_pin`에 실릴 자리가 없다.
+- **긴급 해제 경계**: `resolveForegroundBlockRequest`의 첫 줄이 `if (isEmergencyUnlocked) return null`이라
+  긴급 해제가 부모 모드 판정보다 앞섰고, 차단 화면의 긴급 해제 버튼에는 부모 모드 분기가 없었다.
+  즉 아이가 버튼 하나로 하루 3회 전면 해제할 수 있었다 — PIN보다 넓은 문이라, PIN만 고치면 결함이
+  그대로 남는다. 긴급 해제는 이제 부모 모드 차단을 열지 않는다(`isEmergencyUnlocked && !isShouldParentModeBlock`).
+  `EmergencyUnlockAvailabilityReason.ParentModeActive`가 버튼을 끄고, `EmergencyUnlockCoordinator`가
+  `completeUnlock(...)`에서도 다시 확인한다 — `EmergencyUnlockState`는 만료 시각만 든 in-memory 홀더라
+  세션 시작 직전에 승인된 창이 그대로 넘어오기 때문이다. 자기통제 잠금(수동/타이머/루틴/목표)에는
+  그대로 통한다. 거는 사람과 푸는 사람이 같아 그 거래는 본인 것이지만, 부모 모드는 아니다.
+  진짜 긴급 상황인 전화는 dialer 예외가 이미 부모 모드보다 앞에 있어 이 변경과 무관하게 열려 있다.
+- **분실 복구 = 만료 대기**: 별도 복구 경로를 두지 않는다. 부모 모드는 복구자와 공격자를 화면에서
+  구분할 수단이 없으므로, 새로 만드는 모든 복구 경로가 곧 아이의 우회로다. 안전한 복구 요인은 시간뿐이다 —
+  기다림으로 얻는 결과가 양쪽 모두 애초에 약속된 것이기 때문이다. 만료 해제(`clearFinishedSession`)에는
+  PIN을 걸지 않으므로 영구 잠김은 구조적으로 발생하지 않고, 최악의 손실은 남은 세션 시간이다.
+  화면은 이를 감추지 않고 `parent_mode_guardian_pin_recovery_notice`로 시트에 적는다.
+- **세션 상한 12h → 4h**: 위 문장이 성립하려면 상한이 곧 최악의 대기 시간이다.
+  `MAX_PARENT_MODE_HOURS`가 12였는데, 프리셋이 60분에서 끝나는 것을 보면 12시간은 실사용 상정 범위가
+  아니라 휠의 부산물이었다.
+- **문구 정정**: `parent_mode_setup_pin_helper`가 "PIN 값은 세션에 저장하지 않습니다"라고 말하고 있었다.
+  이제 해시가 저장되므로 12개 로케일 모두에서 salt+hash만 저장한다고 고쳐 적는다.
+
+- `ParentModePolicyTest`: 다른 PIN 거부, 저장 값이 salt+hash이고 같은 PIN도 세션마다 다른 값이 되는지,
+  레거시 세션의 `NoStoredPin` 통과.
+- `ParentModeSessionControllerTest`: 세션을 시작한 PIN이 아니면 종료가 거부되는지, 원문이 preferences에
+  남지 않는지, clear가 해시까지 지우는지, 레거시 세션이 `not_configured`로 종료되는지.
+- `ParentModeSetupViewModelTest.activeSessionControlsRequireThePinTheSessionStartedWithBeforeExtending`:
+  다른 PIN은 시트를 열어 둔 채 거부되고 입력이 비워지며, 세션 만료 시각이 그대로인지.
+  `onlySettingThePinAsksForAConfirmation`: 확인란이 `Start`에만 붙는지.
+- `KeepAccessibilityServiceBlockDecisionTest.emergencyUnlockDoesNotOpenWhatParentModeIsBlocking` /
+  `emergencyUnlockStillOpensTheSelfControlLocks` / `parentModeStillLetsACallThroughWithNoEmergencyUnlockLeft`.
+- `EmergencyUnlockCoordinatorTest.activeParentModeClosesEmergencyUnlockAheadOfEverySettingsReason` /
+  `anUnlockRequestIsRejectedOnceParentModeHasStarted`.
+- `ParentModeSetupScreenAccessibilityTest.guardianPinSheetDropsTheConfirmationFieldWhenItIsCheckingAStoredPin` /
+  `guardianPinSheetSaysThePinWasWrongRatherThanThatTheBoxesDisagree`.
+
+남은 경계: 시도 횟수 제한과 실패 지연은 넣지 않았다. 4자리는 무차별 대입에 약하지만, 지금 위협 모델은
+기기를 든 아이이고 시도마다 PBKDF2 한 번이 든다. 별도 lane으로 남긴다. 허용하지 않은 설정 앱을 차단하는
+현재 구현과 `시스템 필수 기능/설정 화면은 막지 않는다` 계약의 불일치도 11차 이후 그대로 미해결이다.
 
 ## Closing discipline
 

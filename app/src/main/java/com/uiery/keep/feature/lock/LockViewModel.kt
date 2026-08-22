@@ -14,11 +14,8 @@ import com.uiery.keep.analytics.KeepAnalyticsScreen
 import com.uiery.keep.appselection.BlockExemptPackageProvider
 import com.uiery.keep.datastore.BlockingStateStore
 import com.uiery.keep.datastore.ManualLockTimePolicy
-import com.uiery.keep.datastore.ReviewPromptStateStore
 import com.uiery.keep.datastore.FirstPromisePracticeStore
-
-import com.uiery.keep.feature.review.ReviewEligibilityDecision
-import com.uiery.keep.feature.review.ReviewEligibilityEvaluator
+import com.uiery.keep.feature.review.ReviewPromptArmer
 import com.uiery.keep.data.routine.RoutineRepository
 import com.uiery.keep.model.RoutineModel
 import com.uiery.keep.service.DEFAULT_EMERGENCY_UNLOCK_COUNTDOWN_ENABLED
@@ -52,11 +49,10 @@ class LockViewModel
         private val lockHistoryRecorder: LockHistoryRecorder,
         @KeepDataSource private val dataStore: DataStore<Preferences>,
         private val blockingStateStore: BlockingStateStore,
-        private val reviewPromptStateStore: ReviewPromptStateStore,
         private val emergencyUnlockCoordinator: EmergencyUnlockCoordinator,
         private val notificationHelper: EmergencyUnlockNotificationHelper,
         private val analytics: KeepAnalytics,
-        private val reviewEligibility: ReviewEligibilityEvaluator,
+        private val reviewPromptArmer: ReviewPromptArmer,
         private val clock: Clock,
         private val firstPromisePracticeStore: FirstPromisePracticeStore,
         private val websiteBlockingAsserter: WebsiteBlockingAsserter = WebsiteBlockingAsserter.None,
@@ -197,33 +193,17 @@ class LockViewModel
             }
         }
 
+        // 타이머/루틴 완주 경로. 완주 자체가 의도된 성공이므로 최소 지속 시간 하한을 두지 않는다.
+        // 수동 종료 경로는 HomeViewModel 이 MANUAL_SESSION_MIN_MILLIS 와 함께 같은 armer 를 호출한다.
         private suspend fun maybeArmReviewPrompt(
             isRoutine: Boolean,
             routineStartTime: Long,
             timerStartTime: Long,
         ) {
-            val now = clock.millis()
-            val durationMillis = if (isRoutine) {
-                now - routineStartTime
-            } else {
-                now - timerStartTime
-            }
-            blockingStateStore.incrementSuccessfulSessionCount()
-            val decision = reviewEligibility.evaluate(
-                nowMs = now,
-                durationMillis = durationMillis,
+            reviewPromptArmer.arm(
+                sessionStartMillis = if (isRoutine) routineStartTime else timerStartTime,
                 isRoutine = isRoutine,
-                includeCurrentSuccessfulSession = true,
             )
-            when (decision) {
-                is ReviewEligibilityDecision.Eligible -> {
-                    reviewPromptStateStore.markPending()
-                    analytics.reviewPromptEligible()
-                }
-                is ReviewEligibilityDecision.Ineligible -> {
-                    analytics.reviewPromptSkipped(decision.reason.name)
-                }
-            }
         }
 
         private fun saveRoutineLockHistory() =
