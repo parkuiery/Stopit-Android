@@ -198,7 +198,9 @@ android {
         schemaDirectory("$projectDir/schemas")
     }
     lint {
-        checkTestSources = false
+        checkTestSources = providers.gradleProperty("stopit.lint.checkTestSources")
+            .map(String::toBoolean)
+            .getOrElse(false)
     }
 }
 

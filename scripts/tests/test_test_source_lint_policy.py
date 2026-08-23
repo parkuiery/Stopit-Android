@@ -20,11 +20,12 @@ class TestSourceLintPolicyContractTest(unittest.TestCase):
 
         self.assertRegex(
             gradle,
-            r"lint\s*\{[^}]*checkTestSources\s*=\s*false[^}]*\}",
-            "app/build.gradle.kts currently excludes test/androidTest sources from the normal lint gate",
+            r"stopit\.lint\.checkTestSources[^}]*getOrElse\(false\)",
+            "app/build.gradle.kts should keep the normal lint gate excluding test/androidTest sources by default while exposing an opt-in baseline property",
         )
         self.assertIn("#1091", policy)
         self.assertIn("checkTestSources = false", policy)
+        self.assertIn("-Pstopit.lint.checkTestSources=true", policy)
         self.assertIn("즉시 전체 test source lint를 켜지 않고", policy)
         self.assertIn("명시적 예외 + 대체 검증 + 재검토 게이트", policy)
         self.assertIn("## 현재 남은 경계", policy)
@@ -41,6 +42,7 @@ class TestSourceLintPolicyContractTest(unittest.TestCase):
             "scripts/verify_lint_registry.py",
             "Warning triage",
             "checkTestSources = true",
+            "-Pstopit.lint.checkTestSources=true",
             "allowlist",
         ]
         for phrase in required_phrases:
