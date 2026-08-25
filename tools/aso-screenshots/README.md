@@ -14,6 +14,26 @@
 | 5 | 긴급 해제   | `05-emergency.png`   | 꼭 필요할 때만 / 긴급 해제     | Light |
 | 6 | 잠금 기록   | `06-history.png`     | 버틴 시간이 / 기록으로 남아요  | Light |
 
+## 두 개의 라우트
+
+| 경로 | 산출물 | 문서 |
+| --- | --- | --- |
+| `/` | Play Store 리스팅 스크린샷 6종 (1080×1920) | `docs/PLAY_STORE_ASO.md` |
+| `/ads` | Google Ads 앱 캠페인 이미지 소재 9종 (1200×628 / 1200×1200 / 1200×1500) | `docs/GOOGLE_ADS_UAC_CREATIVE.md` |
+
+`/ads`는 Higgsfield로 생성한 배경 씬(`public/ads/scenes/<slug>-<비율>.jpg`, 텍스트·앱 화면 없음) 위에 실기기 캡처와 한글 카피를 조판한다. 씬은 사진이라 PNG가 아니라 JPEG로 넣는다 — PNG로 두면 9장에 58MB, JPEG로는 1.4MB다. 앱 UI는 절대 생성하지 않고 `public/screenshots/`의 실제 캡처만 쓴다 — 없는 화면을 그리면 Google Ads 허위 표시 정책에 걸린다.
+
+헤드리스로 9종을 한 번에 뽑으려면:
+
+```bash
+bun dev --port 3100
+# 다른 셸에서
+npm i --no-save playwright-core
+node scripts/capture-ads.mjs      # -> out/ads/ (gitignore 대상)
+```
+
+`playwright-core`는 의도적으로 `package.json`에 넣지 않았다. 아래 CI 게이트 표면을 넓히지 않기 위해서다.
+
 ## 실행
 
 ```bash
