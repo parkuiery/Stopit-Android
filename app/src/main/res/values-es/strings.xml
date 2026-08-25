@@ -281,6 +281,8 @@
     <string name="change_lock_off">Desactivado</string>
     <string name="change_lock_hours">%d horas antes</string>
     <string name="change_lock_description">La edición y eliminación de rutinas se restringirá desde %s</string>
+    <string name="change_lock_description_previous_day">La edición y eliminación de rutinas se restringirá desde las %s del día anterior al inicio de la rutina</string>
+    <string name="change_lock_always_locked_warning">No queda ningún momento para editar. Si guardas así, no podrás editar ni eliminar esta rutina en ningún momento.</string>
     <string name="day_unit">Día</string>
     <plurals name="countdown_day_prefix">
         <item quantity="one">%1$d día </item>

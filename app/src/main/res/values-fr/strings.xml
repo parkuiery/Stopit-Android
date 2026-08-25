@@ -282,6 +282,8 @@
     <string name="change_lock_off">Désactivé</string>
     <string name="change_lock_hours">%d heures avant</string>
     <string name="change_lock_description">La modification et la suppression des routines seront restreintes à partir de %s</string>
+    <string name="change_lock_description_previous_day">La modification et la suppression des routines seront restreintes à partir de %s la veille du début de la routine</string>
+    <string name="change_lock_always_locked_warning">Il ne reste aucun moment pour modifier. Si vous enregistrez ainsi, vous ne pourrez plus modifier ni supprimer cette routine à aucun moment.</string>
     <string name="day_unit">Jour</string>
     <plurals name="countdown_day_prefix">
         <item quantity="one">%1$d jour </item>

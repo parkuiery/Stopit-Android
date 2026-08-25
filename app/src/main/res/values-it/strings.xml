@@ -282,6 +282,8 @@
     <string name="change_lock_off">Disattivato</string>
     <string name="change_lock_hours">%d ore prima</string>
     <string name="change_lock_description">La modifica e l\'eliminazione delle routine saranno limitate da %s</string>
+    <string name="change_lock_description_previous_day">La modifica e l\'eliminazione delle routine saranno limitate dalle %s del giorno prima dell\'inizio della routine</string>
+    <string name="change_lock_always_locked_warning">Non resta alcun momento per modificare. Se salvi così, non potrai modificare né eliminare questa routine in nessun momento.</string>
     <string name="day_unit">Giorno</string>
     <plurals name="countdown_day_prefix">
         <item quantity="one">%1$d giorno </item>

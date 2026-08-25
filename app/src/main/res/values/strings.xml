@@ -330,6 +330,8 @@
     <string name="change_lock_off">Off</string>
     <string name="change_lock_hours">%d hours before</string>
     <string name="change_lock_description">Routine editing and deletion will be restricted from %s</string>
+    <string name="change_lock_description_previous_day">Routine editing and deletion will be restricted from %s the day before the routine starts</string>
+    <string name="change_lock_always_locked_warning">No editable time is left. If you save this, you will not be able to edit or delete this routine at any time.</string>
     <string name="day_unit">Day</string>
     <plurals name="countdown_day_prefix">
         <item quantity="one">%1$d day </item>

@@ -282,6 +282,8 @@
     <string name="change_lock_off">Uit</string>
     <string name="change_lock_hours">%d uur van tevoren</string>
     <string name="change_lock_description">Bewerken en verwijderen van routines wordt beperkt vanaf %s</string>
+    <string name="change_lock_description_previous_day">Bewerken en verwijderen van routines wordt beperkt vanaf %s op de dag voor de routine begint</string>
+    <string name="change_lock_always_locked_warning">Er blijft geen tijd over om te bewerken. Als je dit opslaat, kun je deze routine op geen enkel moment meer bewerken of verwijderen.</string>
     <string name="day_unit">Dag</string>
     <plurals name="countdown_day_prefix">
         <item quantity="one">%1$d dag </item>
