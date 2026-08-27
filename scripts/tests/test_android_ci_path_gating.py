@@ -103,10 +103,37 @@ class AndroidCiPathGatingTest(unittest.TestCase):
     def test_android_ci_fast_verification_runs_kds_module_local_checks(self):
         workflow = WORKFLOW_PATH.read_text()
 
-        self.assertIn("Run KDS module-local verification", workflow)
-        self.assertIn(":core:kds:assembleDebug", workflow)
-        self.assertIn(":core:kds:lintDebug", workflow)
-        self.assertIn(":core:kds:testDebugUnitTest", workflow)
+        # KDS module-local verification is no longer its own Gradle invocation: it
+        # shares the single merged verification step so configuration and dependency
+        # resolution are paid once. The task coverage contract is unchanged.
+        gradle_step = workflow.split("- name: Run Gradle verification", 1)[1].split("- name:", 1)[0]
+
+        self.assertIn(":core:kds:assembleDebug", gradle_step)
+        self.assertIn(":core:kds:lintDebug", gradle_step)
+        self.assertIn(":core:kds:testDebugUnitTest", gradle_step)
+
+    def test_android_ci_fast_verification_uses_one_merged_gradle_invocation(self):
+        workflow = WORKFLOW_PATH.read_text()
+        verify_job = workflow.split("  verify:", 1)[1].split("\n  runtime-", 1)[0]
+
+        gradle_invocations = [
+            line for line in verify_job.splitlines() if "./gradlew" in line and "chmod" not in line
+        ]
+        self.assertEqual(1, len(gradle_invocations), gradle_invocations)
+
+        gradle_step = verify_job.split("- name: Run Gradle verification", 1)[1].split("- name:", 1)[0]
+        for task in (
+            ":core:kds:testDebugUnitTest",
+            ":core:kds:lintDebug",
+            ":core:kds:assembleDebug",
+            ":app:testDevDebugUnitTest",
+            ":app:lintDevDebug",
+            ":app:assembleProdDebug",
+        ):
+            with self.subTest(task=task):
+                self.assertIn(task, gradle_step)
+        # --continue keeps one failing task from hiding the rest of the report.
+        self.assertIn("--continue", gradle_step)
 
     def test_android_ci_keeps_dependabot_firebase_secret_boundary_neutral(self):
         workflow = WORKFLOW_PATH.read_text()

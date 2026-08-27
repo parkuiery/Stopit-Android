@@ -12,7 +12,7 @@ RELEASE_WORKFLOWS = [
     REPO_ROOT / ".github" / "workflows" / "release-build.yml",
     REPO_ROOT / ".github" / "workflows" / "play-deploy.yml",
 ]
-BRANCH_HYGIENE_WORKFLOW = REPO_ROOT / ".github" / "workflows" / "branch-hygiene.yml"
+OPS_CI_WORKFLOW = REPO_ROOT / ".github" / "workflows" / "ops-ci.yml"
 WORKFLOW_GRADLE_TASK_GUARD = REPO_ROOT / "scripts" / "check_workflow_gradle_tasks.py"
 
 
@@ -53,8 +53,11 @@ class ReleaseGradleTaskContractTest(unittest.TestCase):
                     f"{path} should not rely on root task-name inference for release bundles",
                 )
 
-    def test_branch_hygiene_rejects_unqualified_release_workflow_tasks(self):
-        workflow = BRANCH_HYGIENE_WORKFLOW.read_text()
+    def test_ops_ci_rejects_unqualified_release_workflow_tasks(self):
+        # The checker moved here from the retired Branch Hygiene workflow. Ops CI's
+        # workflow-syntax job is gated on '.github/workflows/**', so every workflow
+        # edit still runs it against the real workflow files.
+        workflow = OPS_CI_WORKFLOW.read_text()
         guard = WORKFLOW_GRADLE_TASK_GUARD.read_text()
 
         self.assertIn("python3 scripts/check_workflow_gradle_tasks.py", workflow)

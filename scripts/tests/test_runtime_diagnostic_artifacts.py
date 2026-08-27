@@ -18,7 +18,7 @@ class RuntimeDiagnosticArtifactsTest(unittest.TestCase):
         workflow = ANDROID_CI_WORKFLOW.read_text()
         scripts_regression_step = self._step_block(workflow, "Run scripts regression tests")
         static_policy_step = self._step_block(workflow, "Run static policy unit tests")
-        run_step = self._step_block(workflow, "Run app unit tests")
+        run_step = self._step_block(workflow, "Run Gradle verification")
         upload_step = self._step_block(workflow, "Upload Android CI fast verification diagnostics")
 
         self.assertIn("python3 -m unittest", scripts_regression_step)
@@ -29,7 +29,8 @@ class RuntimeDiagnosticArtifactsTest(unittest.TestCase):
         self.assertIn("mkdir -p ci-diagnostics", static_policy_step)
         self.assertIn("set -o pipefail", static_policy_step)
         self.assertIn("tee ci-diagnostics/static-policy-unit-tests.log", static_policy_step)
-        self.assertIn("./gradlew --console=plain :app:testDevDebugUnitTest", run_step)
+        self.assertIn(":app:testDevDebugUnitTest", run_step)
+        self.assertIn("--continue", run_step)
         self.assertIn("if: always()", upload_step)
         self.assertNotIn("steps.firebase-config.outputs.available", upload_step)
         self.assertNotIn("steps.firebase-config.outputs.dummy_firebase_config", upload_step)

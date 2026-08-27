@@ -119,15 +119,6 @@ class WorkflowGradleTaskGuardTest(unittest.TestCase):
 
         self.assertEqual([], violations)
 
-    def test_ignores_branch_hygiene_self_check_workflow(self):
-        with tempfile.TemporaryDirectory() as tmp:
-            workflow = pathlib.Path(tmp) / "branch-hygiene.yml"
-            workflow.write_text("run: ./gradlew testDebugUnitTest\n", encoding="utf-8")
-
-            violations = find_flavorless_gradle_task_violations(pathlib.Path(tmp))
-
-        self.assertEqual([], violations)
-
 
 if __name__ == "__main__":
     unittest.main()

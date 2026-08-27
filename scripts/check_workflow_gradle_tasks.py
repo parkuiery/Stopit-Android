@@ -49,8 +49,6 @@ class GradleTaskViolation:
 def find_flavorless_gradle_task_violations(workflow_dir: Path) -> list[GradleTaskViolation]:
     violations: list[GradleTaskViolation] = []
     for workflow in sorted(workflow_dir.glob("*.yml")) + sorted(workflow_dir.glob("*.yaml")):
-        if workflow.name == "branch-hygiene.yml":
-            continue
         violations.extend(_violations_in_workflow(workflow, workflow_dir))
     return violations
 

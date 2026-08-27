@@ -10,7 +10,6 @@ RELEASE_CONTEXT = REPO_ROOT / "docs" / "ops" / "stopit" / "release-context.md"
 WORKFLOW_DIR = REPO_ROOT / ".github" / "workflows"
 GOVERNANCE_RELEASE_WORKFLOWS = (
     "android-ci.yml",
-    "branch-hygiene.yml",
     "ops-ci.yml",
     "play-deploy.yml",
     "release-build.yml",
@@ -124,7 +123,7 @@ class ActionlintGateContractTest(unittest.TestCase):
             with self.subTest(doc=doc_name):
                 self.assertIn("actions/checkout", doc)
                 self.assertIn("v6", doc)
-                self.assertIn("Branch Hygiene", doc)
+                self.assertIn("Version Guard", doc)
                 self.assertIn("Release QA", doc)
 
     def test_operator_docs_describe_gradle_wrapper_validation_secret_boundary(self):

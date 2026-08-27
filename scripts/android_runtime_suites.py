@@ -9,6 +9,11 @@ instrumentation class/method selectors that are passed to
 from __future__ import annotations
 
 import argparse
+import datetime
+import os
+import fnmatch
+import hashlib
+import json
 import pathlib
 import re
 import shlex
@@ -254,56 +259,120 @@ def render_markdown(suite_names: Iterable[str]) -> str:
     return "\n".join(lines).rstrip()
 
 
+def _run_selector_group(connected_task: str, selectors: list[str]) -> int:
+    completed = subprocess.run(
+        [
+            "./gradlew",
+            "--console=plain",
+            connected_task,
+            f"-Pandroid.testInstrumentationRunnerArguments.class={','.join(selectors)}",
+        ],
+        cwd=REPO_ROOT,
+    )
+    return completed.returncode
+
+
 def run_connected_tests(
     suite_names: Iterable[str],
     before: Iterable[str] = (),
     *,
     continue_on_failure: bool = False,
     variant: str = "devDebug",
+    batch: bool = True,
 ) -> int:
-    selectors = selectors_for(suite_names)
+    """Run runtime suites against a connected device.
+
+    Host appops/install isolation is a *suite* boundary, not a selector
+    boundary, so by default every selector in one suite shares a single
+    instrumentation run and the `before` commands are applied once per suite.
+    When a batched suite fails, its selectors are replayed one by one -- with
+    `before` reapplied each time, exactly like `batch=False` -- so the failure
+    report still names the offending selector instead of the whole suite.
+
+    A batched failure that no single selector reproduces is reported as
+    suspected cross-test interference rather than being silently swallowed.
+    """
     before_commands = [shlex.split(command) for command in before]
     first_failure = 0
     failed_steps: list[str] = []
     connected_task = f":app:connected{variant[0].upper()}{variant[1:]}AndroidTest"
 
-    for selector in selectors:
-        before_failed = False
+    def finish(returncode: int) -> int:
+        if failed_steps:
+            print("[android-runtime-suite] Aggregate failures:", file=sys.stderr)
+            for failure in failed_steps:
+                print(f"- {failure}", file=sys.stderr)
+        return returncode
+
+    def run_before() -> int:
         for command in before_commands:
             completed = subprocess.run(command, cwd=REPO_ROOT)
             if completed.returncode:
-                if not first_failure:
-                    first_failure = completed.returncode
                 failed_steps.append(f"before {shlex.join(command)} -> {completed.returncode}")
-                before_failed = True
+                return completed.returncode
+        return 0
+
+    for suite_name in suite_names:
+        selectors = selectors_for([suite_name])
+        batched = batch and len(selectors) > 1
+        groups = [selectors] if batched else [[selector] for selector in selectors]
+
+        suite_failure = 0
+        before_aborted = False
+        for group in groups:
+            before_returncode = run_before()
+            if before_returncode:
+                if not first_failure:
+                    first_failure = before_returncode
                 if not continue_on_failure:
-                    return completed.returncode
+                    return finish(before_returncode)
+                print(
+                    f"[android-runtime-suite] SKIP after before failure: {suite_name}",
+                    file=sys.stderr,
+                )
+                before_aborted = True
                 break
-        if before_failed:
-            print(f"[android-runtime-suite] SKIP selector after before failure: {selector}", file=sys.stderr)
+
+            returncode = _run_selector_group(connected_task, group)
+            if not returncode:
+                continue
+            suite_failure = suite_failure or returncode
+            if batched:
+                continue
+            failed_steps.append(f"selector {group[0]} -> {returncode}")
+            if not first_failure:
+                first_failure = returncode
+            if not continue_on_failure:
+                return finish(returncode)
+
+        if before_aborted or not suite_failure or not batched:
             continue
 
-        completed = subprocess.run(
-            [
-                "./gradlew",
-                "--console=plain",
-                connected_task,
-                f"-Pandroid.testInstrumentationRunnerArguments.class={selector}",
-            ],
-            cwd=REPO_ROOT,
+        if not first_failure:
+            first_failure = suite_failure
+        print(
+            f"[android-runtime-suite] Suite {suite_name} failed as a batch; "
+            "replaying its selectors individually to isolate the failure.",
+            file=sys.stderr,
         )
-        if completed.returncode:
-            if not first_failure:
-                first_failure = completed.returncode
-            failed_steps.append(f"selector {selector} -> {completed.returncode}")
-            if not continue_on_failure:
-                return completed.returncode
+        isolated: list[str] = []
+        for selector in selectors:
+            if run_before():
+                break
+            selector_returncode = _run_selector_group(connected_task, [selector])
+            if selector_returncode:
+                isolated.append(selector)
+                failed_steps.append(f"selector {selector} -> {selector_returncode}")
+        if not isolated:
+            failed_steps.append(
+                f"suite {suite_name} -> {suite_failure} "
+                "(batched run failed but no single selector reproduced it; "
+                "suspect cross-test interference -- rerun with --no-batch)"
+            )
+        if not continue_on_failure:
+            return finish(first_failure)
 
-    if failed_steps:
-        print("[android-runtime-suite] Aggregate failures:", file=sys.stderr)
-        for failure in failed_steps:
-            print(f"- {failure}", file=sys.stderr)
-    return first_failure
+    return finish(first_failure)
 
 
 ANDROID_CI_BEFORE_COMMANDS: dict[str, list[str]] = {
@@ -330,22 +399,313 @@ ANDROID_CI_BEFORE_COMMANDS: dict[str, list[str]] = {
 }
 
 
-def run_android_ci_sequence() -> int:
-    """Run Android CI runtime smoke suites in aggregate mode."""
-    first_failure = 0
+def run_android_ci_suites(*, batch: bool = True) -> dict[str, dict]:
+    """Run every Android CI runtime smoke suite, recording each suite's outcome.
+
+    Aggregate mode: an early suite failure never hides a later suite's result.
+    Shared by the diagnostic entry point and the evidence-recording local gate so
+    the two can never drift into running different things.
+    """
+    results: dict[str, dict] = {}
     print("[android-runtime-suite] Android CI aggregate mode: running all runtime smoke suites before final failure.")
     for suite_name in ANDROID_CI_SEQUENCE:
         print(f"[android-runtime-suite] Running suite: {suite_name}")
-        result = run_connected_tests(
+        returncode = run_connected_tests(
             [suite_name],
             before=ANDROID_CI_BEFORE_COMMANDS.get(suite_name, []),
             continue_on_failure=True,
+            batch=batch,
         )
-        if result and not first_failure:
-            first_failure = result
+        results[suite_name] = {
+            "status": "passed" if not returncode else "failed",
+            "selectors": len(SUITES[suite_name]),
+            "returncode": returncode,
+        }
+    return results
+
+
+def first_failure_of(results: dict[str, dict]) -> int:
+    for result in results.values():
+        if result["returncode"]:
+            return result["returncode"]
+    return 0
+
+
+def run_android_ci_sequence(*, batch: bool = True) -> int:
+    """Run Android CI runtime smoke suites in aggregate mode."""
+    results = run_android_ci_suites(batch=batch)
+    first_failure = first_failure_of(results)
     if first_failure:
         print(f"[android-runtime-suite] Android CI aggregate mode completed with failure: {first_failure}", file=sys.stderr)
     return first_failure
+
+
+EVIDENCE_PATH = REPO_ROOT / ".runtime-evidence.json"
+EVIDENCE_SCHEMA = 1
+
+# Everything whose change could plausibly break a runtime contract that the
+# Android CI suites cover. Deliberately broad: a digest that is too narrow lets a
+# real regression reach main with stale evidence, while a digest that is too wide
+# only costs a local rerun. Paths are matched against `git ls-files` output, so
+# untracked build output and local scratch files can never move the digest.
+RUNTIME_DIGEST_INPUTS: tuple[str, ...] = (
+    "app/src/main/**",
+    "app/src/androidTest/**",
+    "app/src/dev/**",
+    "app/src/prod/**",
+    "app/build.gradle.kts",
+    "build.gradle.kts",
+    "settings.gradle.kts",
+    "gradle.properties",
+    "gradle/libs.versions.toml",
+    "core/kds/src/main/**",
+    "core/kds/build.gradle.kts",
+    "scripts/android_runtime_suites.py",
+)
+
+# `.runtime-evidence.json` must never feed its own digest, or committing the
+# evidence would immediately invalidate it and the gate would never converge.
+# `google-services.json` is untracked secret material and is not reproducible
+# across machines.
+RUNTIME_DIGEST_EXCLUDES: tuple[str, ...] = (
+    ".runtime-evidence.json",
+    "**/google-services.json",
+)
+
+
+def _matches_any(path: str, patterns: Iterable[str]) -> bool:
+    for pattern in patterns:
+        if fnmatch.fnmatch(path, pattern):
+            return True
+        # fnmatch treats "/" as an ordinary character, so "a/**" already spans
+        # nested directories; this extra check makes "a/**" also match "a" itself.
+        if pattern.endswith("/**"):
+            prefix = pattern[: -len("/**")]
+            if path == prefix or path.startswith(f"{prefix}/"):
+                return True
+    return False
+
+
+def runtime_digest_files() -> list[str]:
+    """Tracked files that feed the runtime digest, in stable sorted order."""
+    completed = subprocess.run(
+        ["git", "ls-files", "-z"],
+        cwd=REPO_ROOT,
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+    tracked = [entry for entry in completed.stdout.split("\0") if entry]
+    return sorted(
+        path
+        for path in tracked
+        if _matches_any(path, RUNTIME_DIGEST_INPUTS)
+        and not _matches_any(path, RUNTIME_DIGEST_EXCLUDES)
+    )
+
+
+def compute_runtime_digest() -> str:
+    digest = hashlib.sha256()
+    for path in runtime_digest_files():
+        digest.update(path.encode())
+        digest.update(b"\0")
+        digest.update(hashlib.sha256((REPO_ROOT / path).read_bytes()).digest())
+    return f"sha256:{digest.hexdigest()}"
+
+
+def load_evidence() -> dict | None:
+    if not EVIDENCE_PATH.exists():
+        return None
+    try:
+        return json.loads(EVIDENCE_PATH.read_text())
+    except json.JSONDecodeError:
+        return None
+
+
+def check_evidence() -> int:
+    """Verify the committed evidence was produced from the current runtime sources."""
+    evidence = load_evidence()
+    if evidence is None:
+        print(
+            f"[runtime-gate] No usable {EVIDENCE_PATH.name} found.\n"
+            "  Run the local runtime gate against a connected device and commit its evidence:\n"
+            "    ./scripts/runtime-gate.sh",
+            file=sys.stderr,
+        )
+        return 1
+
+    recorded = evidence.get("runtime_digest")
+    current = compute_runtime_digest()
+    if recorded == current:
+        suites = evidence.get("suites", {})
+        print(
+            f"[runtime-gate] OK - {len(suites)} suites verified locally at {current[:19]}... "
+            f"on {evidence.get('device', {}).get('description', 'an unrecorded device')}"
+        )
+        return 0
+
+    print(
+        "[runtime-gate] Runtime sources changed since the evidence was recorded.\n"
+        f"  recorded: {recorded}\n"
+        f"  current:  {current}\n"
+        "  Rerun the local runtime gate against a connected device and commit the refreshed evidence:\n"
+        "    ./scripts/runtime-gate.sh",
+        file=sys.stderr,
+    )
+    return 1
+
+
+def _describe_device() -> dict:
+    def adb_prop(prop: str) -> str:
+        try:
+            completed = subprocess.run(
+                ["adb", "shell", "getprop", prop],
+                cwd=REPO_ROOT,
+                capture_output=True,
+                text=True,
+                timeout=30,
+            )
+        except (OSError, subprocess.SubprocessError):
+            return ""
+        return completed.stdout.strip() if completed.returncode == 0 else ""
+
+    model = adb_prop("ro.product.model")
+    sdk = adb_prop("ro.build.version.sdk")
+    return {
+        "model": model,
+        "api_level": int(sdk) if sdk.isdigit() else None,
+        "description": f"{model or 'unknown'} (API {sdk or '?'})",
+    }
+
+
+def ensure_adb_on_path() -> str | None:
+    """Make `adb` runnable for this process and its children.
+
+    CI runners get adb from the emulator action, but a developer shell often does
+    not have platform-tools on PATH. The suites shell out to bare `adb` (and so do
+    the appops `before` commands), so resolve the SDK once here instead of making
+    every caller care.
+    """
+    from shutil import which
+
+    if which("adb"):
+        return which("adb")
+
+    candidates = []
+    for env_var in ("ANDROID_HOME", "ANDROID_SDK_ROOT"):
+        sdk_root = os.environ.get(env_var)
+        if sdk_root:
+            candidates.append(pathlib.Path(sdk_root) / "platform-tools")
+    candidates.append(pathlib.Path.home() / "Library" / "Android" / "sdk" / "platform-tools")
+    candidates.append(pathlib.Path.home() / "Android" / "Sdk" / "platform-tools")
+
+    for platform_tools in candidates:
+        if (platform_tools / "adb").exists():
+            os.environ["PATH"] = f"{platform_tools}{os.pathsep}{os.environ.get('PATH', '')}"
+            return str(platform_tools / "adb")
+    return None
+
+
+def connected_devices() -> list[str]:
+    try:
+        completed = subprocess.run(
+            ["adb", "devices"],
+            cwd=REPO_ROOT,
+            capture_output=True,
+            text=True,
+            timeout=60,
+        )
+    except (OSError, subprocess.SubprocessError):
+        return []
+    if completed.returncode:
+        return []
+    devices = []
+    for line in completed.stdout.splitlines()[1:]:
+        serial, _, state = line.partition("\t")
+        if state.strip() == "device":
+            devices.append(serial.strip())
+    return devices
+
+
+def run_local_gate(*, batch: bool = True) -> int:
+    """Run the Android CI runtime suites locally and record evidence on success."""
+    if ensure_adb_on_path() is None:
+        print(
+            "[runtime-gate] `adb` not found on PATH and no Android SDK platform-tools "
+            "directory could be located.\n"
+            "  Set ANDROID_HOME (or ANDROID_SDK_ROOT) to your SDK, or add platform-tools to PATH.",
+            file=sys.stderr,
+        )
+        return 2
+
+    devices = connected_devices()
+    if not devices:
+        print(
+            "[runtime-gate] No connected device or emulator found (`adb devices` is empty).\n"
+            "  Start an emulator or attach a device, then rerun.",
+            file=sys.stderr,
+        )
+        return 2
+    if len(devices) > 1:
+        print(
+            f"[runtime-gate] {len(devices)} devices connected: {', '.join(devices)}.\n"
+            "  Gradle connected tests would fan out across all of them; "
+            "leave exactly one attached.",
+            file=sys.stderr,
+        )
+        return 2
+
+    # Pin the digest before running: if sources change mid-run the evidence would
+    # describe a tree that was never actually verified end to end.
+    digest_before = compute_runtime_digest()
+
+    results = run_android_ci_suites(batch=batch)
+    suites = {
+        name: {"status": result["status"], "selectors": result["selectors"]}
+        for name, result in results.items()
+    }
+    first_failure = first_failure_of(results)
+
+    if first_failure:
+        failed = [name for name, result in suites.items() if result["status"] == "failed"]
+        print(
+            f"[runtime-gate] FAILED - no evidence written. Failing suites: {', '.join(failed)}",
+            file=sys.stderr,
+        )
+        return first_failure
+
+    digest_after = compute_runtime_digest()
+    if digest_after != digest_before:
+        print(
+            "[runtime-gate] Runtime sources changed while the gate was running; "
+            "no evidence written. Rerun on a quiet tree.",
+            file=sys.stderr,
+        )
+        return 1
+
+    head = subprocess.run(
+        ["git", "rev-parse", "HEAD"],
+        cwd=REPO_ROOT,
+        capture_output=True,
+        text=True,
+    )
+    evidence = {
+        "schema": EVIDENCE_SCHEMA,
+        "runtime_digest": digest_after,
+        "suites": suites,
+        "device": _describe_device(),
+        "variant": "devDebug",
+        "recorded_at": datetime.datetime.now(datetime.timezone.utc)
+        .replace(microsecond=0)
+        .isoformat(),
+        "recorded_from_commit": head.stdout.strip() if head.returncode == 0 else None,
+    }
+    EVIDENCE_PATH.write_text(json.dumps(evidence, indent=2, sort_keys=True) + "\n")
+    print(
+        f"[runtime-gate] PASSED - {len(suites)} suites. "
+        f"Wrote {EVIDENCE_PATH.name}; commit it so CI can verify this run."
+    )
+    return 0
 
 
 def parse_args(argv: list[str]) -> argparse.Namespace:
@@ -365,9 +725,9 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
     markdown_parser = subparsers.add_parser("markdown", help="Print Markdown list for suites")
     markdown_parser.add_argument("suite", nargs="+")
 
-    run_parser = subparsers.add_parser("run-connected", help="Run each selector as a separate connectedDevDebugAndroidTest Gradle invocation")
+    run_parser = subparsers.add_parser("run-connected", help="Run each suite as one connectedAndroidTest Gradle invocation (see --no-batch)")
     run_parser.add_argument("suite", nargs="+")
-    run_parser.add_argument("--before", action="append", default=[], help="Command to run before each selector; may be supplied multiple times")
+    run_parser.add_argument("--before", action="append", default=[], help="Command to run before each suite (and before each selector during a bisect replay); may be supplied multiple times")
     run_parser.add_argument(
         "--variant",
         default="devDebug",
@@ -379,8 +739,38 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
         action="store_true",
         help="Run remaining selectors and print an aggregate failure summary before returning non-zero",
     )
+    run_parser.add_argument(
+        "--no-batch",
+        dest="batch",
+        action="store_false",
+        help="Run one Gradle invocation per selector instead of one per suite (diagnostic escalation)",
+    )
 
     subparsers.add_parser("run-android-ci", help="Run Android CI runtime smoke suites in aggregate diagnostic mode")
+
+    local_gate_parser = subparsers.add_parser(
+        "run-local-gate",
+        help="Run the Android CI runtime suites against a connected device and record .runtime-evidence.json",
+    )
+    local_gate_parser.add_argument(
+        "--no-batch",
+        dest="batch",
+        action="store_false",
+        help="Run one Gradle invocation per selector instead of one per suite (diagnostic escalation)",
+    )
+
+    subparsers.add_parser(
+        "check-evidence",
+        help="Verify .runtime-evidence.json was recorded from the current runtime sources",
+    )
+    subparsers.add_parser(
+        "runtime-digest",
+        help="Print the digest of the runtime sources the local gate covers",
+    )
+    subparsers.add_parser(
+        "runtime-digest-files",
+        help="Print the tracked files that feed the runtime digest",
+    )
     subparsers.add_parser("list-suites", help="Print known suite names")
     subparsers.add_parser("validate-sources", help="Verify selectors point to existing androidTest classes/methods")
     return parser.parse_args(argv)
@@ -407,9 +797,18 @@ def main(argv: list[str] | None = None) -> int:
             before=args.before,
             continue_on_failure=args.continue_on_failure,
             variant=args.variant,
+            batch=args.batch,
         )
     elif args.command == "run-android-ci":
         return run_android_ci_sequence()
+    elif args.command == "run-local-gate":
+        return run_local_gate(batch=args.batch)
+    elif args.command == "check-evidence":
+        return check_evidence()
+    elif args.command == "runtime-digest":
+        print(compute_runtime_digest())
+    elif args.command == "runtime-digest-files":
+        print("\n".join(runtime_digest_files()))
     elif args.command == "list-suites":
         print("\n".join(SUITES.keys()))
     elif args.command == "validate-sources":

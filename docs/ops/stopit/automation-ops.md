@@ -9,7 +9,7 @@
 Stopit 자동화는 더 이상 하나의 거대한 follow-through cron에만 의존하지 않는다.
 현재는 아래처럼 역할이 분리된 cron topology를 기준으로 운영한다.
 
-Branch Hygiene 정책상 `automation/*`는 PR head prefix가 아니다. 아래 `automation/stopit-*-lane` stable branches는 local lane worktree 기준선일 뿐이며, reviewable PR은 `docs/*`, `test/*`, `fix/*`, `feature/*`, `ci/*`, `chore/*` 같은 허용 prefix에서 만든다.
+브랜치 명명 관례상 `automation/*`는 PR head prefix가 아니다 (CI 강제는 폐기됐고 lane 운영에서 지킨다). 아래 `automation/stopit-*-lane` stable branches는 local lane worktree 기준선일 뿐이며, reviewable PR은 `docs/*`, `test/*`, `fix/*`, `feature/*`, `ci/*`, `chore/*` 같은 허용 prefix에서 만든다.
 
 ### 1) 제품/지표 분석 계층
 
@@ -28,7 +28,7 @@ Branch Hygiene 정책상 `automation/*`는 PR head prefix가 아니다. 아래 `
 
 - `stopit-executor-docs-lane`
   - docs/ops/analytics/ASO/runbook 성격 이슈 처리
-  - stable branch는 `automation/stopit-docs-lane` 같은 로컬 lane/worktree 전용 local lane 브랜치다. PR head로는 쓰지 않고, reviewable 작업은 `docs/issue-...` 또는 workflow/운영 변경이면 `ci/issue-...`처럼 Branch Hygiene 허용 prefix로 새 브랜치를 만든다.
+  - stable branch는 `automation/stopit-docs-lane` 같은 로컬 lane/worktree 전용 local lane 브랜치다. PR head로는 쓰지 않고, reviewable 작업은 `docs/issue-...` 또는 workflow/운영 변경이면 `ci/issue-...`처럼 관례 prefix로 새 브랜치를 만든다.
 - `stopit-executor-qa-lane`
   - QA 기준, 테스트, 재현, 저위험 회귀 방지 작업
   - stable branch는 `automation/stopit-qa-lane`이며 PR head는 `test/issue-...` 또는 `fix/issue-...`를 사용한다.
