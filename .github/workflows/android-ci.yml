@@ -232,7 +232,9 @@ jobs:
   runtime-evidence:
     name: Runtime evidence
     needs: classify-changes
-    if: needs.classify-changes.outputs.runtime_smoke == 'true'
+    # Skipped on workflow_dispatch: that run's own emulator job produces the
+    # evidence, so checking for it first would fail the run against itself.
+    if: github.event_name != 'workflow_dispatch' && needs.classify-changes.outputs.runtime_smoke == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 5
 
@@ -347,6 +349,9 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: stopit-runtime-smoke-diagnostics
+          # .runtime-evidence.json is a dotfile and upload-artifact drops those by
+          # default, which silently emptied the escalation path this job exists for.
+          include-hidden-files: true
           path: |
             .runtime-evidence.json
             app/build/reports/androidTests/**
