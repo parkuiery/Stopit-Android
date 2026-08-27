@@ -75,7 +75,7 @@ class BlockViewModelTest {
             blockSource = AnalyticsBlockSource.MANUAL_KEEP,
             routineId = null,
         )
-        delay(50)
+        awaitUntil { viewModel.container.stateFlow.value.showFirstCoreActionFeedback }
 
         assertEquals(true, viewModel.container.stateFlow.value.showFirstCoreActionFeedback)
         assertEquals(
@@ -183,7 +183,7 @@ class BlockViewModelTest {
             blockSource = AnalyticsBlockSource.PARENT_MODE,
             routineId = null,
         )
-        delay(50)
+        awaitUntil { analytics.calls.size >= 3 }
 
         assertEquals(
             listOf(
@@ -240,7 +240,7 @@ class BlockViewModelTest {
             now = Instant.parse("2034-12-31T23:59:00Z"),
             zone = zone,
         )
-        delay(50)
+        awaitUntil { viewModel.container.stateFlow.value.timedLockDeadline != null }
 
         assertEquals(deadline.atZone(zone).toLocalDateTime(), viewModel.container.stateFlow.value.timedLockDeadline)
     }
@@ -262,7 +262,7 @@ class BlockViewModelTest {
             blockSource = AnalyticsBlockSource.TIMED_LOCK,
             now = Instant.parse("2035-01-01T00:00:01Z"),
         )
-        delay(50)
+        awaitUntil { sideEffects.isNotEmpty() }
         job.cancel()
 
         assertEquals(listOf(BlockSideEffect.TimedLockExpired), sideEffects)
@@ -419,10 +419,10 @@ class BlockViewModelTest {
             blockSource = AnalyticsBlockSource.MANUAL_KEEP,
             routineId = null,
         )
-        delay(100)
+        awaitUntil { viewModel.container.stateFlow.value.repeatBlockRoutineSuggestion != null }
 
         viewModel.dismissRepeatBlockRoutineSuggestion()
-        delay(50)
+        awaitUntil { analytics.repeatBlockEvents.size >= 2 }
 
         assertEquals(null, viewModel.container.stateFlow.value.repeatBlockRoutineSuggestion)
         assertEquals(
@@ -468,12 +468,14 @@ class BlockViewModelTest {
             blockSource = AnalyticsBlockSource.MANUAL_KEEP,
             routineId = null,
         )
-        delay(100)
+        awaitUntil { viewModel.container.stateFlow.value.repeatBlockRoutineSuggestion != null }
         val suggestion = viewModel.container.stateFlow.value.repeatBlockRoutineSuggestion
         assertNotNull(suggestion)
 
         viewModel.openRepeatBlockRoutineSuggestion()
-        delay(50)
+        // Wait for the side effect too: cancelling the collector as soon as the
+        // analytics call lands would race the emission this test asserts on.
+        awaitUntil { analytics.repeatBlockEvents.size >= 2 && sideEffects.isNotEmpty() }
         job.cancel()
 
         assertEquals(

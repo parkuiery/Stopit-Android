@@ -21,7 +21,13 @@ Usage Access 기반 개인화 리포트/추천은 `docs/USAGE_STATS_PERSONALIZAT
 
 > 현재 저장소의 `androidTest` 자동화는 release 전체를 대체하지는 않지만, 기본 Android CI focused runtime smoke가 이미 핵심 런타임 계약을 자동 검증한다: `StopitReleaseSmokeTest`(앱 기동 smoke), `BackupRestoreRuntimeResetIntegrationTest`(복원 후 reset-only state 미복원), `HomeAccessibilityPermissionIntegrationTest`(홈 접근성 권한 경고 재동기화 + substring false positive 방지), focused `ReceiverRuntimeIntegrationTest` 메서드들(boot/package/time/timezone 재수화, multi-day 반복요일, 루틴 시작 재예약), Android CI exact-alarm 최소 smoke(`android_ci_exact_alarm_default`, `android_ci_exact_alarm_denied`, `android_ci_exact_alarm_allowed`), 별도 `POST_NOTIFICATION ignore` receiver fallback notice 메서드, `EmergencyUnlockExpiryIntegrationTest`(긴급해제 만료 cleanup + 재차단 대상), `KeepMessagingServiceIntegrationTest`(stale FCM token overwrite), `KeepAccessibilityServiceIntegrationTest`(cross-app foreground 차단 + emergency unlock 우회 + self-uninstall interception safety). 이 체크리스트는 그 자동화가 아직 덮지 못하는 cold boot, 실제 사용자 앱 조합별 foreground 전환 같은 수동 증거를 release 전에 반복하기 위한 최소 기준이다.
 >
-> Android CI runtime smoke와 Release instrumentation QA는 `retention-days: 7`의 non-blocking 진단 artifact를 남긴다. Android CI는 `scripts/android_runtime_suites.py run-android-ci` aggregate mode로 `android_ci_focused_runtime_smoke`가 실패해도 `android_ci_exact_alarm_default`, `android_ci_exact_alarm_denied`, `android_ci_exact_alarm_allowed`, `notification_denied_receiver`, `notification_denied_emergency_unlock`, `notification_channel_disabled`까지 가능한 한 실행한 뒤 최종 non-zero로 실패한다. Release QA는 suite별 fail-fast 경계를 유지한다. Android CI triage는 `stopit-runtime-smoke-diagnostics`, Release QA는 `stopit-release-instrumentation-diagnostics`를 먼저 확인한다. triage 순서는 `app/build/reports/androidTests` HTML/XML report → `app/build/outputs/androidTest-results` raw result → `app/build/reports/problems` Gradle problems report → `runtime-diagnostics/**`의 `logcat`, `dumpsys alarm`, `dumpsys accessibility` 순서다. Artifact upload 자체는 실패 원인을 가리지 않도록 non-blocking이며, quota failure는 코드 회귀가 아니라 GitHub Actions artifact storage boundary로 분리한다.
+> **런타임 스모크는 로컬에서 돌고, CI는 그 증거를 검증한다.** `scripts/runtime-gate.sh`가 `ANDROID_CI_SEQUENCE`를 연결된 기기에서 실행하고, 전부 통과했을 때만 `.runtime-evidence.json`에 결과와 런타임 소스 digest를 기록한다. Android CI의 `Runtime evidence` job은 에뮬레이터·JDK·Gradle 없이 현재 트리의 digest를 다시 계산해 매니페스트와 대조한다. digest 입력은 `scripts/android_runtime_suites.py`의 `RUNTIME_DIGEST_INPUTS`이므로 app/runtime 코드를 고치면 증거가 자동으로 무효가 되고, 오래된 증거로는 CI를 통과할 수 없다. 증거 파일은 변경과 함께 커밋한다.
+>
+> **GitHub Actions에서 에뮬레이터가 완전히 사라졌다.** PR이든 릴리즈든 dispatch든 어떤 workflow도 에뮬레이터를 띄우지 않는다. 런타임 스위트를 돌리는 곳은 개발자 기기뿐이고, CI는 그 결과가 현재 소스에서 나왔는지만 확인한다. 따라서 로컬 게이트를 돌릴 수 있는 기기 또는 에뮬레이터가 개발 환경의 전제 조건이다. Dependabot PR은 로컬 게이트를 돌릴 수 없으므로 기존 정책대로 런타임 검증이 유예되며, 런타임 계약에 닿는 의존성 범프는 사람이 로컬 게이트를 돌리고 증거를 갱신한 뒤 머지한다.
+>
+> 한 suite의 selector 들은 한 번의 instrumentation run 으로 묶여 실행된다(host appops 격리 경계는 selector 가 아니라 suite 다). batched suite 가 실패하면 selector 를 하나씩 재실행해 범인을 지목하고, 어떤 단일 selector 로도 재현되지 않으면 cross-test interference 로 보고한다. 그 경우 `scripts/runtime-gate.sh --no-batch` 로 예전처럼 selector 별 실행으로 되돌려 확인한다.
+>
+> 런타임 스위트는 로컬에서 돌므로 CI 진단 artifact가 없다. 실패 triage는 로컬 `app/build/reports/androidTests` HTML/XML report → `app/build/outputs/androidTest-results` raw result 순서로 본다. 로컬 게이트는 aggregate mode로 `android_ci_focused_runtime_smoke`가 실패해도 `android_ci_exact_alarm_default`, `android_ci_exact_alarm_denied`, `android_ci_exact_alarm_allowed`, `notification_denied_receiver`, `notification_denied_emergency_unlock`, `notification_channel_disabled`까지 가능한 한 실행한 뒤 최종 non-zero로 실패한다. Release QA는 suite별 fail-fast 경계를 유지한다. 참고 순서는 `app/build/reports/androidTests` HTML/XML report → `app/build/outputs/androidTest-results` raw result → `app/build/reports/problems` Gradle problems report → `runtime-diagnostics/**`의 `logcat`, `dumpsys alarm`, `dumpsys accessibility` 순서다. Artifact upload 자체는 실패 원인을 가리지 않도록 non-blocking이며, quota failure는 코드 회귀가 아니라 GitHub Actions artifact storage boundary로 분리한다.
 >
 > Android CI `Fast verification`의 scripts preflight/static policy/app unit/lint/build 실패 triage는 runtime smoke와 분리한다. `Run scripts regression tests`, `Run static policy unit tests`, `Run app unit tests`, `Run dev lint gate`, `Build prod debug APK` 중 어느 단계가 실패해도 `stopit-android-ci-fast-verification-diagnostics` artifact를 `retention-days: 7` / non-blocking으로 남기며, Firebase config 확인 전 scripts preflight 실패도 `ci-diagnostics/**` upload 대상이다. 확인 순서는 `ci-diagnostics/scripts-regression-tests.log` → `ci-diagnostics/static-policy-unit-tests.log` → `app/build/reports/tests`의 `testDevDebugUnitTest` HTML report → `app/build/test-results` JUnit XML/raw result → `app/build/reports/lint-results-devDebug` lint report → `app/build/reports/problems` Gradle problem report → `app/build/outputs/logs` 순서다.
 >
@@ -50,6 +56,44 @@ Usage Access 기반 개인화 리포트/추천은 `docs/USAGE_STATS_PERSONALIZAT
 cd <repo-root>
 ./gradlew -q help --task :app:testDevDebugUnitTest
 ./gradlew -q help --task :app:connectedDevDebugAndroidTest
+```
+
+### 로컬 런타임 게이트
+
+PR CI 는 에뮬레이터를 띄우지 않는다. `ANDROID_CI_SEQUENCE` 는 여기서 돈다.
+
+```bash
+cd <repo-root>
+./scripts/runtime-gate.sh                     # android-ci 시퀀스 실행 후 증거 기록
+./scripts/runtime-gate.sh --sequence release  # 릴리즈 시퀀스 (main 대상 PR 게이트가 요구)
+./scripts/runtime-gate.sh --check             # 실행 없이 증거 유효성만 확인
+./scripts/runtime-gate.sh --no-batch          # selector 별 실행으로 되돌림 (간섭 의심 시)
+```
+
+증거에는 어느 시퀀스로 검증했는지가 함께 남는다. `release/*`·`hotfix/*` PR의 `Release runtime evidence` job은 `--require-sequence release`로 확인하므로, 좁은 `android-ci` 증거로는 릴리즈 게이트를 통과할 수 없다.
+
+- 기기/에뮬레이터가 정확히 한 대 연결돼 있어야 한다. 여러 대가 붙어 있으면 Gradle connected test 가 모두에게 fan-out 되므로 게이트가 거부한다. 폰과 에뮬레이터를 같이 붙여 두는 흔한 구성에서는 `ANDROID_SERIAL` 로 하나를 고른다 — AGP 의 기기 선택도 같은 변수를 읽으므로 export 만으로 fan-out 이 막힌다.
+
+```bash
+adb devices                                   # 시리얼 확인
+ANDROID_SERIAL=emulator-5554 ./scripts/runtime-gate.sh
+```
+
+- 실기기에서 게이트가 완주하지 못할 수 있다. 제조사에 따라 dev 빌드의 접근성 서비스가 secure settings 로 켜도 bind 되지 않고(운영 앱이 접근성 슬롯을 쥐고 있는 경우 포함) `KeepAccessibilityServiceIntegrationTest` / `HomeAccessibilityPermissionIntegrationTest` 가 실패한다. 그때는 CI 와 같은 구성의 에뮬레이터(API 35 `google_apis`, pixel_6)를 쓴다.
+- `adb` 가 PATH 에 없으면 `ANDROID_HOME` / `ANDROID_SDK_ROOT` 또는 기본 SDK 위치에서 platform-tools 를 자동으로 찾는다.
+- 모든 suite 가 통과했을 때만 증거를 쓴다. 실패하면 아무것도 기록하지 않으므로 실패를 증거로 덮을 수 없다.
+- 실행 도중 런타임 소스가 바뀌면 증거를 쓰지 않는다. 검증되지 않은 트리를 가리키는 증거를 막기 위해서다.
+- `.runtime-evidence.json` 은 변경과 함께 커밋한다. digest 입력은 `RUNTIME_DIGEST_INPUTS` 이고, `.runtime-evidence.json` 자신과 `google-services.json` 은 입력에서 제외된다.
+
+기기가 suite를 완주하지 못하면 증거를 만들 수 없고, CI에는 대체 실행 경로가 없다. CI와 같은 구성(API 35 `google_apis`, pixel_6)의 에뮬레이터를 만들어 쓴다.
+
+밀린 증거를 push 전에 알아채고 싶으면 아래를 `.git/hooks/pre-push` 로 두고 실행 권한을 준다. 경고만 하고 push 는 막지 않는다 — 기기가 항상 붙어 있지는 않기 때문이다.
+
+```bash
+#!/usr/bin/env sh
+./scripts/runtime-gate.sh --check || \
+  echo "warning: 런타임 증거가 오래됐다. 머지 전에 ./scripts/runtime-gate.sh 를 돌려라." >&2
+exit 0
 ```
 
 ### 자동화 기본선
@@ -1092,9 +1136,8 @@ python3 -m unittest scripts.tests.test_goal_lock_contract -v
 
 `Android CI`는 release 전용 `release-qa.yml`보다 가벼운 기본 PR gate로 아래를 자동 실행한다.
 
-- `./gradlew :app:testDevDebugUnitTest`
-- `./gradlew :app:lintDevDebug`
-- `./gradlew :app:assembleProdDebug`
+- `Fast verification`의 단일 Gradle 호출(`--continue`): `:core:kds:testDebugUnitTest` `:core:kds:lintDebug` `:core:kds:assembleDebug` `:app:testDevDebugUnitTest` `:app:lintDevDebug` `:app:assembleProdDebug`. 태스크마다 Gradle 을 새로 띄우지 않고 configuration/의존성 해석을 한 번만 지불한다.
+- `Runtime evidence`: `python3 scripts/android_runtime_suites.py check-evidence`. 아래 focused runtime smoke suite 들은 CI 가 아니라 `scripts/runtime-gate.sh`로 로컬에서 실행되고, 이 job 은 그 증거가 현재 소스에서 나온 것인지만 확인한다.
 - focused runtime smoke class/method set은 `scripts/android_runtime_suites.py`가 source of truth다. 문서가 selector를 복붙하지 말고 suite 이름과 run URL을 기록한다.
   - `android_ci_focused_runtime_smoke`
   - exact-alarm 최소 smoke: `android_ci_exact_alarm_default` + `android_ci_exact_alarm_denied` + `android_ci_exact_alarm_allowed`

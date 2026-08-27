@@ -1,39 +1,56 @@
+"""Branch naming is a convention now, not a CI gate.
+
+The Branch Hygiene workflow was retired: it cost a job on every PR to enforce a
+naming rule, and the one routing rule that actually gates behaviour -- main-target
+PRs must come from `release/*` or `hotfix/*` -- is independently enforced by
+Version Guard, which runs on every main-target PR.
+
+What remains worth pinning is that the convention stays coherent: the docs still
+describe it, `scripts/branch-start.sh` still produces conforming names, and
+`automation/*` stays reserved for local lane worktrees rather than PR heads.
+"""
+
 import pathlib
 import re
 import unittest
 
 
 REPO_ROOT = pathlib.Path(__file__).resolve().parents[2]
-BRANCH_HYGIENE_WORKFLOW = REPO_ROOT / ".github" / "workflows" / "branch-hygiene.yml"
+BRANCH_START_SCRIPT = REPO_ROOT / "scripts" / "branch-start.sh"
+VERSION_GUARD_WORKFLOW = REPO_ROOT / ".github" / "workflows" / "version-guard.yml"
+WORKFLOW_DIR = REPO_ROOT / ".github" / "workflows"
 GIT_WORKFLOW_DOC = REPO_ROOT / "docs" / "GIT_WORKFLOW.md"
 AUTOMATION_OPS_DOC = REPO_ROOT / "docs" / "ops" / "stopit" / "automation-ops.md"
 RELEASE_CONTEXT_DOC = REPO_ROOT / "docs" / "ops" / "stopit" / "release-context.md"
 RECENT_DECISIONS_DOC = REPO_ROOT / "docs" / "ops" / "stopit" / "recent-decisions.md"
-OPS_CI_WORKFLOW = REPO_ROOT / ".github" / "workflows" / "ops-ci.yml"
+
+CONVENTION_BRANCH_TYPES = ("feature", "fix", "refactor", "docs", "test", "ci", "chore")
 
 
 class BranchHygienePolicyTest(unittest.TestCase):
-    def test_automation_lane_branches_are_not_pr_head_prefixes(self):
-        workflow = BRANCH_HYGIENE_WORKFLOW.read_text()
-        validate_step = self._step_block(workflow, "Validate PR routing")
+    def test_branch_hygiene_workflow_is_retired(self):
+        self.assertFalse(
+            (WORKFLOW_DIR / "branch-hygiene.yml").exists(),
+            "Branch Hygiene was retired; reintroducing it needs a deliberate decision, "
+            "not a silent restore",
+        )
 
-        self.assertIn("feature|fix|refactor|docs|test|ci|chore", validate_step)
-        routing_conditions = [
-            line.strip()
-            for line in validate_step.splitlines()
-            if "HEAD_REF" in line and "=~" in line
-        ]
-        allowed_message = next(
-            line for line in validate_step.splitlines() if "Allowed:" in line
-        )
-        self.assertTrue(routing_conditions)
-        self.assertTrue(
-            all("automation" not in line for line in routing_conditions),
-            "automation/* must stay out of Branch Hygiene routing regexes",
-        )
-        self.assertNotIn("automation/*", allowed_message)
-        self.assertIn("automation/* is reserved for local lane worktree branches", validate_step)
-        self.assertIn("create a review branch with an allowed prefix", validate_step)
+    def test_main_target_routing_is_still_enforced_by_version_guard(self):
+        # This is the load-bearing half of the old workflow. Losing it would let a
+        # main-target PR skip the release gates that key off the release/* head.
+        workflow = VERSION_GUARD_WORKFLOW.read_text()
+
+        self.assertIn('branches: [main]', workflow)
+        self.assertIn('head_ref.startswith("release/")', workflow)
+        self.assertIn('head_ref.startswith("hotfix/")', workflow)
+        self.assertIn("main-target PRs must come from release/* or hotfix/*", workflow)
+
+    def test_branch_start_helper_still_produces_conforming_names(self):
+        script = BRANCH_START_SCRIPT.read_text()
+
+        self.assertIn("|".join(CONVENTION_BRANCH_TYPES), script)
+        self.assertNotIn("automation)", script)
+        self.assertIn("kebab-case", script)
 
     def test_operator_docs_pin_review_branch_prefix_for_automation_lanes(self):
         git_workflow = GIT_WORKFLOW_DOC.read_text()
@@ -60,24 +77,16 @@ class BranchHygienePolicyTest(unittest.TestCase):
         self.assertIn("로컬 lane/worktree", combined)
         self.assertIn("PR head", combined)
 
-    def test_dependabot_pr_heads_are_valid_dependency_automation_branches(self):
-        workflow = BRANCH_HYGIENE_WORKFLOW.read_text()
-        validate_step = self._step_block(workflow, "Validate PR routing")
+    def test_docs_do_not_claim_branch_names_are_ci_enforced(self):
+        for doc_path in (GIT_WORKFLOW_DOC, RELEASE_CONTEXT_DOC):
+            with self.subTest(doc=doc_path.name):
+                doc = doc_path.read_text()
+                self.assertNotIn("branch-hygiene.yml", doc)
+                self.assertIsNone(
+                    re.search(r"Branch Hygiene(가|는)? .*실패해야 한다", doc),
+                    f"{doc_path.name} still describes Branch Hygiene as an active gate",
+                )
 
-        self.assertIn("dependabot/", validate_step)
-        self.assertIn("Dependabot dependency automation", validate_step)
-        self.assertIn("feature/*, fix/*, refactor/*, docs/*, test/*, ci/*, chore/*, dependabot/*", validate_step)
 
-    def test_docs_contract_gate_covers_branch_hygiene_policy(self):
-        workflow = OPS_CI_WORKFLOW.read_text()
-        self.assertIn("scripts.tests.test_branch_hygiene_policy", workflow)
-        self.assertIn("scripts/tests/test_branch_hygiene_policy.py", workflow)
-        self.assertIn(".github/workflows/branch-hygiene.yml", workflow)
-
-    def _step_block(self, workflow: str, step_name: str) -> str:
-        pattern = rf"(?ms)^      - name: {re.escape(step_name)}\n(?P<body>.*?)(?=^      - name:|^  [A-Za-z0-9_-]+:|\Z)"
-        match = re.search(pattern, workflow)
-        self.assertIsNotNone(match, f"workflow should declare step {step_name}")
-        if match is None:
-            self.fail(f"workflow should declare step {step_name}")
-        return match.group("body")
+if __name__ == "__main__":
+    unittest.main()

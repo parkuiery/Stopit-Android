@@ -28,8 +28,11 @@ class AndroidCiRuntimeSmokeDocsTest(unittest.TestCase):
         )
 
         workflow = ANDROID_CI_WORKFLOW.read_text()
-        self.assertIn("scripts/android_runtime_suites.py run-android-ci", workflow)
-        self.assertIn("aggregate mode", android_runtime_suites.run_android_ci_sequence.__doc__ or "aggregate mode")
+        # No workflow runs the suites any more: CI only verifies the evidence the
+        # local gate recorded. The sequence itself stays manifested in the module.
+        self.assertIn("scripts/android_runtime_suites.py check-evidence", workflow)
+        self.assertNotIn("android-emulator-runner", workflow)
+        self.assertIn("Aggregate mode", android_runtime_suites.run_android_ci_suites.__doc__ or "")
 
         for doc_name, path in DOCS_THAT_DESCRIBE_ANDROID_CI_SMOKE.items():
             text = path.read_text()
@@ -50,7 +53,13 @@ class AndroidCiRuntimeSmokeDocsTest(unittest.TestCase):
         section = section.split("Android Release QA exact alarm evidence", 1)[0]
 
         self.assertIn("Android CI focused runtime smoke", section)
-        self.assertIn("cite the current `.github/workflows/android-ci.yml` run URL", section)
+        # The Android CI smoke layer is now evidenced by the local runtime gate, so
+        # the release PR cites the recorded digest as well as the CI job that
+        # verified it -- not a run URL alone, and never a copied class list.
+        self.assertIn("scripts/runtime-gate.sh", section)
+        self.assertIn("`.runtime-evidence.json`", section)
+        self.assertIn("runtime_digest", section)
+        self.assertIn("`.github/workflows/android-ci.yml` run URL", section)
         self.assertIn("Release/hotfix runtime evidence comes from", section)
         self.assertNotIn(
             "ReceiverRuntimeIntegrationTest#manifestRegistersBootReceiverForPackageAndClockChangeActions",

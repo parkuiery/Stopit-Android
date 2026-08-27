@@ -1,0 +1,52 @@
+{
+  "device": {
+    "api_level": 35,
+    "description": "sdk_gphone64_arm64 (API 35)",
+    "model": "sdk_gphone64_arm64",
+    "serial": "emulator-5554"
+  },
+  "recorded_at": "2026-08-27T11:56:25+00:00",
+  "recorded_from_commit": "a8fb265e00a7321348f4b6ad1f265ff6554bdd50",
+  "runtime_digest": "sha256:5c7448b605264fcd9ef57441a6199dd935fd981ad72d17bf15ff96495d7fa3b9",
+  "schema": 1,
+  "sequence": "release",
+  "suites": {
+    "notification_channel_disabled": {
+      "selectors": 1,
+      "status": "passed"
+    },
+    "notification_denied_emergency_unlock": {
+      "selectors": 1,
+      "status": "passed"
+    },
+    "notification_denied_receiver": {
+      "selectors": 1,
+      "status": "passed"
+    },
+    "release_exact_alarm_allowed": {
+      "selectors": 5,
+      "status": "passed"
+    },
+    "release_exact_alarm_default": {
+      "selectors": 1,
+      "status": "passed"
+    },
+    "release_exact_alarm_denied": {
+      "selectors": 8,
+      "status": "passed"
+    },
+    "release_focused_ui_smoke": {
+      "selectors": 1,
+      "status": "passed"
+    },
+    "release_prod_debug_smoke": {
+      "selectors": 1,
+      "status": "passed"
+    },
+    "release_remaining_runtime": {
+      "selectors": 19,
+      "status": "passed"
+    }
+  },
+  "variant": "devDebug"
+}

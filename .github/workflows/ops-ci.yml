@@ -139,11 +139,9 @@ jobs:
               - 'scripts/tests/test_release_gate_retarget_triggers.py'
               - 'scripts/tests/test_dependabot_policy_contract.py'
               - 'scripts/tests/test_kotlin_compiler_options_contract.py'
-              - 'scripts/tests/test_branch_hygiene_policy.py'
               - 'scripts/tests/test_ops_ci_workflow.py'
               - 'scripts/tests/test_actionlint_gate.py'
               - 'scripts/tests/test_runtime_diagnostic_artifacts.py'
-              - '.github/workflows/branch-hygiene.yml'
               - '.github/workflows/android-ci.yml'
               - '.github/workflows/ops-ci.yml'
               - '.github/workflows/play-deploy.yml'
@@ -189,6 +187,13 @@ jobs:
       - name: Run actionlint
         run: actionlint
 
+      # Moved here when Branch Hygiene was retired. This is the only place the
+      # flavorless-task checker runs against the real workflows; its unit tests
+      # only exercise temp fixtures. The job's workflow_syntax filter is
+      # '.github/workflows/**', so every workflow edit still reaches it.
+      - name: Reject flavorless app Gradle tasks in workflows
+        run: python3 scripts/check_workflow_gradle_tasks.py
+
   docs-contract:
     name: Docs/runbook contract tests
     needs: classify_ops_ci
@@ -203,7 +208,6 @@ jobs:
       - name: Run docs/runbook contract tests
         # Full discovery intentionally covers docs-reading regressions that used
         # to be hardcoded here, including:
-        # scripts.tests.test_branch_hygiene_policy
         # scripts.tests.test_gradle_wrapper_distribution_checksum
         # scripts.tests.test_readme_version_contract
         # scripts.tests.test_review_prompt_post_release_followthrough_docs

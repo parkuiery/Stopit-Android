@@ -1,3 +1,4 @@
+import io
 import pathlib
 import tempfile
 import unittest
@@ -124,15 +125,20 @@ class AndroidRuntimeSuitesManifestTest(unittest.TestCase):
         android_ci = ANDROID_CI_WORKFLOW.read_text()
         release_qa = RELEASE_QA_WORKFLOW.read_text()
 
-        self.assertIn("scripts/android_runtime_suites.py run-android-ci", android_ci)
-        self.assertNotIn("scripts/android_runtime_suites.py run-connected android_ci_focused_runtime_smoke", android_ci)
-        self.assertIn("scripts/android_runtime_suites.py run-connected release_exact_alarm_denied", release_qa)
-        self.assertIn("scripts/android_runtime_suites.py run-connected release_prod_debug_smoke --variant prodDebug", release_qa)
-        self.assertIn(":app:installProdDebug", release_qa)
-        self.assertIn("connectedProdDebugAndroidTest", release_qa)
-        self.assertIn("scripts/android_runtime_suites.py run-connected release_exact_alarm_allowed", release_qa)
-        self.assertIn("scripts/android_runtime_suites.py run-connected release_remaining_runtime", release_qa)
-        self.assertIn("scripts/android_runtime_suites.py run-connected notification_denied_receiver notification_denied_emergency_unlock", release_qa)
+        # Workflows no longer invoke the suites at all -- they verify evidence.
+        self.assertIn("scripts/android_runtime_suites.py check-evidence", android_ci)
+        self.assertNotIn("run-connected", android_ci)
+        self.assertNotIn("run-android-ci", android_ci)
+        # Release QA verifies release-sequence evidence instead of driving suites.
+        self.assertIn("check-evidence", release_qa)
+        self.assertIn("--require-sequence release", release_qa)
+        self.assertNotIn("run-connected", release_qa)
+        # The prod-flavour smoke still has to target the production application id.
+        self.assertEqual("prodDebug", android_runtime_suites.RELEASE_VARIANTS["release_prod_debug_smoke"])
+        self.assertIn(
+            ":app:installProdDebug",
+            android_runtime_suites.RELEASE_BEFORE_COMMANDS["release_prod_debug_smoke"][0],
+        )
 
     def test_run_connected_executes_each_selector_with_before_commands(self):
         completed = mock.Mock(returncode=0)
@@ -247,7 +253,90 @@ class AndroidRuntimeSuitesManifestTest(unittest.TestCase):
             with self.subTest(workflow=name):
                 self.assertNotIn("xargs", content)
                 self.assertNotIn("while IFS= read -r selector", content)
-                self.assertRegex(content, r"scripts/android_runtime_suites.py run-(connected|android-ci)")
+                self.assertRegex(
+                    content,
+                    r"scripts/android_runtime_suites.py (run-(connected|android-ci|local-gate)|check-evidence)",
+                )
+
+    def test_multi_selector_suite_runs_as_one_batched_invocation(self):
+        completed = mock.Mock(returncode=0)
+        with mock.patch.object(android_runtime_suites.subprocess, "run", return_value=completed) as run:
+            result = android_runtime_suites.run_connected_tests(["android_ci_focused_runtime_smoke"])
+
+        selectors = android_runtime_suites.SUITES["android_ci_focused_runtime_smoke"]
+        self.assertEqual(0, result)
+        self.assertGreater(len(selectors), 1)
+        self.assertEqual(1, run.call_count)
+        self.assertEqual(
+            f"-Pandroid.testInstrumentationRunnerArguments.class={','.join(selectors)}",
+            run.call_args_list[0].args[0][-1],
+        )
+
+    def test_no_batch_restores_one_invocation_per_selector(self):
+        completed = mock.Mock(returncode=0)
+        with mock.patch.object(android_runtime_suites.subprocess, "run", return_value=completed) as run:
+            result = android_runtime_suites.run_connected_tests(
+                ["android_ci_focused_runtime_smoke"],
+                batch=False,
+            )
+
+        selectors = android_runtime_suites.SUITES["android_ci_focused_runtime_smoke"]
+        self.assertEqual(0, result)
+        self.assertEqual(len(selectors), run.call_count)
+
+    def test_android_ci_sequence_batches_every_suite_into_a_single_invocation(self):
+        completed = mock.Mock(returncode=0)
+        with mock.patch.object(android_runtime_suites.subprocess, "run", return_value=completed) as run:
+            android_runtime_suites.run_android_ci_sequence()
+
+        connected_calls = [
+            call.args[0]
+            for call in run.call_args_list
+            if any("connected" in part for part in call.args[0])
+        ]
+        self.assertEqual(len(android_runtime_suites.ANDROID_CI_SEQUENCE), len(connected_calls))
+
+    def test_failed_batch_replays_selectors_to_name_the_culprit(self):
+        selectors = android_runtime_suites.SUITES["android_ci_focused_runtime_smoke"]
+        outcomes = [mock.Mock(returncode=5)]
+        outcomes += [mock.Mock(returncode=0) for _ in selectors[:-1]]
+        outcomes.append(mock.Mock(returncode=5))
+
+        with mock.patch.object(android_runtime_suites.subprocess, "run", side_effect=outcomes) as run, \
+                mock.patch.object(android_runtime_suites.sys, "stderr", new_callable=io.StringIO) as stderr:
+            result = android_runtime_suites.run_connected_tests(["android_ci_focused_runtime_smoke"])
+
+        self.assertEqual(5, result)
+        self.assertEqual(1 + len(selectors), run.call_count)
+        self.assertIn(f"selector {selectors[-1]} -> 5", stderr.getvalue())
+
+    def test_failed_batch_that_no_selector_reproduces_is_reported_as_interference(self):
+        selectors = android_runtime_suites.SUITES["android_ci_focused_runtime_smoke"]
+        outcomes = [mock.Mock(returncode=5)]
+        outcomes += [mock.Mock(returncode=0) for _ in selectors]
+
+        with mock.patch.object(android_runtime_suites.subprocess, "run", side_effect=outcomes), \
+                mock.patch.object(android_runtime_suites.sys, "stderr", new_callable=io.StringIO) as stderr:
+            result = android_runtime_suites.run_connected_tests(["android_ci_focused_runtime_smoke"])
+
+        self.assertEqual(5, result)
+        self.assertIn("suspect cross-test interference", stderr.getvalue())
+        self.assertIn("--no-batch", stderr.getvalue())
+
+    def test_batched_suite_applies_before_commands_once_per_suite(self):
+        completed = mock.Mock(returncode=0)
+        with mock.patch.object(android_runtime_suites.subprocess, "run", return_value=completed) as run:
+            android_runtime_suites.run_connected_tests(
+                ["android_ci_focused_runtime_smoke"],
+                before=["./gradlew --console=plain :app:installDevDebug"],
+            )
+
+        install_calls = [
+            call.args[0]
+            for call in run.call_args_list
+            if any("install" in part for part in call.args[0])
+        ]
+        self.assertEqual(1, len(install_calls))
 
 
 if __name__ == "__main__":

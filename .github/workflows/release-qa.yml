@@ -119,103 +119,25 @@ jobs:
           if-no-files-found: ignore
           retention-days: 7
 
-  release-instrumentation-qa:
-    name: Release instrumentation QA
+  # The release runtime suites run on a developer machine via
+  # `scripts/runtime-gate.sh --sequence release`, which records
+  # .runtime-evidence.json keyed by a digest of the runtime sources. No emulator
+  # runs in CI any more; this job verifies that the release sequence -- not the
+  # narrower android-ci one -- was the sequence that actually passed.
+  release-runtime-evidence:
+    name: Release runtime evidence
     if: >-
       github.event_name == 'workflow_dispatch' ||
       startsWith(github.head_ref, 'release/') ||
       startsWith(github.head_ref, 'hotfix/')
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    timeout-minutes: 5
 
     steps:
       - name: Checkout
         uses: actions/checkout@v6
 
-      - name: Validate Gradle Wrapper
-        uses: gradle/actions/wrapper-validation@v6
-
-      - name: Set up JDK 17
-        uses: actions/setup-java@v5
-        with:
-          distribution: temurin
-          java-version: '17'
-
-      - name: Set up Gradle
-        uses: gradle/actions/setup-gradle@v6
-
-      - name: Make Gradle wrapper executable
-        run: chmod +x ./gradlew
-
-      - name: Validate manual release QA ref
-        if: github.event_name == 'workflow_dispatch'
-        run: |
-          set -euo pipefail
-          allowed=false
-          if [ "$GITHUB_REF_TYPE" = "branch" ]; then
-            case "$GITHUB_REF_NAME" in
-              "main"|release/*|hotfix/*) allowed=true ;;
-            esac
-          elif [ "$GITHUB_REF_TYPE" = "tag" ]; then
-            if [[ "$GITHUB_REF_NAME" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-              allowed=true
-            fi
-          fi
-          if [ "$allowed" != "true" ]; then
-            echo "Android Release QA manual dispatch is allowed only from main, release/*, hotfix/*, or SemVer tag refs. This run will not restore Firebase secrets or run release QA."
-            exit 1
-          fi
-
-      - name: Restore Firebase google-services.json files
-        env:
-          GOOGLE_SERVICES_JSON_DEV: ${{ secrets.GOOGLE_SERVICES_JSON_DEV }}
-          GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
-        run: |
-          set -euo pipefail
-          test -n "$GOOGLE_SERVICES_JSON_DEV" || { echo 'GOOGLE_SERVICES_JSON_DEV secret is missing'; exit 1; }
-          test -n "$GOOGLE_SERVICES_JSON" || { echo 'GOOGLE_SERVICES_JSON secret is missing'; exit 1; }
-          mkdir -p app/src/dev app/src/prod
-          printf '%s' "$GOOGLE_SERVICES_JSON_DEV" > app/src/dev/google-services.json
-          printf '%s' "$GOOGLE_SERVICES_JSON" > app/src/prod/google-services.json
-
-      - name: Enable KVM for Android emulator
-        run: |
-          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
-          sudo udevadm control --reload-rules
-          sudo udevadm trigger --name-match=kvm
-
-      - name: Run Android testing skill UI smoke and runtime QA
-        uses: reactivecircus/android-emulator-runner@v2
-        with:
-          api-level: 35
-          target: google_apis
-          arch: x86_64
-          profile: pixel_6
-          disable-animations: true
-          script: |
-            set -eu
-            mkdir -p runtime-diagnostics
-            trap 'adb logcat -d > runtime-diagnostics/release-qa-logcat.txt || true; adb shell dumpsys alarm > runtime-diagnostics/release-qa-alarm.txt || true; adb shell dumpsys accessibility > runtime-diagnostics/release-qa-accessibility.txt || true' EXIT
-            echo "Release QA prod runtime smoke: :app:installProdDebug + :app:connectedProdDebugAndroidTest against com.uiery.keep"
-            python3 scripts/android_runtime_suites.py run-connected release_focused_ui_smoke --before "./gradlew --console=plain :app:installDevDebug"
-            python3 scripts/android_runtime_suites.py run-connected release_prod_debug_smoke --variant prodDebug --before "./gradlew --console=plain :app:installProdDebug"
-            python3 scripts/android_runtime_suites.py run-connected release_exact_alarm_default --before "./gradlew --console=plain :app:installDevDebug" --before "adb shell cmd appops reset com.uiery.keep.dev"
-            python3 scripts/android_runtime_suites.py run-connected release_exact_alarm_denied --before "./gradlew --console=plain :app:installDevDebug" --before "adb shell appops set com.uiery.keep.dev SCHEDULE_EXACT_ALARM deny"
-            python3 scripts/android_runtime_suites.py run-connected release_exact_alarm_allowed --before "./gradlew --console=plain :app:installDevDebug" --before "adb shell appops set com.uiery.keep.dev SCHEDULE_EXACT_ALARM allow"
-            python3 scripts/android_runtime_suites.py run-connected release_remaining_runtime
-            python3 scripts/android_runtime_suites.py run-connected notification_denied_receiver notification_denied_emergency_unlock --before "./gradlew --console=plain :app:installDevDebug" --before "adb shell appops set com.uiery.keep.dev POST_NOTIFICATION ignore"
-            python3 scripts/android_runtime_suites.py run-connected notification_channel_disabled --before "./gradlew --console=plain :app:installDevDebug"
-
-      - name: Upload release instrumentation diagnostics
-        if: always()
-        continue-on-error: true
-        uses: actions/upload-artifact@v7
-        with:
-          name: stopit-release-instrumentation-diagnostics
-          path: |
-            app/build/reports/androidTests/**
-            app/build/reports/problems/**
-            app/build/outputs/androidTest-results/**
-            runtime-diagnostics/**
-          if-no-files-found: ignore
-          retention-days: 7
+      - name: Verify release runtime gate evidence
+        run: >-
+          python3 scripts/android_runtime_suites.py check-evidence
+          --require-sequence release

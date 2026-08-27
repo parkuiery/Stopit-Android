@@ -40,17 +40,29 @@ class ReleaseQaRuntimeGateDocsTest(unittest.TestCase):
     def test_release_qa_instrumentation_selectors_exist_in_android_test_sources(self):
         self.assertEqual([], android_runtime_suites.validate_sources())
 
-    def test_guarded_release_qa_runtime_suites_exist_in_workflow(self):
+    def test_guarded_release_qa_runtime_suites_are_manifested_and_gated(self):
+        # The workflow no longer mirrors suite names: the release suites run on a
+        # developer machine and CI only verifies that the release sequence -- not
+        # the narrower android-ci one -- produced the evidence.
         workflow = RELEASE_QA_WORKFLOW.read_text()
         self.assertIn("scripts/android_runtime_suites.py", workflow)
+        self.assertIn("--require-sequence release", workflow)
+        self.assertEqual(
+            list(REQUIRED_RELEASE_QA_SUITES),
+            list(android_runtime_suites.SEQUENCES["release"]),
+        )
         for suite in REQUIRED_RELEASE_QA_SUITES:
             with self.subTest(suite=suite):
-                self.assertIn(suite, workflow)
+                self.assertIn(suite, android_runtime_suites.SUITES)
 
     def test_notification_channel_disabled_is_release_qa_gate(self):
         self.assertIn("notification_channel_disabled", android_runtime_suites.RELEASE_QA_SEQUENCE)
-        workflow = RELEASE_QA_WORKFLOW.read_text()
-        self.assertIn("run-connected notification_channel_disabled", workflow)
+        # It must stay its own suite so its host setup cannot bleed into the
+        # POST_NOTIFICATION-denied suites that run either side of it.
+        self.assertEqual(
+            ["./gradlew --console=plain :app:installDevDebug"],
+            android_runtime_suites.RELEASE_BEFORE_COMMANDS["notification_channel_disabled"],
+        )
 
     def test_release_remaining_runtime_docs_name_migration_and_notification_tap_gates(self):
         required_phrases = [
@@ -76,6 +88,22 @@ class ReleaseQaRuntimeGateDocsTest(unittest.TestCase):
                 self.assertIn(phrase, qa_checklist)
 
     def test_release_qa_keeps_notification_denied_methods_out_of_normal_batch(self):
+        # Host appops isolation moved from the workflow into the manifest module.
+        for suite in ("notification_denied_receiver", "notification_denied_emergency_unlock"):
+            with self.subTest(suite=suite):
+                before = android_runtime_suites.RELEASE_BEFORE_COMMANDS[suite]
+                self.assertIn(
+                    "adb shell appops set com.uiery.keep.dev POST_NOTIFICATION ignore", before
+                )
+                self.assertIn(suite, android_runtime_suites.RELEASE_QA_SEQUENCE)
+        # These selectors must never ride along in a suite without that setup.
+        for suite, selectors in android_runtime_suites.SUITES.items():
+            if suite in ("notification_denied_receiver", "notification_denied_emergency_unlock"):
+                continue
+            for selector in selectors:
+                self.assertNotIn("WithoutPostNotificationsPermission", selector, suite)
+
+    def _legacy_workflow_batch_check(self):
         workflow = RELEASE_QA_WORKFLOW.read_text()
         normal_batch, notification_denied_batch = workflow.split(
             "run-connected notification_denied_receiver notification_denied_emergency_unlock",
