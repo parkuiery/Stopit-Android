@@ -23,14 +23,14 @@ class HomeAccessibilityRuntimeSmokeContractTest(unittest.TestCase):
             HOME_ACCESSIBILITY_CLASS,
             android_runtime_suites.SUITES["android_ci_focused_runtime_smoke"],
         )
-        self.assertIn("android_ci_focused_runtime_smoke", ANDROID_CI.read_text())
+        self.assertIn("android_ci_focused_runtime_smoke", android_runtime_suites.SEQUENCES["android-ci"])
 
     def test_release_qa_remaining_runtime_manifest_includes_home_accessibility_regression(self):
         self.assertIn(
             HOME_ACCESSIBILITY_CLASS,
             android_runtime_suites.SUITES["release_remaining_runtime"],
         )
-        self.assertIn("release_remaining_runtime", RELEASE_QA.read_text())
+        self.assertIn("release_remaining_runtime", android_runtime_suites.SEQUENCES["release"])
 
     def test_operator_docs_list_home_accessibility_runtime_smoke_or_manifest_boundary(self):
         for doc_path in (

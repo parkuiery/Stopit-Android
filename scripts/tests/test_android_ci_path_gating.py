@@ -140,10 +140,11 @@ class AndroidCiPathGatingTest(unittest.TestCase):
 
         self.assertIn("Check Firebase config availability", workflow)
         self.assertIn("id: firebase-config", workflow)
-        self.assertIn("id: runtime-firebase-config", workflow)
+        # The runtime job no longer restores Firebase secrets -- it runs no emulator
+        # and no Gradle -- so the boundary now lives in the evidence job's summary.
+        self.assertNotIn("id: runtime-firebase-config", workflow)
         self.assertIn("${{ github.actor }}\" = 'dependabot[bot]'", workflow)
         self.assertIn("Dependabot PR: Firebase secrets are unavailable, so runtime smoke is deferred", workflow)
-        self.assertIn("steps.runtime-firebase-config.outputs.available == 'true'", workflow)
         self.assertIn("GOOGLE_SERVICES_JSON_DEV secret is missing", workflow)
         self.assertIn("GOOGLE_SERVICES_JSON secret is missing", workflow)
 

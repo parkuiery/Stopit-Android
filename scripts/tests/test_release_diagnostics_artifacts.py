@@ -37,13 +37,6 @@ class ReleaseDiagnosticsArtifactsTest(unittest.TestCase):
         self.assertIn("continue-on-error: true", step)
         self.assertIn("retention-days: 7", step)
 
-    def test_release_instrumentation_diagnostics_uploads_gradle_problems_report(self):
-        step = self._upload_step("release-qa.yml", "Upload release instrumentation diagnostics")
-        self.assertIn("app/build/reports/problems/**", step)
-        self.assertIn("if-no-files-found: ignore", step)
-        self.assertIn("continue-on-error: true", step)
-        self.assertIn("retention-days: 7", step)
-
     def test_play_deploy_release_diagnostics_uploads_gradle_problems_report(self):
         step = self._upload_step("play-deploy.yml", "Upload Play deploy release diagnostics")
         self.assertIn("app/build/reports/problems/**", step)

@@ -40,7 +40,29 @@ class FlavorApplicationIdContractTest(unittest.TestCase):
         self.assertRegex(PLAY_DEPLOY_WORKFLOW.read_text(), r"PACKAGE_NAME:\s*com\.uiery\.keep\b")
         self.assertRegex(VERSION_GUARD_WORKFLOW.read_text(), r"PACKAGE_NAME:\s*com\.uiery\.keep\b")
 
-    def test_dev_debug_workflow_appops_target_dev_package(self):
+    def test_dev_debug_appops_target_dev_package(self):
+        # appops sequencing lives in the manifest module now that no workflow runs
+        # an emulator; the dev install identity it targets must stay com.uiery.keep.dev.
+        from scripts import android_runtime_suites
+
+        tables = [
+            android_runtime_suites.ANDROID_CI_BEFORE_COMMANDS,
+            android_runtime_suites.RELEASE_BEFORE_COMMANDS,
+        ]
+        appops_commands = [
+            command
+            for table in tables
+            for commands in table.values()
+            for command in commands
+            if "appops" in command
+        ]
+        self.assertTrue(appops_commands)
+        for command in appops_commands:
+            with self.subTest(command=command):
+                self.assertIn("com.uiery.keep.dev", command)
+                self.assertNotRegex(command, r"com\.uiery\.keep(?!\.dev)")
+
+    def _legacy_workflow_appops_check(self):
         for path in [ANDROID_CI_WORKFLOW, RELEASE_QA_WORKFLOW]:
             with self.subTest(path=path.name):
                 text = path.read_text()

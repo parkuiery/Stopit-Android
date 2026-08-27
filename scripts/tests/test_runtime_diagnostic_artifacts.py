@@ -47,27 +47,13 @@ class RuntimeDiagnosticArtifactsTest(unittest.TestCase):
         self.assertIn("app/build/outputs/logs/**", upload_step)
 
 
-    def test_android_ci_runtime_smoke_uploads_diagnostics_even_after_failure(self):
+    def test_android_ci_no_longer_runs_an_emulator(self):
+        # Runtime smoke moved to scripts/runtime-gate.sh; failures are triaged from
+        # the local app/build/reports/androidTests run, not a CI artifact.
         workflow = ANDROID_CI_WORKFLOW.read_text()
-        run_step = self._step_block(workflow, "Run focused Android runtime smoke gate")
-        upload_step = self._step_block(workflow, "Upload runtime smoke diagnostics")
-
-        self.assertIn("mkdir -p runtime-diagnostics", run_step)
-        self.assertIn("adb logcat -d", run_step)
-        self.assertIn("runtime-diagnostics/android-ci-logcat.txt", run_step)
-        self.assertIn("adb shell dumpsys alarm", run_step)
-        self.assertIn("runtime-diagnostics/android-ci-alarm.txt", run_step)
-        self.assertIn("adb shell dumpsys accessibility", run_step)
-        self.assertIn("runtime-diagnostics/android-ci-accessibility.txt", run_step)
-
-        self.assertIn("if: always() && steps.runtime-firebase-config.outputs.available == 'true'", upload_step)
-        self.assertIn("continue-on-error: true", upload_step)
-        self.assertIn("uses: actions/upload-artifact@v7", upload_step)
-        self.assertIn("name: stopit-runtime-smoke-diagnostics", upload_step)
-        self.assertIn("retention-days: 7", upload_step)
-        self.assertIn("app/build/reports/androidTests/**", upload_step)
-        self.assertIn("app/build/outputs/androidTest-results/**", upload_step)
-        self.assertIn("runtime-diagnostics/**", upload_step)
+        self.assertNotIn("android-emulator-runner", workflow)
+        self.assertNotIn("stopit-runtime-smoke-diagnostics", workflow)
+        self.assertIn("check-evidence", workflow)
 
     def test_full_release_qa_uploads_jvm_lint_build_diagnostics_even_after_failure(self):
         workflow = RELEASE_QA_WORKFLOW.read_text()
@@ -89,27 +75,11 @@ class RuntimeDiagnosticArtifactsTest(unittest.TestCase):
         self.assertIn("app/build/outputs/logs/**", upload_step)
         self.assertIn("app/build/outputs/mapping/prodRelease/**", upload_step)
 
-    def test_release_instrumentation_qa_uploads_diagnostics_even_after_failure(self):
+    def test_release_qa_no_longer_runs_an_emulator(self):
         workflow = RELEASE_QA_WORKFLOW.read_text()
-        run_step = self._step_block(workflow, "Run Android testing skill UI smoke and runtime QA")
-        upload_step = self._step_block(workflow, "Upload release instrumentation diagnostics")
-
-        self.assertIn("mkdir -p runtime-diagnostics", run_step)
-        self.assertIn("adb logcat -d", run_step)
-        self.assertIn("runtime-diagnostics/release-qa-logcat.txt", run_step)
-        self.assertIn("adb shell dumpsys alarm", run_step)
-        self.assertIn("runtime-diagnostics/release-qa-alarm.txt", run_step)
-        self.assertIn("adb shell dumpsys accessibility", run_step)
-        self.assertIn("runtime-diagnostics/release-qa-accessibility.txt", run_step)
-
-        self.assertIn("if: always()", upload_step)
-        self.assertIn("continue-on-error: true", upload_step)
-        self.assertIn("uses: actions/upload-artifact@v7", upload_step)
-        self.assertIn("name: stopit-release-instrumentation-diagnostics", upload_step)
-        self.assertIn("retention-days: 7", upload_step)
-        self.assertIn("app/build/reports/androidTests/**", upload_step)
-        self.assertIn("app/build/outputs/androidTest-results/**", upload_step)
-        self.assertIn("runtime-diagnostics/**", upload_step)
+        self.assertNotIn("android-emulator-runner", workflow)
+        self.assertNotIn("stopit-release-instrumentation-diagnostics", workflow)
+        self.assertIn("--require-sequence release", workflow)
 
     def test_release_build_uploads_release_diagnostics_even_after_failure(self):
         workflow = RELEASE_BUILD_WORKFLOW.read_text()

@@ -19,6 +19,7 @@ from scripts import android_runtime_suites
 REPO_ROOT = pathlib.Path(__file__).resolve().parents[2]
 ANDROID_CI_WORKFLOW = REPO_ROOT / ".github" / "workflows" / "android-ci.yml"
 RUNTIME_GATE_SCRIPT = REPO_ROOT / "scripts" / "runtime-gate.sh"
+WORKFLOW_DIR = REPO_ROOT / ".github" / "workflows"
 
 
 def _runtime_smoke_filter_patterns() -> list[str]:
@@ -263,29 +264,33 @@ class AdbResolutionTest(unittest.TestCase):
 class AndroidCiEvidenceWorkflowTest(unittest.TestCase):
     def test_pull_requests_verify_evidence_instead_of_booting_an_emulator(self):
         workflow = ANDROID_CI_WORKFLOW.read_text()
-        evidence_job = workflow.split("  runtime-evidence:", 1)[1].split("\n  runtime-smoke:", 1)[0]
+        evidence_job = workflow.split("  runtime-evidence:", 1)[1]
 
         self.assertIn("python3 scripts/android_runtime_suites.py check-evidence", evidence_job)
         self.assertNotIn("android-emulator-runner", evidence_job)
         self.assertNotIn("setup-java", evidence_job)
         self.assertNotIn("./gradlew", evidence_job)
 
-    def test_emulator_gate_is_dispatch_only_so_it_cannot_run_on_pull_requests(self):
-        workflow = ANDROID_CI_WORKFLOW.read_text()
-        smoke_job = workflow.split("  runtime-smoke:", 1)[1]
-        condition = smoke_job.split("if:", 1)[1].split("\n", 1)[0].strip()
+    def test_no_workflow_runs_an_emulator(self):
+        # The whole point: emulator time left GitHub Actions entirely. Runtime
+        # suites run on a developer machine and CI verifies the recorded evidence.
+        for workflow in sorted(WORKFLOW_DIR.glob("*.yml")):
+            with self.subTest(workflow=workflow.name):
+                self.assertNotIn("android-emulator-runner", workflow.read_text())
 
-        self.assertEqual("github.event_name == 'workflow_dispatch'", condition)
-        # The escalation path must still be a real emulator run, or it bit-rots.
-        self.assertIn("reactivecircus/android-emulator-runner", smoke_job)
-        # It must also produce committable evidence: a developer whose local device
-        # cannot finish the suites has no other way to satisfy the evidence gate.
-        self.assertIn("scripts/android_runtime_suites.py run-local-gate", smoke_job)
-        self.assertIn(".runtime-evidence.json", smoke_job)
+    def test_release_gate_requires_the_wider_release_sequence(self):
+        release_qa = (WORKFLOW_DIR / "release-qa.yml").read_text()
+        self.assertIn("check-evidence", release_qa)
+        self.assertIn("--require-sequence release", release_qa)
+        # android-ci evidence must not satisfy a release gate.
+        self.assertNotEqual(
+            android_runtime_suites.SEQUENCES["android-ci"],
+            android_runtime_suites.SEQUENCES["release"],
+        )
 
     def test_dependabot_runtime_deferral_is_preserved(self):
         workflow = ANDROID_CI_WORKFLOW.read_text()
-        evidence_job = workflow.split("  runtime-evidence:", 1)[1].split("\n  runtime-smoke:", 1)[0]
+        evidence_job = workflow.split("  runtime-evidence:", 1)[1]
 
         self.assertIn("Dependabot PR: Firebase secrets are unavailable, so runtime smoke is deferred", evidence_job)
         self.assertIn("github.actor == 'dependabot[bot]'", evidence_job)

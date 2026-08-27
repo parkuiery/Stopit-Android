@@ -375,6 +375,11 @@ def run_connected_tests(
     return finish(first_failure)
 
 
+SEQUENCES: dict[str, list[str]] = {
+    "android-ci": ANDROID_CI_SEQUENCE,
+    "release": RELEASE_QA_SEQUENCE,
+}
+
 ANDROID_CI_BEFORE_COMMANDS: dict[str, list[str]] = {
     "android_ci_exact_alarm_default": [
         "./gradlew --console=plain :app:installDevDebug",
@@ -399,22 +404,65 @@ ANDROID_CI_BEFORE_COMMANDS: dict[str, list[str]] = {
 }
 
 
-def run_android_ci_suites(*, batch: bool = True) -> dict[str, dict]:
-    """Run every Android CI runtime smoke suite, recording each suite's outcome.
+RELEASE_BEFORE_COMMANDS: dict[str, list[str]] = {
+    "release_focused_ui_smoke": ["./gradlew --console=plain :app:installDevDebug"],
+    "release_prod_debug_smoke": ["./gradlew --console=plain :app:installProdDebug"],
+    "release_exact_alarm_default": [
+        "./gradlew --console=plain :app:installDevDebug",
+        "adb shell cmd appops reset com.uiery.keep.dev",
+    ],
+    "release_exact_alarm_denied": [
+        "./gradlew --console=plain :app:installDevDebug",
+        "adb shell appops set com.uiery.keep.dev SCHEDULE_EXACT_ALARM deny",
+    ],
+    "release_exact_alarm_allowed": [
+        "./gradlew --console=plain :app:installDevDebug",
+        "adb shell appops set com.uiery.keep.dev SCHEDULE_EXACT_ALARM allow",
+    ],
+    "notification_denied_receiver": [
+        "./gradlew --console=plain :app:installDevDebug",
+        "adb shell appops set com.uiery.keep.dev POST_NOTIFICATION ignore",
+    ],
+    "notification_denied_emergency_unlock": [
+        "./gradlew --console=plain :app:installDevDebug",
+        "adb shell appops set com.uiery.keep.dev POST_NOTIFICATION ignore",
+    ],
+    "notification_channel_disabled": ["./gradlew --console=plain :app:installDevDebug"],
+}
+
+# The prod-flavour smoke must run against the production application id, so it is
+# the one release suite that does not use the devDebug connected task.
+RELEASE_VARIANTS: dict[str, str] = {"release_prod_debug_smoke": "prodDebug"}
+
+
+def before_commands_for(sequence: str, suite_name: str) -> list[str]:
+    if sequence == "release":
+        return RELEASE_BEFORE_COMMANDS.get(suite_name, [])
+    return ANDROID_CI_BEFORE_COMMANDS.get(suite_name, [])
+
+
+def run_android_ci_suites(*, batch: bool = True, sequence: str = "android-ci") -> dict[str, dict]:
+    """Run every suite in a sequence, recording each suite's outcome.
 
     Aggregate mode: an early suite failure never hides a later suite's result.
     Shared by the diagnostic entry point and the evidence-recording local gate so
     the two can never drift into running different things.
     """
+    try:
+        suite_names = SEQUENCES[sequence]
+    except KeyError as exc:
+        raise SystemExit(f"Unknown sequence: {sequence} (known: {', '.join(SEQUENCES)})") from exc
+
     results: dict[str, dict] = {}
-    print("[android-runtime-suite] Android CI aggregate mode: running all runtime smoke suites before final failure.")
-    for suite_name in ANDROID_CI_SEQUENCE:
+    print(f"[android-runtime-suite] {sequence} aggregate mode: running all suites before final failure.")
+    for suite_name in suite_names:
         print(f"[android-runtime-suite] Running suite: {suite_name}")
         returncode = run_connected_tests(
             [suite_name],
-            before=ANDROID_CI_BEFORE_COMMANDS.get(suite_name, []),
+            before=before_commands_for(sequence, suite_name),
             continue_on_failure=True,
             batch=batch,
+            variant=RELEASE_VARIANTS.get(suite_name, "devDebug") if sequence == "release" else "devDebug",
         )
         results[suite_name] = {
             "status": "passed" if not returncode else "failed",
@@ -522,8 +570,13 @@ def load_evidence() -> dict | None:
         return None
 
 
-def check_evidence() -> int:
-    """Verify the committed evidence was produced from the current runtime sources."""
+def check_evidence(*, require_sequence: str | None = None) -> int:
+    """Verify the committed evidence was produced from the current runtime sources.
+
+    `require_sequence` additionally demands that the evidence came from a specific
+    sequence: release gates need the wider release suite set, and android-ci
+    evidence must not be mistaken for it.
+    """
     evidence = load_evidence()
     if evidence is None:
         print(
@@ -533,6 +586,18 @@ def check_evidence() -> int:
             file=sys.stderr,
         )
         return 1
+
+    if require_sequence:
+        recorded_sequence = evidence.get("sequence", "android-ci")
+        if recorded_sequence != require_sequence:
+            print(
+                f"[runtime-gate] Evidence was recorded from the '{recorded_sequence}' sequence, "
+                f"but this gate requires '{require_sequence}'.\n"
+                f"  Rerun the local gate for it and commit the refreshed evidence:\n"
+                f"    ./scripts/runtime-gate.sh --sequence {require_sequence}",
+                file=sys.stderr,
+            )
+            return 1
 
     recorded = evidence.get("runtime_digest")
     current = compute_runtime_digest()
@@ -631,8 +696,8 @@ def connected_devices() -> list[str]:
     return devices
 
 
-def run_local_gate(*, batch: bool = True) -> int:
-    """Run the Android CI runtime suites locally and record evidence on success."""
+def run_local_gate(*, batch: bool = True, sequence: str = "android-ci") -> int:
+    """Run a runtime suite sequence locally and record evidence on success."""
     if ensure_adb_on_path() is None:
         print(
             "[runtime-gate] `adb` not found on PATH and no Android SDK platform-tools "
@@ -677,7 +742,7 @@ def run_local_gate(*, batch: bool = True) -> int:
     # describe a tree that was never actually verified end to end.
     digest_before = compute_runtime_digest()
 
-    results = run_android_ci_suites(batch=batch)
+    results = run_android_ci_suites(batch=batch, sequence=sequence)
     suites = {
         name: {"status": result["status"], "selectors": result["selectors"]}
         for name, result in results.items()
@@ -709,6 +774,7 @@ def run_local_gate(*, batch: bool = True) -> int:
     )
     evidence = {
         "schema": EVIDENCE_SCHEMA,
+        "sequence": sequence,
         "runtime_digest": digest_after,
         "suites": suites,
         "device": _describe_device(),
@@ -771,15 +837,27 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
         help="Run the Android CI runtime suites against a connected device and record .runtime-evidence.json",
     )
     local_gate_parser.add_argument(
+        "--sequence",
+        default="android-ci",
+        choices=sorted(SEQUENCES),
+        help="Which suite sequence to run (default: android-ci)",
+    )
+    local_gate_parser.add_argument(
         "--no-batch",
         dest="batch",
         action="store_false",
         help="Run one Gradle invocation per selector instead of one per suite (diagnostic escalation)",
     )
 
-    subparsers.add_parser(
+    check_parser = subparsers.add_parser(
         "check-evidence",
         help="Verify .runtime-evidence.json was recorded from the current runtime sources",
+    )
+    check_parser.add_argument(
+        "--require-sequence",
+        default=None,
+        choices=sorted(SEQUENCES),
+        help="Also require that the evidence came from this sequence",
     )
     subparsers.add_parser(
         "runtime-digest",
@@ -820,9 +898,9 @@ def main(argv: list[str] | None = None) -> int:
     elif args.command == "run-android-ci":
         return run_android_ci_sequence()
     elif args.command == "run-local-gate":
-        return run_local_gate(batch=args.batch)
+        return run_local_gate(batch=args.batch, sequence=args.sequence)
     elif args.command == "check-evidence":
-        return check_evidence()
+        return check_evidence(require_sequence=args.require_sequence)
     elif args.command == "runtime-digest":
         print(compute_runtime_digest())
     elif args.command == "runtime-digest-files":

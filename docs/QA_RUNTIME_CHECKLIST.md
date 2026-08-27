@@ -23,7 +23,7 @@ Usage Access 기반 개인화 리포트/추천은 `docs/USAGE_STATS_PERSONALIZAT
 >
 > **런타임 스모크는 로컬에서 돌고, CI는 그 증거를 검증한다.** `scripts/runtime-gate.sh`가 `ANDROID_CI_SEQUENCE`를 연결된 기기에서 실행하고, 전부 통과했을 때만 `.runtime-evidence.json`에 결과와 런타임 소스 digest를 기록한다. Android CI의 `Runtime evidence` job은 에뮬레이터·JDK·Gradle 없이 현재 트리의 digest를 다시 계산해 매니페스트와 대조한다. digest 입력은 `scripts/android_runtime_suites.py`의 `RUNTIME_DIGEST_INPUTS`이므로 app/runtime 코드를 고치면 증거가 자동으로 무효가 되고, 오래된 증거로는 CI를 통과할 수 없다. 증거 파일은 변경과 함께 커밋한다.
 >
-> 에뮬레이터 실행 경로는 사라지지 않았다. Android CI의 `Runtime smoke gate` job은 `workflow_dispatch` 전용으로 남아 있고, 로컬 기기가 없을 때의 에스컬레이션 수단이자 경로 부패 방지책이다. 이 job은 `run-local-gate`로 같은 시퀀스를 돌고 `.runtime-evidence.json`을 `stopit-runtime-smoke-diagnostics` artifact에 포함해 올린다. 로컬 기기가 suite를 완주하지 못하는 상황(예: 제조사 제약으로 접근성 서비스가 붙지 않는 실기기)에서는 이 job을 dispatch해 artifact의 증거 파일을 내려받아 커밋하면 evidence gate를 통과할 수 있다. Dependabot PR은 로컬 게이트를 돌릴 수 없으므로 기존 정책대로 런타임 검증이 유예되며, 런타임 계약에 닿는 의존성 범프는 사람이 로컬 게이트를 돌리고 증거를 갱신한 뒤 머지한다.
+> **GitHub Actions에서 에뮬레이터가 완전히 사라졌다.** PR이든 릴리즈든 dispatch든 어떤 workflow도 에뮬레이터를 띄우지 않는다. 런타임 스위트를 돌리는 곳은 개발자 기기뿐이고, CI는 그 결과가 현재 소스에서 나왔는지만 확인한다. 따라서 로컬 게이트를 돌릴 수 있는 기기 또는 에뮬레이터가 개발 환경의 전제 조건이다. Dependabot PR은 로컬 게이트를 돌릴 수 없으므로 기존 정책대로 런타임 검증이 유예되며, 런타임 계약에 닿는 의존성 범프는 사람이 로컬 게이트를 돌리고 증거를 갱신한 뒤 머지한다.
 >
 > 한 suite의 selector 들은 한 번의 instrumentation run 으로 묶여 실행된다(host appops 격리 경계는 selector 가 아니라 suite 다). batched suite 가 실패하면 selector 를 하나씩 재실행해 범인을 지목하고, 어떤 단일 selector 로도 재현되지 않으면 cross-test interference 로 보고한다. 그 경우 `scripts/runtime-gate.sh --no-batch` 로 예전처럼 selector 별 실행으로 되돌려 확인한다.
 >
@@ -64,10 +64,13 @@ PR CI 는 에뮬레이터를 띄우지 않는다. `ANDROID_CI_SEQUENCE` 는 여�
 
 ```bash
 cd <repo-root>
-./scripts/runtime-gate.sh            # suite 실행 후 .runtime-evidence.json 기록
-./scripts/runtime-gate.sh --check    # 실행 없이 증거가 현재 소스에서 나온 것인지만 확인
-./scripts/runtime-gate.sh --no-batch # selector 별 실행으로 되돌림 (간섭 의심 시)
+./scripts/runtime-gate.sh                     # android-ci 시퀀스 실행 후 증거 기록
+./scripts/runtime-gate.sh --sequence release  # 릴리즈 시퀀스 (main 대상 PR 게이트가 요구)
+./scripts/runtime-gate.sh --check             # 실행 없이 증거 유효성만 확인
+./scripts/runtime-gate.sh --no-batch          # selector 별 실행으로 되돌림 (간섭 의심 시)
 ```
+
+증거에는 어느 시퀀스로 검증했는지가 함께 남는다. `release/*`·`hotfix/*` PR의 `Release runtime evidence` job은 `--require-sequence release`로 확인하므로, 좁은 `android-ci` 증거로는 릴리즈 게이트를 통과할 수 없다.
 
 - 기기/에뮬레이터가 정확히 한 대 연결돼 있어야 한다. 여러 대가 붙어 있으면 Gradle connected test 가 모두에게 fan-out 되므로 게이트가 거부한다. 폰과 에뮬레이터를 같이 붙여 두는 흔한 구성에서는 `ANDROID_SERIAL` 로 하나를 고른다 — AGP 의 기기 선택도 같은 변수를 읽으므로 export 만으로 fan-out 이 막힌다.
 
@@ -82,7 +85,7 @@ ANDROID_SERIAL=emulator-5554 ./scripts/runtime-gate.sh
 - 실행 도중 런타임 소스가 바뀌면 증거를 쓰지 않는다. 검증되지 않은 트리를 가리키는 증거를 막기 위해서다.
 - `.runtime-evidence.json` 은 변경과 함께 커밋한다. digest 입력은 `RUNTIME_DIGEST_INPUTS` 이고, `.runtime-evidence.json` 자신과 `google-services.json` 은 입력에서 제외된다.
 
-기기가 suite를 완주하지 못하면 증거를 만들 수 없다. 그때는 `.github/workflows/android-ci.yml`을 `workflow_dispatch`로 실행하고 `stopit-runtime-smoke-diagnostics` artifact의 `.runtime-evidence.json`을 커밋한다. 증거는 소스 digest로 묶여 있으므로 그 이후 런타임 소스를 더 고치면 다시 무효가 된다.
+기기가 suite를 완주하지 못하면 증거를 만들 수 없고, CI에는 대체 실행 경로가 없다. CI와 같은 구성(API 35 `google_apis`, pixel_6)의 에뮬레이터를 만들어 쓴다.
 
 밀린 증거를 push 전에 알아채고 싶으면 아래를 `.git/hooks/pre-push` 로 두고 실행 권한을 준다. 경고만 하고 push 는 막지 않는다 — 기기가 항상 붙어 있지는 않기 때문이다.
 

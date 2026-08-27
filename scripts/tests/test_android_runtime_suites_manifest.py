@@ -125,19 +125,20 @@ class AndroidRuntimeSuitesManifestTest(unittest.TestCase):
         android_ci = ANDROID_CI_WORKFLOW.read_text()
         release_qa = RELEASE_QA_WORKFLOW.read_text()
 
-        # Pull requests verify evidence; the dispatch-only emulator job runs the
-        # manifest sequence through run-local-gate, which wraps run-android-ci and
-        # additionally records the evidence artifact.
+        # Workflows no longer invoke the suites at all -- they verify evidence.
         self.assertIn("scripts/android_runtime_suites.py check-evidence", android_ci)
-        self.assertIn("scripts/android_runtime_suites.py run-local-gate", android_ci)
-        self.assertNotIn("scripts/android_runtime_suites.py run-connected android_ci_focused_runtime_smoke", android_ci)
-        self.assertIn("scripts/android_runtime_suites.py run-connected release_exact_alarm_denied", release_qa)
-        self.assertIn("scripts/android_runtime_suites.py run-connected release_prod_debug_smoke --variant prodDebug", release_qa)
-        self.assertIn(":app:installProdDebug", release_qa)
-        self.assertIn("connectedProdDebugAndroidTest", release_qa)
-        self.assertIn("scripts/android_runtime_suites.py run-connected release_exact_alarm_allowed", release_qa)
-        self.assertIn("scripts/android_runtime_suites.py run-connected release_remaining_runtime", release_qa)
-        self.assertIn("scripts/android_runtime_suites.py run-connected notification_denied_receiver notification_denied_emergency_unlock", release_qa)
+        self.assertNotIn("run-connected", android_ci)
+        self.assertNotIn("run-android-ci", android_ci)
+        # Release QA verifies release-sequence evidence instead of driving suites.
+        self.assertIn("check-evidence", release_qa)
+        self.assertIn("--require-sequence release", release_qa)
+        self.assertNotIn("run-connected", release_qa)
+        # The prod-flavour smoke still has to target the production application id.
+        self.assertEqual("prodDebug", android_runtime_suites.RELEASE_VARIANTS["release_prod_debug_smoke"])
+        self.assertIn(
+            ":app:installProdDebug",
+            android_runtime_suites.RELEASE_BEFORE_COMMANDS["release_prod_debug_smoke"][0],
+        )
 
     def test_run_connected_executes_each_selector_with_before_commands(self):
         completed = mock.Mock(returncode=0)

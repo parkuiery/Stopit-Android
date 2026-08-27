@@ -24,7 +24,7 @@ class ReleaseQaWorkflowScopeTest(unittest.TestCase):
     def test_manual_dispatch_ref_guard_runs_before_release_qa_secrets_and_emulator(self):
         workflow = RELEASE_QA_WORKFLOW.read_text()
 
-        for job_name in ("full-release-qa", "release-instrumentation-qa"):
+        for job_name in ("full-release-qa",):
             with self.subTest(job=job_name):
                 job_body = self._job_body(workflow, job_name)
                 guard_index = job_body.find("Validate manual release QA ref")
