@@ -69,7 +69,14 @@ cd <repo-root>
 ./scripts/runtime-gate.sh --no-batch # selector 별 실행으로 되돌림 (간섭 의심 시)
 ```
 
-- 기기/에뮬레이터가 정확히 한 대 연결돼 있어야 한다. 여러 대가 붙어 있으면 Gradle connected test 가 모두에게 fan-out 되므로 게이트가 거부한다.
+- 기기/에뮬레이터가 정확히 한 대 연결돼 있어야 한다. 여러 대가 붙어 있으면 Gradle connected test 가 모두에게 fan-out 되므로 게이트가 거부한다. 폰과 에뮬레이터를 같이 붙여 두는 흔한 구성에서는 `ANDROID_SERIAL` 로 하나를 고른다 — AGP 의 기기 선택도 같은 변수를 읽으므로 export 만으로 fan-out 이 막힌다.
+
+```bash
+adb devices                                   # 시리얼 확인
+ANDROID_SERIAL=emulator-5554 ./scripts/runtime-gate.sh
+```
+
+- 실기기에서 게이트가 완주하지 못할 수 있다. 제조사에 따라 dev 빌드의 접근성 서비스가 secure settings 로 켜도 bind 되지 않고(운영 앱이 접근성 슬롯을 쥐고 있는 경우 포함) `KeepAccessibilityServiceIntegrationTest` / `HomeAccessibilityPermissionIntegrationTest` 가 실패한다. 그때는 CI 와 같은 구성의 에뮬레이터(API 35 `google_apis`, pixel_6)를 쓴다.
 - `adb` 가 PATH 에 없으면 `ANDROID_HOME` / `ANDROID_SDK_ROOT` 또는 기본 SDK 위치에서 platform-tools 를 자동으로 찾는다.
 - 모든 suite 가 통과했을 때만 증거를 쓴다. 실패하면 아무것도 기록하지 않으므로 실패를 증거로 덮을 수 없다.
 - 실행 도중 런타임 소스가 바뀌면 증거를 쓰지 않는다. 검증되지 않은 트리를 가리키는 증거를 막기 위해서다.

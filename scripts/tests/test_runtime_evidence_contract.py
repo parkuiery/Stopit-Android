@@ -216,6 +216,39 @@ class AdbResolutionTest(unittest.TestCase):
                 mock.patch.dict(android_runtime_suites.os.environ, {}, clear=True):
             self.assertIsNone(android_runtime_suites.ensure_adb_on_path())
 
+    def test_android_serial_picks_one_of_several_connected_devices(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            evidence_path = pathlib.Path(temp_dir) / ".runtime-evidence.json"
+            with mock.patch.object(android_runtime_suites, "EVIDENCE_PATH", evidence_path), \
+                    mock.patch.object(android_runtime_suites, "ensure_adb_on_path", return_value="/adb"), \
+                    mock.patch.object(android_runtime_suites, "connected_devices",
+                                      return_value=["R3CRB0VVSNA", "emulator-5554"]), \
+                    mock.patch.object(android_runtime_suites, "compute_runtime_digest", return_value="sha256:x"), \
+                    mock.patch.object(android_runtime_suites, "_describe_device", return_value={"description": "d"}), \
+                    mock.patch.object(android_runtime_suites, "run_android_ci_suites",
+                                      return_value={s: {"status": "passed", "selectors": 1, "returncode": 0}
+                                                    for s in android_runtime_suites.ANDROID_CI_SEQUENCE}), \
+                    mock.patch.object(android_runtime_suites.subprocess, "run",
+                                      return_value=mock.Mock(returncode=0, stdout="abc\n")), \
+                    mock.patch.dict(android_runtime_suites.os.environ,
+                                    {"ANDROID_SERIAL": "emulator-5554"}, clear=False):
+                self.assertEqual(0, android_runtime_suites.run_local_gate())
+            self.assertTrue(evidence_path.exists())
+
+    def test_android_serial_that_is_not_connected_is_rejected(self):
+        with mock.patch.object(android_runtime_suites, "ensure_adb_on_path", return_value="/adb"), \
+                mock.patch.object(android_runtime_suites, "connected_devices", return_value=["emulator-5554"]), \
+                mock.patch.dict(android_runtime_suites.os.environ,
+                                {"ANDROID_SERIAL": "not-attached"}, clear=False):
+            self.assertEqual(2, android_runtime_suites.run_local_gate())
+
+    def test_several_devices_without_android_serial_are_refused(self):
+        with mock.patch.object(android_runtime_suites, "ensure_adb_on_path", return_value="/adb"), \
+                mock.patch.object(android_runtime_suites, "connected_devices",
+                                  return_value=["a", "b"]), \
+                mock.patch.dict(android_runtime_suites.os.environ, {}, clear=True):
+            self.assertEqual(2, android_runtime_suites.run_local_gate())
+
     def test_local_gate_refuses_to_run_without_adb(self):
         with mock.patch.object(android_runtime_suites, "ensure_adb_on_path", return_value=None):
             self.assertEqual(2, android_runtime_suites.run_local_gate())

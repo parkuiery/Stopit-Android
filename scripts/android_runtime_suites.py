@@ -556,10 +556,13 @@ def check_evidence() -> int:
 
 
 def _describe_device() -> dict:
+    serial = os.environ.get("ANDROID_SERIAL")
+    target = ["adb"] + (["-s", serial] if serial else [])
+
     def adb_prop(prop: str) -> str:
         try:
             completed = subprocess.run(
-                ["adb", "shell", "getprop", prop],
+                target + ["shell", "getprop", prop],
                 cwd=REPO_ROOT,
                 capture_output=True,
                 text=True,
@@ -574,6 +577,7 @@ def _describe_device() -> dict:
     return {
         "model": model,
         "api_level": int(sdk) if sdk.isdigit() else None,
+        "serial": serial,
         "description": f"{model or 'unknown'} (API {sdk or '?'})",
     }
 
@@ -646,11 +650,25 @@ def run_local_gate(*, batch: bool = True) -> int:
             file=sys.stderr,
         )
         return 2
-    if len(devices) > 1:
+    selected = os.environ.get("ANDROID_SERIAL")
+    if selected:
+        # A phone plus a running emulator is the normal desk setup, so support
+        # picking one instead of demanding the other be unplugged. AGP's device
+        # selection reads the same variable, so exporting it is enough to keep
+        # Gradle from fanning out.
+        if selected not in devices:
+            print(
+                f"[runtime-gate] ANDROID_SERIAL={selected} is not connected. "
+                f"Connected: {', '.join(devices) or '(none)'}",
+                file=sys.stderr,
+            )
+            return 2
+        print(f"[runtime-gate] Targeting {selected} (ANDROID_SERIAL).")
+    elif len(devices) > 1:
         print(
             f"[runtime-gate] {len(devices)} devices connected: {', '.join(devices)}.\n"
-            "  Gradle connected tests would fan out across all of them; "
-            "leave exactly one attached.",
+            "  Gradle connected tests would fan out across all of them.\n"
+            "  Export ANDROID_SERIAL=<serial> to pick one, or leave a single device attached.",
             file=sys.stderr,
         )
         return 2
