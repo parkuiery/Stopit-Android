@@ -121,8 +121,9 @@ class RuntimeDiagnosticArtifactsTest(unittest.TestCase):
             "app/build/reports/lint-results-devDebug",
             "app/build/reports/problems",
             "app/build/outputs/logs",
-            "stopit-runtime-smoke-diagnostics",
-            "stopit-release-instrumentation-diagnostics",
+            # The emulator jobs that produced these two artifacts are gone; runtime
+            # triage now happens on the developer machine that ran the gate.
+            "scripts/runtime-gate.sh",
             "stopit-release-qa-build-diagnostics",
             "release-qa-diagnostics/static-policy-unit-tests.log",
             "stopit-release-build-diagnostics",
