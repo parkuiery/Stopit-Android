@@ -279,9 +279,9 @@
     <string name="change_lock_title">ルーチン保護</string>
     <string name="change_lock_off">オフ</string>
     <string name="change_lock_hours">%d時間前</string>
-    <string name="change_lock_description">%sからルーチンの編集と削除が制限されます</string>
-    <string name="change_lock_description_previous_day">ルーチン開始の前日%sからルーチンの編集と削除が制限されます</string>
-    <string name="change_lock_always_locked_warning">編集できる時間が残っていません。このまま保存すると、どの時間帯でもこのルーチンを編集または削除できなくなります。</string>
+    <string name="change_lock_description">%sからルーチンの編集・削除・オフが制限されます</string>
+    <string name="change_lock_description_previous_day">ルーチン開始の前日%sからルーチンの編集・削除・オフが制限されます</string>
+    <string name="change_lock_always_locked_warning">元に戻せる時間が残っていません。このまま保存すると、どの時間帯でもこのルーチンを編集・削除・オフにできなくなります。</string>
     <string name="day_unit">日</string>
     <plurals name="countdown_day_prefix">
         <item quantity="one">%1$d日 </item>

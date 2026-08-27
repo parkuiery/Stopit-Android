@@ -279,9 +279,9 @@
     <string name="change_lock_title">例程保护</string>
     <string name="change_lock_off">关闭</string>
     <string name="change_lock_hours">%d小时前</string>
-    <string name="change_lock_description">从%s起将限制例程的编辑和删除</string>
-    <string name="change_lock_description_previous_day">从例程开始前一天的%s起将限制例程的编辑和删除</string>
-    <string name="change_lock_always_locked_warning">没有可编辑的时间了。如果就这样保存，您将无法在任何时间编辑或删除此例程。</string>
+    <string name="change_lock_description">从%s起将限制例程的编辑、删除和关闭</string>
+    <string name="change_lock_description_previous_day">从例程开始前一天的%s起将限制例程的编辑、删除和关闭</string>
+    <string name="change_lock_always_locked_warning">没有可以撤销的时间了。如果就这样保存，您将无法在任何时间编辑、删除或关闭此例程。</string>
     <string name="day_unit">天</string>
     <plurals name="countdown_day_prefix">
         <item quantity="one">%1$d天 </item>

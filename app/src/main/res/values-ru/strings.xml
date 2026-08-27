@@ -285,9 +285,9 @@
     <string name="change_lock_title">Защита рутины</string>
     <string name="change_lock_off">Выкл.</string>
     <string name="change_lock_hours">За %d часов</string>
-    <string name="change_lock_description">Редактирование и удаление рутин будут ограничены с %s</string>
-    <string name="change_lock_description_previous_day">Редактирование и удаление рутин будут ограничены с %s за день до начала рутины</string>
-    <string name="change_lock_always_locked_warning">Не осталось времени для редактирования. Если сохранить так, эту рутину нельзя будет изменить или удалить ни в какое время.</string>
+    <string name="change_lock_description">Редактирование, удаление и отключение рутин будут ограничены с %s</string>
+    <string name="change_lock_description_previous_day">Редактирование, удаление и отключение рутин будут ограничены с %s за день до начала рутины</string>
+    <string name="change_lock_always_locked_warning">Не осталось времени, чтобы это отменить. Если сохранить так, эту рутину нельзя будет изменить, удалить или отключить ни в какое время.</string>
     <string name="day_unit">День</string>
     <plurals name="countdown_day_prefix">
         <item quantity="one">%1$d день </item>
