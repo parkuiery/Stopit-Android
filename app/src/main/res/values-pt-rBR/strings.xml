@@ -281,7 +281,9 @@
     <string name="change_lock_title">Proteção de rotina</string>
     <string name="change_lock_off">Desligado</string>
     <string name="change_lock_hours">%d horas antes</string>
-    <string name="change_lock_description">A edição e exclusão de rotinas será restrita a partir de %s</string>
+    <string name="change_lock_description">A edição, exclusão e desativação de rotinas será restrita a partir de %s</string>
+    <string name="change_lock_description_previous_day">A edição, exclusão e desativação de rotinas será restrita a partir das %s do dia anterior ao início da rotina</string>
+    <string name="change_lock_always_locked_warning">Não resta nenhum momento para reverter. Se você salvar assim, não poderá editar, excluir nem desativar esta rotina em nenhum momento.</string>
     <string name="day_unit">Dia</string>
     <plurals name="countdown_day_prefix">
         <item quantity="one">%1$d dia </item>

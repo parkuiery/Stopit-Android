@@ -281,7 +281,9 @@
     <string name="change_lock_title">Routinenschutz</string>
     <string name="change_lock_off">Aus</string>
     <string name="change_lock_hours">%d Stunden vorher</string>
-    <string name="change_lock_description">Ab %s werden Bearbeitung und Löschung der Routine eingeschränkt</string>
+    <string name="change_lock_description">Ab %s werden Bearbeiten, Löschen und Ausschalten der Routine eingeschränkt</string>
+    <string name="change_lock_description_previous_day">Ab %s am Tag vor dem Routinestart werden Bearbeiten, Löschen und Ausschalten der Routine eingeschränkt</string>
+    <string name="change_lock_always_locked_warning">Es bleibt keine Zeit, dies rückgängig zu machen. Wenn du so speicherst, kannst du diese Routine zu keiner Zeit mehr bearbeiten, löschen oder ausschalten.</string>
     <string name="day_unit">Tag</string>
     <plurals name="countdown_day_prefix">
         <item quantity="one">%1$d Tag </item>

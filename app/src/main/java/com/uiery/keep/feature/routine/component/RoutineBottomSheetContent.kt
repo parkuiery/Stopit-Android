@@ -82,6 +82,8 @@ import com.uiery.keep.domain.repeatblock.RepeatBlockRoutineSuggestion
 import com.uiery.keep.domain.usageinsight.UsageInsightRoutinePrefill
 import com.uiery.keep.feature.routine.RoutineBottomSheetSideEffect
 import com.uiery.keep.feature.routine.RoutineBottomSheetViewModel
+import com.uiery.keep.feature.routine.isChangeLockStartOnPreviousDay
+import com.uiery.keep.feature.routine.isRoutineProtectionAlwaysLocked
 import com.uiery.keep.model.RoutineModel
 import com.uiery.keep.rememberPickerState
 import com.uiery.keep.ui.component.CategoryBottomSheetContent
@@ -292,6 +294,8 @@ private fun RoutineInputContent(
             )
             RoutineProtectionField(
                 startTime = startTime,
+                endTime = endTime,
+                selectDays = selectDays,
                 changeLockHours = changeLockHours,
                 onChangeLockHoursChanged = onChangeLockHoursChanged,
             )
@@ -671,6 +675,8 @@ private fun RoutineDayField(
 @Composable
 private fun RoutineProtectionField(
     startTime: LocalTime,
+    endTime: LocalTime,
+    selectDays: List<DayOfWeek>,
     changeLockHours: Int?,
     onChangeLockHoursChanged: (Int?) -> Unit,
 ) {
@@ -690,7 +696,13 @@ private fun RoutineProtectionField(
                 .minusHours(changeLockHours.toLong())
             LocalTime(lockStart.hour, lockStart.minute).toTimeString(context)
         }
-        stringResource(R.string.change_lock_description, lockStartTimeText)
+        // 잠금이 열리는 시각이 자정을 넘어 전날로 갔는데도 시:분만 적으면, 사용자는 그것을
+        // 루틴이 시작한 뒤의 같은 날 시각으로 읽는다. 하루 차이를 문구가 직접 말해야 한다.
+        if (isChangeLockStartOnPreviousDay(startTime, changeLockHours)) {
+            stringResource(R.string.change_lock_description_previous_day, lockStartTimeText)
+        } else {
+            stringResource(R.string.change_lock_description, lockStartTimeText)
+        }
     }
     val pickerItems = remember(offText) {
         listOf(offText) + (1..24).map { it.toString() }
@@ -759,17 +771,26 @@ private fun RoutineProtectionField(
         }
     }
 
-    KeepField(
-        label = stringResource(R.string.change_lock_title),
-        helperText = helperText,
-        helperTextTone = KeepFieldHelperTone.Muted,
-    ) {
-        KeepInputButton(
-            placeholder = offText,
-            value = selectedText,
-            onClick = { showDialog = true },
-            trailingContent = { RoutineInputTrailingIcon() },
-        )
+    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        KeepField(
+            label = stringResource(R.string.change_lock_title),
+            helperText = helperText,
+            helperTextTone = KeepFieldHelperTone.Muted,
+        ) {
+            KeepInputButton(
+                placeholder = offText,
+                value = selectedText,
+                onClick = { showDialog = true },
+                trailingContent = { RoutineInputTrailingIcon() },
+            )
+        }
+        // 잠금 창과 실행 창이 이어 붙어 회차 간격까지 덮으면 수정할 창구가 사라진다. 저장한
+        // 뒤에는 되돌릴 방법이 없으므로, 저장 전에 그 사실을 알려야 한다.
+        if (isRoutineProtectionAlwaysLocked(startTime, endTime, selectDays, changeLockHours)) {
+            WebsiteBlockingWarningRow(
+                message = stringResource(R.string.change_lock_always_locked_warning),
+            )
+        }
     }
 }
 

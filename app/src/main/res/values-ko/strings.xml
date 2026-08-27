@@ -326,7 +326,9 @@
     <string name="change_lock_title">루틴 보호</string>
     <string name="change_lock_off">사용 안 함</string>
     <string name="change_lock_hours">%d시간 전</string>
-    <string name="change_lock_description">%s부터 루틴 수정 및 삭제가 제한됩니다</string>
+    <string name="change_lock_description">%s부터 루틴 수정·삭제·끄기가 제한됩니다</string>
+    <string name="change_lock_description_previous_day">루틴 시작 전날 %s부터 루틴 수정·삭제·끄기가 제한됩니다</string>
+    <string name="change_lock_always_locked_warning">되돌릴 수 있는 시간이 없어요. 이대로 저장하면 어느 시간대에도 이 루틴을 수정하거나 삭제하거나 끌 수 없어요.</string>
     <string name="day_unit">일</string>
     <plurals name="countdown_day_prefix">
         <item quantity="one">%1$d일 </item>
