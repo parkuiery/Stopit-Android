@@ -674,5 +674,6 @@
     <string name="pomodoro_intro_start_title">시작이 가벼워요</string>
     <string name="pomodoro_intro_start_description">끝나면 저절로 풀리고, 중간에 끝낼 수도 있어요.</string>
     <string name="pomodoro_intro_cta">오늘 한 번 집중해볼게요</string>
+    <string name="pomodoro_intro_track_caption">집중과 휴식은 번갈아 와도, 차단은 끊기지 않아요.</string>
     <string name="pomodoro_setup_confirm_title">이렇게 시작할게요</string>
 </resources>

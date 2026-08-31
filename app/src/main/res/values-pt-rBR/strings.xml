@@ -632,5 +632,6 @@
     <string name="pomodoro_intro_start_title">Fácil de começar</string>
     <string name="pomodoro_intro_start_description">Destrava sozinho no fim e dá para parar antes.</string>
     <string name="pomodoro_intro_cta">Foque uma vez hoje</string>
+    <string name="pomodoro_intro_track_caption">O foco e as pausas se revezam; o bloqueio não para.</string>
     <string name="pomodoro_setup_confirm_title">Vai funcionar assim</string>
 </resources>

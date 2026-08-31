@@ -630,5 +630,6 @@
     <string name="pomodoro_intro_start_title">开始很轻松</string>
     <string name="pomodoro_intro_start_description">结束后自动解锁，中途也可以停下。</string>
     <string name="pomodoro_intro_cta">今天专注一次</string>
+    <string name="pomodoro_intro_track_caption">专注和休息轮流来，拦截却不会中断。</string>
     <string name="pomodoro_setup_confirm_title">将按这样开始</string>
 </resources>

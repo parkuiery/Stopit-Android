@@ -1,5 +1,10 @@
 package com.uiery.keep.feature.pomodoro
 
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.rememberScrollState
@@ -9,6 +14,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -24,6 +30,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -210,7 +217,10 @@ internal fun PomodoroScreen(
                     state = uiState,
                     onEnd = viewModel::showEndConfirm,
                 )
-                showIntro -> PomodoroIntroContent(onNext = { showIntro = false })
+                showIntro -> PomodoroIntroContent(
+                    cycle = uiState.selectedCycle,
+                    onNext = { showIntro = false },
+                )
                 showSettings -> PomodoroSettingsContent(
                     state = uiState,
                     onSelectCycle = viewModel::selectCycle,
@@ -392,7 +402,7 @@ private fun PomodoroBlockingNotice(
  * 50/10 을 쓰는 사람에게는 거짓말이 된다. 구체적인 길이는 다음 화면이 말한다.
  */
 @Composable
-private fun PomodoroIntroContent(onNext: () -> Unit) {
+private fun PomodoroIntroContent(cycle: PomodoroCycle, onNext: () -> Unit) {
     Column(modifier = Modifier.fillMaxSize()) {
         Column(
             modifier = Modifier
@@ -415,6 +425,9 @@ private fun PomodoroIntroContent(onNext: () -> Unit) {
                 fontSize = 15.sp,
                 lineHeight = 22.sp,
             )
+
+            Spacer(modifier = Modifier.height(28.dp))
+            PomodoroCycleTrack(cycle = cycle)
 
             // 순서가 곧 우선순위다. 이 앱이 다른 뽀모도로 타이머와 다른 지점(참지 않아도 된다)이
             // 먼저 오고, 그 다음이 이 기능만의 재해석(휴식도 막는 것은 제약이 아니라 혜택),
@@ -445,6 +458,86 @@ private fun PomodoroIntroContent(onNext: () -> Unit) {
             onClick = onNext,
         )
         Spacer(modifier = Modifier.height(20.dp))
+    }
+}
+
+/**
+ * 한 세션이 어떻게 흘러가는지 보여주는 띠.
+ *
+ * 이 기능에서 가장 설명하기 어려운 것은 **집중과 휴식은 번갈아 오는데 차단은 끊기지 않는다**는
+ * 관계다. 문장으로 쓰면 두 줄이 필요하고 그마저도 잘 안 읽히는데, 위아래로 겹친 두 줄짜리
+ * 그림이면 한눈에 들어온다 — 위는 조각조각 나뉘어 있고 아래는 하나로 이어져 있다.
+ *
+ * 재생 헤드가 왼쪽에서 오른쪽으로 지나가며 위쪽 조각을 차례로 채운다. 정지된 그림이면 위쪽이
+ * "지금 어디"인지 알 수 없어서 시간의 흐름이 읽히지 않는다.
+ *
+ * 길이는 실제로 고른 사이클의 비율을 쓴다. 25/5 를 고르면 집중 덩어리가 크고 휴식은 얇은 띠로
+ * 보이는데, 그 비율 자체가 설명이다.
+ */
+@Composable
+private fun PomodoroCycleTrack(cycle: PomodoroCycle) {
+    // 마지막 집중 뒤에는 긴 휴식이 오고 세션이 끝난다.
+    val segments = remember(cycle) {
+        buildList {
+            repeat(cycle.cycles) { index ->
+                add(cycle.focusMinutes to true)
+                add((if (index == cycle.cycles - 1) cycle.longBreakMinutes else cycle.shortBreakMinutes) to false)
+            }
+        }
+    }
+    val transition = rememberInfiniteTransition(label = "pomodoro-cycle-track")
+    val progress by transition.animateFloat(
+        initialValue = 0f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 5200, easing = LinearEasing),
+        ),
+        label = "playhead",
+    )
+
+    val focusColor = KeepTheme.colors.primary
+    val breakColor = KeepTheme.colors.onTertiaryContainer
+    val totalMinutes = segments.sumOf { it.first }.toFloat()
+
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(28.dp),
+            horizontalArrangement = Arrangement.spacedBy(2.dp),
+        ) {
+            var startFraction = 0f
+            segments.forEach { (minutes, isFocus) ->
+                val endFraction = startFraction + minutes / totalMinutes
+                // 재생 헤드가 지나간 조각은 제 색으로, 아직인 조각은 옅게 둔다.
+                val reached = progress >= startFraction
+                Box(
+                    modifier = Modifier
+                        .weight(minutes.toFloat())
+                        .fillMaxHeight()
+                        .clip(RoundedCornerShape(4.dp))
+                        .background(
+                            (if (isFocus) focusColor else breakColor)
+                                .copy(alpha = if (reached) 1f else 0.18f),
+                        ),
+                )
+                startFraction = endFraction
+            }
+        }
+
+        // 위가 조각나 있는 동안 이 줄은 끊기지 않는다. 그것이 이 그림이 하는 말이다.
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(10.dp)
+                .clip(RoundedCornerShape(5.dp))
+                .background(focusColor.copy(alpha = 0.22f)),
+        )
+        Text(
+            text = stringResource(R.string.pomodoro_intro_track_caption),
+            color = KeepTheme.colors.surfaceVariant,
+            fontSize = 12.sp,
+        )
     }
 }
 
