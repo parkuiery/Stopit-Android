@@ -28,6 +28,10 @@ import androidx.compose.material3.Text
 import androidx.activity.compose.BackHandler
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import com.airbnb.lottie.compose.LottieAnimation
+import com.airbnb.lottie.compose.LottieCompositionSpec
+import com.airbnb.lottie.compose.LottieConstants
+import com.airbnb.lottie.compose.rememberLottieComposition
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -428,6 +432,17 @@ private fun PomodoroIntroContent(cycle: PomodoroCycle, onNext: () -> Unit) {
                     .padding(top = 24.dp, bottom = 28.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
+                // 진행 화면이 쓰는 원형 링을 미리 보여준다. 설명은 아래 다이어그램이 하고, 이건
+                // 분위기만 맡는다 — 무슨 앱에 들어와 있는지를 글자보다 먼저 말하는 자리다.
+                val composition by rememberLottieComposition(
+                    LottieCompositionSpec.RawRes(R.raw.pomodoro_intro),
+                )
+                LottieAnimation(
+                    modifier = Modifier.size(130.dp),
+                    composition = composition,
+                    iterations = LottieConstants.IterateForever,
+                )
+                Spacer(modifier = Modifier.height(6.dp))
                 Text(
                     text = stringResource(R.string.pomodoro_intro_eyebrow),
                     color = KeepTheme.colors.surfaceVariant,
@@ -451,8 +466,6 @@ private fun PomodoroIntroContent(cycle: PomodoroCycle, onNext: () -> Unit) {
                     lineHeight = 22.sp,
                     textAlign = TextAlign.Center,
                 )
-                Spacer(modifier = Modifier.height(26.dp))
-                PomodoroCycleTrack(cycle = cycle)
             }
 
             // 순서가 곧 우선순위다. 이 앱이 다른 뽀모도로 타이머와 다른 지점(참지 않아도 된다)이
@@ -469,6 +482,8 @@ private fun PomodoroIntroContent(cycle: PomodoroCycle, onNext: () -> Unit) {
                     title = stringResource(R.string.pomodoro_intro_break_title),
                     description = stringResource(R.string.pomodoro_intro_break_description),
                 )
+                Spacer(modifier = Modifier.height(12.dp))
+                PomodoroCycleTrack(cycle = cycle)
                 Spacer(modifier = Modifier.height(24.dp))
                 PomodoroIntroPoint(
                     title = stringResource(R.string.pomodoro_intro_start_title),
@@ -598,11 +613,6 @@ private fun PomodoroCycleTrack(cycle: PomodoroCycle) {
                 .height(10.dp)
                 .clip(RoundedCornerShape(5.dp))
                 .background(focusColor.copy(alpha = 0.22f)),
-        )
-        Text(
-            text = stringResource(R.string.pomodoro_intro_track_caption),
-            color = KeepTheme.colors.surfaceVariant,
-            fontSize = 12.sp,
         )
     }
 }

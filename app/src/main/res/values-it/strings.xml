@@ -633,7 +633,6 @@
     <string name="pomodoro_intro_start_title">Facile da iniziare</string>
     <string name="pomodoro_intro_start_description">Si sblocca da solo alla fine e puoi smettere prima.</string>
     <string name="pomodoro_intro_cta">Concentrati una volta oggi</string>
-    <string name="pomodoro_intro_track_caption">Concentrazione e pause si alternano, il blocco no.</string>
     <string name="pomodoro_intro_legend_break">Pausa</string>
     <string name="pomodoro_setup_confirm_title">Ecco come funzionerà</string>
 </resources>

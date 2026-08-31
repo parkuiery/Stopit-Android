@@ -643,7 +643,6 @@
     <string name="pomodoro_intro_start_title">Легко начать</string>
     <string name="pomodoro_intro_start_description">В конце разблокируется само, и можно завершить раньше.</string>
     <string name="pomodoro_intro_cta">Сфокусироваться один раз сегодня</string>
-    <string name="pomodoro_intro_track_caption">Фокус и перерывы чередуются — блокировка не прерывается.</string>
     <string name="pomodoro_intro_legend_break">Перерыв</string>
     <string name="pomodoro_setup_confirm_title">Вот как это пройдёт</string>
 </resources>

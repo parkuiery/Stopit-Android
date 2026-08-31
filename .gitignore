@@ -49,3 +49,7 @@ functions/lib/
 functions/node_modules/
 functions/.firebase/
 __pycache__/
+
+# 서드파티 skill 설치본 — 저장소에 넣지 않는다
+.agents/
+skills-lock.json
