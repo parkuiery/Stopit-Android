@@ -36,6 +36,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -485,6 +486,8 @@ private fun PomodoroCycleTrack(cycle: PomodoroCycle) {
             }
         }
     }
+    val focusColor = KeepTheme.colors.primary
+    val breakColor = KeepTheme.colors.onTertiaryContainer
     val transition = rememberInfiniteTransition(label = "pomodoro-cycle-track")
     val progress by transition.animateFloat(
         initialValue = 0f,
@@ -495,11 +498,27 @@ private fun PomodoroCycleTrack(cycle: PomodoroCycle) {
         label = "playhead",
     )
 
-    val focusColor = KeepTheme.colors.primary
-    val breakColor = KeepTheme.colors.onTertiaryContainer
     val totalMinutes = segments.sumOf { it.first }.toFloat()
 
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
+            .background(KeepTheme.semanticColors.background.layerDefault)
+            .padding(horizontal = 16.dp, vertical = 16.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        // 어느 쪽이 집중이고 어느 쪽이 휴식인지 색만으로는 알 수 없다.
+        Row(horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+            PomodoroTrackLegend(
+                color = focusColor,
+                label = stringResource(R.string.pomodoro_custom_focus_label),
+            )
+            PomodoroTrackLegend(
+                color = breakColor,
+                label = stringResource(R.string.pomodoro_intro_legend_break),
+            )
+        }
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -535,6 +554,26 @@ private fun PomodoroCycleTrack(cycle: PomodoroCycle) {
         )
         Text(
             text = stringResource(R.string.pomodoro_intro_track_caption),
+            color = KeepTheme.colors.surfaceVariant,
+            fontSize = 12.sp,
+        )
+    }
+}
+
+@Composable
+private fun PomodoroTrackLegend(color: Color, label: String) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(5.dp),
+    ) {
+        Box(
+            modifier = Modifier
+                .size(8.dp)
+                .clip(RoundedCornerShape(2.dp))
+                .background(color),
+        )
+        Text(
+            text = label,
             color = KeepTheme.colors.surfaceVariant,
             fontSize = 12.sp,
         )

@@ -633,5 +633,6 @@
     <string name="pomodoro_intro_start_description">Am Ende entsperrt es von selbst, und du kannst früher aufhören.</string>
     <string name="pomodoro_intro_cta">Heute einmal fokussieren</string>
     <string name="pomodoro_intro_track_caption">Fokus und Pausen wechseln – die Sperre bleibt durchgehend.</string>
+    <string name="pomodoro_intro_legend_break">Pause</string>
     <string name="pomodoro_setup_confirm_title">So wird es laufen</string>
 </resources>

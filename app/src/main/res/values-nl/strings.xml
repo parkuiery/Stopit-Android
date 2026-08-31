@@ -633,5 +633,6 @@
     <string name="pomodoro_intro_start_description">Het gaat aan het eind vanzelf open en je kunt eerder stoppen.</string>
     <string name="pomodoro_intro_cta">Vandaag één keer focussen</string>
     <string name="pomodoro_intro_track_caption">Focus en pauzes wisselen elkaar af, de blokkade niet.</string>
+    <string name="pomodoro_intro_legend_break">Pauze</string>
     <string name="pomodoro_setup_confirm_title">Zo gaat het lopen</string>
 </resources>

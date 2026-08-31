@@ -676,5 +676,6 @@
     <string name="pomodoro_intro_start_description">It unlocks by itself at the end, and you can stop early.</string>
     <string name="pomodoro_intro_cta">Focus once today</string>
     <string name="pomodoro_intro_track_caption">Focus and breaks take turns — the block never breaks.</string>
+    <string name="pomodoro_intro_legend_break">Break</string>
     <string name="pomodoro_setup_confirm_title">Here\'s how it will run</string>
 </resources>

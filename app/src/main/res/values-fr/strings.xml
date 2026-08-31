@@ -633,5 +633,6 @@
     <string name="pomodoro_intro_start_description">Ça se déverrouille seul à la fin, et vous pouvez arrêter avant.</string>
     <string name="pomodoro_intro_cta">Se concentrer une fois aujourd’hui</string>
     <string name="pomodoro_intro_track_caption">Concentration et pauses alternent ; le blocage, lui, ne s’interrompt pas.</string>
+    <string name="pomodoro_intro_legend_break">Pause</string>
     <string name="pomodoro_setup_confirm_title">Voici comment ça va se passer</string>
 </resources>

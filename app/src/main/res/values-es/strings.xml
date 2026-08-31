@@ -632,5 +632,6 @@
     <string name="pomodoro_intro_start_description">Se desbloquea solo al final y puedes parar antes.</string>
     <string name="pomodoro_intro_cta">Concéntrate una vez hoy</string>
     <string name="pomodoro_intro_track_caption">La concentración y los descansos se turnan; el bloqueo no se interrumpe.</string>
+    <string name="pomodoro_intro_legend_break">Descanso</string>
     <string name="pomodoro_setup_confirm_title">Así va a funcionar</string>
 </resources>
