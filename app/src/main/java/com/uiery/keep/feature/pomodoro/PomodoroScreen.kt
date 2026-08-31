@@ -383,6 +383,11 @@ private fun PomodoroBlockingNotice(
  * 설명을 시작 화면 위에 한 줄 얹는 것과, 설명을 읽고 **계속할지 고르게 하는 것**은 다르다.
  * 앞의 것은 시작 버튼 옆의 곁다리 문장이 되고, 뒤의 것은 사용자가 내리는 결정이 된다.
  *
+ * 그 결정을 하게 하려면 동작 설명이 아니라 **이걸 쓰면 뭐가 좋은지**를 말해야 한다. 처음 쓴
+ * 문구는 셋 다 작동 방식이었고, 그중 "휴식 중에도 막아요"는 혜택이 아니라 제약으로 읽혔다.
+ * 지금은 그 제약을 뒤집어 이 기능의 가장 강한 판매 논리로 쓴다 — 쉬는 동안 폰이 열리지 않으니
+ * 휴식이 딴짓으로 흘러가지 않는다.
+ *
  * 숫자를 쓰지 않는다. "집중 25분"은 마지막에 쓴 사이클에 따라 달라지므로, 여기에 박아 두면
  * 50/10 을 쓰는 사람에게는 거짓말이 된다. 구체적인 길이는 다음 화면이 말한다.
  */
@@ -403,11 +408,21 @@ private fun PomodoroIntroContent(onNext: () -> Unit) {
                 fontSize = 24.sp,
                 lineHeight = 34.sp,
             )
+            Spacer(modifier = Modifier.height(10.dp))
+            Text(
+                text = stringResource(R.string.pomodoro_intro_subtitle),
+                color = KeepTheme.colors.surfaceVariant,
+                fontSize = 15.sp,
+                lineHeight = 22.sp,
+            )
 
+            // 순서가 곧 우선순위다. 이 앱이 다른 뽀모도로 타이머와 다른 지점(참지 않아도 된다)이
+            // 먼저 오고, 그 다음이 이 기능만의 재해석(휴식도 막는 것은 제약이 아니라 혜택),
+            // 마지막이 문턱을 낮추는 말이다.
             Spacer(modifier = Modifier.height(32.dp))
             PomodoroIntroPoint(
-                title = stringResource(R.string.pomodoro_intro_rhythm_title),
-                description = stringResource(R.string.pomodoro_intro_rhythm_description),
+                title = stringResource(R.string.pomodoro_intro_willpower_title),
+                description = stringResource(R.string.pomodoro_intro_willpower_description),
             )
             Spacer(modifier = Modifier.height(24.dp))
             PomodoroIntroPoint(
@@ -416,8 +431,8 @@ private fun PomodoroIntroContent(onNext: () -> Unit) {
             )
             Spacer(modifier = Modifier.height(24.dp))
             PomodoroIntroPoint(
-                title = stringResource(R.string.pomodoro_intro_release_title),
-                description = stringResource(R.string.pomodoro_intro_release_description),
+                title = stringResource(R.string.pomodoro_intro_start_title),
+                description = stringResource(R.string.pomodoro_intro_start_description),
             )
             Spacer(modifier = Modifier.height(24.dp))
         }

@@ -666,13 +666,14 @@
     <string name="pomodoro_setup_customize">Change settings</string>
     <string name="pomodoro_settings_title">Session settings</string>
     <string name="pomodoro_settings_done">Done</string>
-    <string name="pomodoro_intro_title">Focus and breaks,\ntaking turns</string>
-    <string name="pomodoro_intro_rhythm_title">A rhythm you don\'t have to think about</string>
-    <string name="pomodoro_intro_rhythm_description">Focus and breaks alternate on their own. You choose how long each one runs.</string>
-    <string name="pomodoro_intro_break_title">Blocked during breaks too</string>
-    <string name="pomodoro_intro_break_description">If apps open while you rest, the rest turns into scrolling. You can turn this off.</string>
-    <string name="pomodoro_intro_release_title">It unlocks by itself</string>
-    <string name="pomodoro_intro_release_description">You see exactly how long you\'ll be blocked before you start. You can end it early.</string>
-    <string name="pomodoro_intro_cta">Let\'s try it</string>
+    <string name="pomodoro_intro_title">Focus without\nfighting yourself</string>
+    <string name="pomodoro_intro_subtitle">Spend your willpower on the work, not on resisting your phone.</string>
+    <string name="pomodoro_intro_willpower_title">Nothing to resist</string>
+    <string name="pomodoro_intro_willpower_description">While you focus, the apps you picked simply don’t open. The effort you spent resisting goes into the work instead.</string>
+    <string name="pomodoro_intro_break_title">Breaks that don’t swallow the hour</string>
+    <string name="pomodoro_intro_break_description">‘Just five minutes’ becomes an hour because you open your phone during the break. Keep it blocked and focus comes back on its own.</string>
+    <string name="pomodoro_intro_start_title">Easy to begin</string>
+    <string name="pomodoro_intro_start_description">You don’t have to sit still for hours. It unlocks by itself when the session ends, and you can stop early.</string>
+    <string name="pomodoro_intro_cta">Let’s try it</string>
     <string name="pomodoro_setup_confirm_title">Here\'s how it will run</string>
 </resources>

@@ -633,13 +633,14 @@
     <string name="pomodoro_setup_customize">Изменить настройки</string>
     <string name="pomodoro_settings_title">Настройки сессии</string>
     <string name="pomodoro_settings_done">Готово</string>
-    <string name="pomodoro_intro_title">Фокус и перерывы\nпо очереди</string>
-    <string name="pomodoro_intro_rhythm_title">Ритм, о котором не нужно думать</string>
-    <string name="pomodoro_intro_rhythm_description">Фокус и перерывы чередуются сами. Длительность каждого вы задаёте сами.</string>
-    <string name="pomodoro_intro_break_title">Блокирует и на перерывах</string>
-    <string name="pomodoro_intro_break_description">Если приложения открываются на перерыве, перерыв превращается в ленту. Это можно выключить.</string>
-    <string name="pomodoro_intro_release_title">Разблокируется само</string>
-    <string name="pomodoro_intro_release_description">Перед стартом покажем, насколько долго будет заблокировано. Можно завершить раньше.</string>
+    <string name="pomodoro_intro_title">Сосредоточиться,\nне борясь с собой</string>
+    <string name="pomodoro_intro_subtitle">Тратьте силы на дело, а не на то, чтобы не взять телефон.</string>
+    <string name="pomodoro_intro_willpower_title">Нечему сопротивляться</string>
+    <string name="pomodoro_intro_willpower_description">Пока вы работаете, выбранные приложения просто не открываются. Силы, что уходили на борьбу, идут в дело.</string>
+    <string name="pomodoro_intro_break_title">Перерыв не съедает час</string>
+    <string name="pomodoro_intro_break_description">«Ну пять минут» превращается в час, потому что на перерыве вы берёте телефон. Если он заблокирован, фокус возвращается сам.</string>
+    <string name="pomodoro_intro_start_title">Легко начать</string>
+    <string name="pomodoro_intro_start_description">Не нужно сидеть часами. По окончании разблокируется само, и можно завершить раньше.</string>
     <string name="pomodoro_intro_cta">Попробовать</string>
     <string name="pomodoro_setup_confirm_title">Вот как это пройдёт</string>
 </resources>

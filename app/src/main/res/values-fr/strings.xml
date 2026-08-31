@@ -623,13 +623,14 @@
     <string name="pomodoro_setup_customize">Modifier les réglages</string>
     <string name="pomodoro_settings_title">Réglages de la session</string>
     <string name="pomodoro_settings_done">Terminé</string>
-    <string name="pomodoro_intro_title">Concentration et pauses,\nà tour de rôle</string>
-    <string name="pomodoro_intro_rhythm_title">Un rythme auquel vous n\'avez pas à penser</string>
-    <string name="pomodoro_intro_rhythm_description">La concentration et les pauses alternent toutes seules. Vous choisissez la durée de chacune.</string>
-    <string name="pomodoro_intro_break_title">Bloqué pendant les pauses aussi</string>
-    <string name="pomodoro_intro_break_description">Si les applis s\'ouvrent pendant la pause, la pause devient du scroll. Vous pouvez le désactiver.</string>
-    <string name="pomodoro_intro_release_title">Ça se déverrouille tout seul</string>
-    <string name="pomodoro_intro_release_description">Vous voyez avant de commencer combien de temps ce sera bloqué. Vous pouvez arrêter en cours.</string>
+    <string name="pomodoro_intro_title">Se concentrer sans\nlutter contre soi</string>
+    <string name="pomodoro_intro_subtitle">Gardez votre énergie pour le travail, pas pour résister au téléphone.</string>
+    <string name="pomodoro_intro_willpower_title">Rien à quoi résister</string>
+    <string name="pomodoro_intro_willpower_description">Pendant la concentration, les applis choisies ne s’ouvrent tout simplement pas. L’énergie de la résistance passe dans le travail.</string>
+    <string name="pomodoro_intro_break_title">Des pauses qui ne dévorent pas l’heure</string>
+    <string name="pomodoro_intro_break_description">« Juste cinq minutes » devient une heure parce qu’on ouvre son téléphone. Bloqué, le focus revient tout seul.</string>
+    <string name="pomodoro_intro_start_title">Facile à commencer</string>
+    <string name="pomodoro_intro_start_description">Pas besoin de tenir des heures. Ça se déverrouille seul à la fin, et vous pouvez arrêter avant.</string>
     <string name="pomodoro_intro_cta">On essaie</string>
     <string name="pomodoro_setup_confirm_title">Voici comment ça va se passer</string>
 </resources>

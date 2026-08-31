@@ -623,13 +623,14 @@
     <string name="pomodoro_setup_customize">Modifica impostazioni</string>
     <string name="pomodoro_settings_title">Impostazioni sessione</string>
     <string name="pomodoro_settings_done">Fatto</string>
-    <string name="pomodoro_intro_title">Concentrazione e pause,\na turno</string>
-    <string name="pomodoro_intro_rhythm_title">Un ritmo a cui non devi pensare</string>
-    <string name="pomodoro_intro_rhythm_description">Concentrazione e pause si alternano da sole. Quanto durano lo decidi tu.</string>
-    <string name="pomodoro_intro_break_title">Blocca anche durante le pause</string>
-    <string name="pomodoro_intro_break_description">Se le app si aprono mentre riposi, la pausa diventa scroll. Puoi disattivarlo.</string>
-    <string name="pomodoro_intro_release_title">Si sblocca da solo</string>
-    <string name="pomodoro_intro_release_description">Prima di iniziare vedi per quanto resterà bloccato. Puoi anche terminare prima.</string>
+    <string name="pomodoro_intro_title">Concentrarsi senza\ncombattere se stessi</string>
+    <string name="pomodoro_intro_subtitle">Usa le energie per il lavoro, non per resistere al telefono.</string>
+    <string name="pomodoro_intro_willpower_title">Niente a cui resistere</string>
+    <string name="pomodoro_intro_willpower_description">Mentre ti concentri, le app scelte semplicemente non si aprono. L’energia della resistenza va nel lavoro.</string>
+    <string name="pomodoro_intro_break_title">Pause che non divorano l’ora</string>
+    <string name="pomodoro_intro_break_description">‘Solo cinque minuti’ diventa un’ora perché apri il telefono in pausa. Se resta bloccato, la concentrazione torna da sola.</string>
+    <string name="pomodoro_intro_start_title">Facile da iniziare</string>
+    <string name="pomodoro_intro_start_description">Non devi stare seduto per ore. Si sblocca da solo alla fine e puoi smettere prima.</string>
     <string name="pomodoro_intro_cta">Proviamo</string>
     <string name="pomodoro_setup_confirm_title">Ecco come funzionerà</string>
 </resources>

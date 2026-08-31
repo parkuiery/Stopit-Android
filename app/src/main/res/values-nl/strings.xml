@@ -623,13 +623,14 @@
     <string name="pomodoro_setup_customize">Instellingen wijzigen</string>
     <string name="pomodoro_settings_title">Sessie-instellingen</string>
     <string name="pomodoro_settings_done">Klaar</string>
-    <string name="pomodoro_intro_title">Focus en pauzes,\nom de beurt</string>
-    <string name="pomodoro_intro_rhythm_title">Een ritme waar je niet over hoeft na te denken</string>
-    <string name="pomodoro_intro_rhythm_description">Focus en pauzes wisselen elkaar vanzelf af. Hoe lang elk duurt, bepaal jij.</string>
-    <string name="pomodoro_intro_break_title">Ook geblokkeerd tijdens pauzes</string>
-    <string name="pomodoro_intro_break_description">Gaan apps open tijdens je pauze, dan wordt de pauze scrollen. Je kunt dit uitzetten.</string>
-    <string name="pomodoro_intro_release_title">Het gaat vanzelf weer open</string>
-    <string name="pomodoro_intro_release_description">Voor je begint zie je precies hoe lang het blokkeert. Eerder stoppen kan ook.</string>
+    <string name="pomodoro_intro_title">Focussen zonder\ntegen jezelf te vechten</string>
+    <string name="pomodoro_intro_subtitle">Steek je wilskracht in het werk, niet in het weerstaan van je telefoon.</string>
+    <string name="pomodoro_intro_willpower_title">Niets om te weerstaan</string>
+    <string name="pomodoro_intro_willpower_description">Terwijl je focust, gaan de gekozen apps gewoon niet open. Die energie gaat naar het werk.</string>
+    <string name="pomodoro_intro_break_title">Pauzes die het uur niet opslokken</string>
+    <string name="pomodoro_intro_break_description">‘Even vijf minuten’ wordt een uur omdat je in de pauze je telefoon pakt. Blijft die dicht, dan komt de focus vanzelf terug.</string>
+    <string name="pomodoro_intro_start_title">Makkelijk te beginnen</string>
+    <string name="pomodoro_intro_start_description">Je hoeft niet uren stil te zitten. Het gaat vanzelf weer open en je kunt eerder stoppen.</string>
     <string name="pomodoro_intro_cta">Laten we het proberen</string>
     <string name="pomodoro_setup_confirm_title">Zo gaat het lopen</string>
 </resources>

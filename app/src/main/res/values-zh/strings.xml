@@ -621,13 +621,14 @@
     <string name="pomodoro_setup_customize">更改设置</string>
     <string name="pomodoro_settings_title">会话设置</string>
     <string name="pomodoro_settings_done">完成</string>
-    <string name="pomodoro_intro_title">专注和休息\n轮流进行</string>
-    <string name="pomodoro_intro_rhythm_title">不用去想的节奏</string>
-    <string name="pomodoro_intro_rhythm_description">专注和休息会自动轮流进行。每段多长由你决定。</string>
-    <string name="pomodoro_intro_break_title">休息时也会拦截</string>
-    <string name="pomodoro_intro_break_description">休息时应用一打开，休息就变成了刷手机。你可以关掉这项。</string>
-    <string name="pomodoro_intro_release_title">结束后自动解锁</string>
-    <string name="pomodoro_intro_release_description">开始前会告诉你会被拦截多久。中途也可以结束。</string>
+    <string name="pomodoro_intro_title">不用跟自己较劲\n也能专注</string>
+    <string name="pomodoro_intro_subtitle">把意志力用在要做的事上，而不是用来忍住不看手机。</string>
+    <string name="pomodoro_intro_willpower_title">没什么需要忍的</string>
+    <string name="pomodoro_intro_willpower_description">专注期间，你选的应用根本打不开。原本用来忍耐的力气，可以直接用在事情上。</string>
+    <string name="pomodoro_intro_break_title">休息不会一去不回</string>
+    <string name="pomodoro_intro_break_description">“就五分钟”会变成一小时，是因为休息时打开了手机。休息时也拦着，就会自然回到专注。</string>
+    <string name="pomodoro_intro_start_title">开始很轻松</string>
+    <string name="pomodoro_intro_start_description">不用一次坐很久。结束后会自动解锁，中途也可以停下。</string>
     <string name="pomodoro_intro_cta">试试看</string>
     <string name="pomodoro_setup_confirm_title">将按这样开始</string>
 </resources>

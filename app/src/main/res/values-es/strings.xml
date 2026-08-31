@@ -622,13 +622,14 @@
     <string name="pomodoro_setup_customize">Cambiar ajustes</string>
     <string name="pomodoro_settings_title">Ajustes de la sesión</string>
     <string name="pomodoro_settings_done">Listo</string>
-    <string name="pomodoro_intro_title">Concentración y descansos,\npor turnos</string>
-    <string name="pomodoro_intro_rhythm_title">Un ritmo en el que no tienes que pensar</string>
-    <string name="pomodoro_intro_rhythm_description">La concentración y los descansos se alternan solos. Tú eliges cuánto dura cada uno.</string>
-    <string name="pomodoro_intro_break_title">También bloquea en los descansos</string>
-    <string name="pomodoro_intro_break_description">Si las apps se abren mientras descansas, el descanso se convierte en scroll. Puedes desactivarlo.</string>
-    <string name="pomodoro_intro_release_title">Se desbloquea solo</string>
-    <string name="pomodoro_intro_release_description">Antes de empezar verás cuánto tiempo estarás bloqueado. También puedes terminar antes.</string>
+    <string name="pomodoro_intro_title">Concéntrate sin\npelear contigo</string>
+    <string name="pomodoro_intro_subtitle">Gasta tu fuerza de voluntad en el trabajo, no en resistirte al móvil.</string>
+    <string name="pomodoro_intro_willpower_title">Nada que resistir</string>
+    <string name="pomodoro_intro_willpower_description">Mientras te concentras, las apps que elegiste simplemente no se abren. Esa energía se va al trabajo.</string>
+    <string name="pomodoro_intro_break_title">Descansos que no se comen la hora</string>
+    <string name="pomodoro_intro_break_description">‘Solo cinco minutos’ se vuelve una hora porque abres el móvil en el descanso. Si sigue bloqueado, la concentración vuelve sola.</string>
+    <string name="pomodoro_intro_start_title">Fácil de empezar</string>
+    <string name="pomodoro_intro_start_description">No tienes que estar sentado horas. Se desbloquea solo al terminar y puedes parar antes.</string>
     <string name="pomodoro_intro_cta">Vamos a probarlo</string>
     <string name="pomodoro_setup_confirm_title">Así va a funcionar</string>
 </resources>
