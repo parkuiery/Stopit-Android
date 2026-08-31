@@ -621,14 +621,14 @@
     <string name="pomodoro_setup_customize">設定を変える</string>
     <string name="pomodoro_settings_title">セッション設定</string>
     <string name="pomodoro_settings_done">完了</string>
-    <string name="pomodoro_intro_title">我慢しなくても\n集中できます</string>
+    <string name="pomodoro_intro_title">我慢しなくても集中できる</string>
     <string name="pomodoro_intro_subtitle">スマホを我慢する力を、やることのほうに使ってください。</string>
     <string name="pomodoro_intro_willpower_title">我慢するものがありません</string>
-    <string name="pomodoro_intro_willpower_description">集中している間、選んだアプリはそもそも開きません。我慢に使っていた力をそのまま集中に回せます。</string>
+    <string name="pomodoro_intro_willpower_description">集中している間、選んだアプリはそもそも開きません。</string>
     <string name="pomodoro_intro_break_title">休憩がそのまま流れません</string>
-    <string name="pomodoro_intro_break_description">「5分だけ」が1時間になるのは、休憩中にスマホを開くからです。休憩中も止めておけば、自然と集中に戻れます。</string>
+    <string name="pomodoro_intro_break_description">休憩中も止めるので「5分だけ」が1時間になりません。</string>
     <string name="pomodoro_intro_start_title">はじめやすい</string>
-    <string name="pomodoro_intro_start_description">一度に長く座っていなくて大丈夫です。終われば自動で解除され、途中でやめることもできます。</string>
-    <string name="pomodoro_intro_cta">はじめてみる</string>
+    <string name="pomodoro_intro_start_description">終われば自動で解除され、途中でやめることもできます。</string>
+    <string name="pomodoro_intro_cta">今日ひとつ集中してみる</string>
     <string name="pomodoro_setup_confirm_title">この内容で始めます</string>
 </resources>

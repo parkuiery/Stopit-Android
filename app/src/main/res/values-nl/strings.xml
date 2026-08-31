@@ -623,14 +623,14 @@
     <string name="pomodoro_setup_customize">Instellingen wijzigen</string>
     <string name="pomodoro_settings_title">Sessie-instellingen</string>
     <string name="pomodoro_settings_done">Klaar</string>
-    <string name="pomodoro_intro_title">Focussen zonder\ntegen jezelf te vechten</string>
+    <string name="pomodoro_intro_title">Niet weerstaan. Het blijft dicht.</string>
     <string name="pomodoro_intro_subtitle">Steek je wilskracht in het werk, niet in het weerstaan van je telefoon.</string>
     <string name="pomodoro_intro_willpower_title">Niets om te weerstaan</string>
-    <string name="pomodoro_intro_willpower_description">Terwijl je focust, gaan de gekozen apps gewoon niet open. Die energie gaat naar het werk.</string>
+    <string name="pomodoro_intro_willpower_description">Terwijl je focust, gaan de gekozen apps niet open.</string>
     <string name="pomodoro_intro_break_title">Pauzes die het uur niet opslokken</string>
-    <string name="pomodoro_intro_break_description">‘Even vijf minuten’ wordt een uur omdat je in de pauze je telefoon pakt. Blijft die dicht, dan komt de focus vanzelf terug.</string>
+    <string name="pomodoro_intro_break_description">Ook in pauzes geblokkeerd: ‘vijf minuten’ wordt geen uur.</string>
     <string name="pomodoro_intro_start_title">Makkelijk te beginnen</string>
-    <string name="pomodoro_intro_start_description">Je hoeft niet uren stil te zitten. Het gaat vanzelf weer open en je kunt eerder stoppen.</string>
-    <string name="pomodoro_intro_cta">Laten we het proberen</string>
+    <string name="pomodoro_intro_start_description">Het gaat aan het eind vanzelf open en je kunt eerder stoppen.</string>
+    <string name="pomodoro_intro_cta">Vandaag één keer focussen</string>
     <string name="pomodoro_setup_confirm_title">Zo gaat het lopen</string>
 </resources>

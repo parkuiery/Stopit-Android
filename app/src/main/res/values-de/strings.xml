@@ -623,14 +623,14 @@
     <string name="pomodoro_setup_customize">Einstellungen ändern</string>
     <string name="pomodoro_settings_title">Sitzungseinstellungen</string>
     <string name="pomodoro_settings_done">Fertig</string>
-    <string name="pomodoro_intro_title">Konzentriert,\nohne dich zu zwingen</string>
+    <string name="pomodoro_intro_title">Kein Widerstehen. Es bleibt zu.</string>
     <string name="pomodoro_intro_subtitle">Steck deine Kraft in die Arbeit, nicht ins Widerstehen.</string>
     <string name="pomodoro_intro_willpower_title">Nichts zu widerstehen</string>
-    <string name="pomodoro_intro_willpower_description">Während du fokussierst, gehen die gewählten Apps schlicht nicht auf. Die Kraft fürs Widerstehen fließt in die Arbeit.</string>
+    <string name="pomodoro_intro_willpower_description">Während du fokussierst, gehen die gewählten Apps gar nicht auf.</string>
     <string name="pomodoro_intro_break_title">Pausen, die nicht ausufern</string>
-    <string name="pomodoro_intro_break_description">‚Nur fünf Minuten‘ wird zur Stunde, weil du in der Pause zum Handy greifst. Bleibt es blockiert, kommt der Fokus von allein zurück.</string>
+    <string name="pomodoro_intro_break_description">Auch in Pausen blockiert – aus ‚fünf Minuten‘ wird keine Stunde.</string>
     <string name="pomodoro_intro_start_title">Leicht anzufangen</string>
-    <string name="pomodoro_intro_start_description">Du musst nicht stundenlang stillsitzen. Am Ende entsperrt es von selbst, und du kannst früher aufhören.</string>
-    <string name="pomodoro_intro_cta">Los geht’s</string>
+    <string name="pomodoro_intro_start_description">Am Ende entsperrt es von selbst, und du kannst früher aufhören.</string>
+    <string name="pomodoro_intro_cta">Heute einmal fokussieren</string>
     <string name="pomodoro_setup_confirm_title">So wird es laufen</string>
 </resources>

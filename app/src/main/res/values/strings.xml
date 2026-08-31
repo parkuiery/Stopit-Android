@@ -666,14 +666,14 @@
     <string name="pomodoro_setup_customize">Change settings</string>
     <string name="pomodoro_settings_title">Session settings</string>
     <string name="pomodoro_settings_done">Done</string>
-    <string name="pomodoro_intro_title">Focus without\nfighting yourself</string>
+    <string name="pomodoro_intro_title">You don’t resist. It just closes.</string>
     <string name="pomodoro_intro_subtitle">Spend your willpower on the work, not on resisting your phone.</string>
     <string name="pomodoro_intro_willpower_title">Nothing to resist</string>
-    <string name="pomodoro_intro_willpower_description">While you focus, the apps you picked simply don’t open. The effort you spent resisting goes into the work instead.</string>
+    <string name="pomodoro_intro_willpower_description">While you focus, the apps you picked don’t open at all.</string>
     <string name="pomodoro_intro_break_title">Breaks that don’t swallow the hour</string>
-    <string name="pomodoro_intro_break_description">‘Just five minutes’ becomes an hour because you open your phone during the break. Keep it blocked and focus comes back on its own.</string>
+    <string name="pomodoro_intro_break_description">Blocked through breaks, so ‘five more minutes’ never becomes an hour.</string>
     <string name="pomodoro_intro_start_title">Easy to begin</string>
-    <string name="pomodoro_intro_start_description">You don’t have to sit still for hours. It unlocks by itself when the session ends, and you can stop early.</string>
-    <string name="pomodoro_intro_cta">Let’s try it</string>
+    <string name="pomodoro_intro_start_description">It unlocks by itself at the end, and you can stop early.</string>
+    <string name="pomodoro_intro_cta">Focus once today</string>
     <string name="pomodoro_setup_confirm_title">Here\'s how it will run</string>
 </resources>

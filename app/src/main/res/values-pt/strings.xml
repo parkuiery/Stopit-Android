@@ -623,14 +623,14 @@
     <string name="pomodoro_setup_customize">Alterar definições</string>
     <string name="pomodoro_settings_title">Definições da sessão</string>
     <string name="pomodoro_settings_done">Concluído</string>
-    <string name="pomodoro_intro_title">Concentre-se sem\nlutar consigo</string>
+    <string name="pomodoro_intro_title">Sem resistir. Simplesmente não abre.</string>
     <string name="pomodoro_intro_subtitle">Gaste a sua força de vontade no trabalho, não a resistir ao telemóvel.</string>
     <string name="pomodoro_intro_willpower_title">Nada a que resistir</string>
-    <string name="pomodoro_intro_willpower_description">Enquanto se concentra, as apps escolhidas simplesmente não abrem. Essa energia vai toda para o trabalho.</string>
+    <string name="pomodoro_intro_willpower_description">Enquanto se concentra, as apps escolhidas não abrem.</string>
     <string name="pomodoro_intro_break_title">Pausas que não comem a hora</string>
-    <string name="pomodoro_intro_break_description">‘Só cinco minutos’ vira uma hora porque abre o telemóvel na pausa. Se ficar bloqueado, a concentração volta sozinha.</string>
+    <string name="pomodoro_intro_break_description">Bloqueado também nas pausas: ‘cinco minutos’ não vira uma hora.</string>
     <string name="pomodoro_intro_start_title">Fácil de começar</string>
-    <string name="pomodoro_intro_start_description">Não precisa de ficar horas sentado. Desbloqueia sozinho no fim e pode parar antes.</string>
-    <string name="pomodoro_intro_cta">Vamos experimentar</string>
+    <string name="pomodoro_intro_start_description">Desbloqueia sozinho no fim e pode parar antes.</string>
+    <string name="pomodoro_intro_cta">Concentre-se uma vez hoje</string>
     <string name="pomodoro_setup_confirm_title">Vai correr assim</string>
 </resources>

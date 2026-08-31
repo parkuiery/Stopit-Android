@@ -405,8 +405,8 @@ private fun PomodoroIntroContent(onNext: () -> Unit) {
                 text = stringResource(R.string.pomodoro_intro_title),
                 color = KeepTheme.colors.onSurfaceVariant,
                 fontWeight = FontWeight.Bold,
-                fontSize = 24.sp,
-                lineHeight = 34.sp,
+                fontSize = 26.sp,
+                lineHeight = 36.sp,
             )
             Spacer(modifier = Modifier.height(10.dp))
             Text(
