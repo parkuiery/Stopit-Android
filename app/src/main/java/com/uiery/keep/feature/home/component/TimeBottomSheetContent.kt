@@ -123,7 +123,9 @@ fun TimeBottomSheetContent(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(top = 8.dp)
-                    .padding(horizontal = 68.dp),
+                    // 세그먼트가 둘일 때 잡은 여백이라 셋이 되자 첫 라벨이 잘렸다("카운트다운"이
+                    // "카운트"로 보였다). 가장 긴 라벨이 들어갈 만큼 넓힌다.
+                    .padding(horizontal = 24.dp),
                 // 집중 세션도 "앱이 언제까지 막히는가"를 정하는 일이다. 별도 진입점을 두면
                 // 사용자는 잠금에 대한 모델을 두 개 갖게 된다. 여기가 그 질문을 하는 자리다.
                 items = listOf(

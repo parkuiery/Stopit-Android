@@ -17,6 +17,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.uiery.kds.theme.KeepTheme
 
@@ -70,6 +71,9 @@ fun KeepSegmentedControl(
                     ),
                     textAlign = TextAlign.Center,
                     maxLines = 1,
+                    // 기본 Clip 은 넘치는 라벨을 말없이 잘라 다른 단어로 보이게 만든다
+                    // ("카운트다운" → "카운트"). 말줄임표가 있어야 잘렸다는 게 드러난다.
+                    overflow = TextOverflow.Ellipsis,
                 )
             }
         }
