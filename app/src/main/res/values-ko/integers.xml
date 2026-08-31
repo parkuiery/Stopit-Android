@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- 글자당 정보량이 많아 같은 문장이 짧게 끝난다. 크게 키워도 줄이 넘치지 않는다. -->
+    <integer name="pomodoro_intro_title_sp">34</integer>
+</resources>

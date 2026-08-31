@@ -42,6 +42,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.res.integerResource
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
@@ -450,12 +451,16 @@ private fun PomodoroIntroContent(cycle: PomodoroCycle, onNext: () -> Unit) {
                     fontSize = 13.sp,
                 )
                 Spacer(modifier = Modifier.height(10.dp))
+                // 크기를 로케일 자원에서 읽는다. CJK 는 같은 문장이 절반 길이로 끝나서 크게
+                // 키워도 한두 줄이지만, 라틴 문자로 같은 크기를 쓰면 세 줄이 되면서 히어로가
+                // 화면을 다 먹는다. 자세한 근거는 values/integers.xml 주석 참고.
+                val titleSp = integerResource(R.integer.pomodoro_intro_title_sp).sp
                 Text(
                     text = stringResource(R.string.pomodoro_intro_title),
                     color = KeepTheme.colors.onSurfaceVariant,
                     fontWeight = FontWeight.Bold,
-                    fontSize = 28.sp,
-                    lineHeight = 38.sp,
+                    fontSize = titleSp,
+                    lineHeight = titleSp * 1.35f,
                     textAlign = TextAlign.Center,
                 )
                 Spacer(modifier = Modifier.height(12.dp))
