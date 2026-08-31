@@ -619,4 +619,6 @@
     <string name="pomodoro_block_during_breaks_description">Se desligares, as apps abrem nas pausas e voltam a bloquear quando o foco recomeça.</string>
     <string name="pomodoro_custom_cycles_label">Repetições</string>
     <string name="pomodoro_custom_cycles_value">%1$d vezes</string>
+    <string name="pomodoro_cycle_summary_title">Foco %1$d min · pausa %2$d min</string>
+    <string name="pomodoro_setup_customize">Alterar definições</string>
 </resources>

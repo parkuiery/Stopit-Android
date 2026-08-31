@@ -617,4 +617,6 @@
     <string name="pomodoro_block_during_breaks_description">关闭后休息期间应用会打开，专注重新开始时再次锁定。</string>
     <string name="pomodoro_custom_cycles_label">重复次数</string>
     <string name="pomodoro_custom_cycles_value">%1$d 次</string>
+    <string name="pomodoro_cycle_summary_title">专注 %1$d 分钟 · 休息 %2$d 分钟</string>
+    <string name="pomodoro_setup_customize">更改设置</string>
 </resources>

@@ -662,4 +662,6 @@
     <string name="pomodoro_block_during_breaks_description">Off means your apps open during breaks and lock again when focus resumes.</string>
     <string name="pomodoro_custom_cycles_label">Repeat</string>
     <string name="pomodoro_custom_cycles_value">%1$d times</string>
+    <string name="pomodoro_cycle_summary_title">Focus %1$d min · break %2$d min</string>
+    <string name="pomodoro_setup_customize">Change settings</string>
 </resources>

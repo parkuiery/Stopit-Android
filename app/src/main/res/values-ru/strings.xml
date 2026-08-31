@@ -629,4 +629,6 @@
     <string name="pomodoro_block_during_breaks_description">Если выключить, на перерывах приложения открываются и снова блокируются с началом концентрации.</string>
     <string name="pomodoro_custom_cycles_label">Повторов</string>
     <string name="pomodoro_custom_cycles_value">%1$d раз</string>
+    <string name="pomodoro_cycle_summary_title">Фокус %1$d мин · перерыв %2$d мин</string>
+    <string name="pomodoro_setup_customize">Изменить настройки</string>
 </resources>

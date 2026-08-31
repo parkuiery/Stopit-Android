@@ -21,12 +21,16 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
@@ -354,11 +358,16 @@ private fun PomodoroSetupContent(
     onPickApps: () -> Unit,
     onStart: () -> Unit,
 ) {
-    // 제목은 상단 바가 들고 있다. 본문에서 한 번 더 쓰면 같은 문장이 두 줄 겹쳐 보인다.
+    // 세션을 시작하려고 들어온 사람에게 고를 것을 먼저 내밀면, 아무것도 고르고 싶지 않은
+    // 사람까지 결정을 하게 만든다. 기본값은 이미 정해져 있고(직전에 쓴 사이클이 복원된다)
+    // 대부분은 그대로 쓴다. 그래서 기본 화면은 **무엇이 일어나는지 한 문단과 시작 버튼**이고,
+    // 고르는 항목은 "설정 바꾸기" 뒤로 접어 둔다. 접힌 것을 펴는 건 한 번 더 누르면 되지만,
+    // 펼쳐진 화면을 매번 지나치는 건 되돌릴 수 없다.
     //
-    // 고르는 내용은 스크롤하고 시작 버튼은 바닥에 고정한다. 커스텀 카드를 펼치면 스테퍼 세 개가
+    // 내용은 스크롤하고 시작 버튼은 바닥에 고정한다. 커스텀 카드를 펼치면 스테퍼 네 개가
     // 더해져 내용이 화면보다 길어지는데, 한 덩어리로 두면 버튼이 화면 밖으로 밀려 **커스텀
     // 세션을 아예 시작할 수 없다.** 큰 글꼴에서는 프리셋만으로도 넘칠 수 있다.
+    var optionsExpanded by rememberSaveable { mutableStateOf(false) }
     Column(modifier = Modifier.fillMaxSize()) {
     Column(
         modifier = Modifier
@@ -366,14 +375,43 @@ private fun PomodoroSetupContent(
             .verticalScroll(rememberScrollState()),
         horizontalAlignment = Alignment.Start,
     ) {
-        Spacer(modifier = Modifier.height(8.dp))
+        Spacer(modifier = Modifier.height(16.dp))
+        // 고른 것은 "집중 25분"이지만 실제로 예약되는 잠금은 2시간 10분이다. 접어 둔 화면에서도
+        // 그 숫자만은 시작 전에 반드시 보여야 한다.
+        Text(
+            text = stringResource(
+                R.string.pomodoro_cycle_summary_title,
+                state.selectedCycle.focusMinutes,
+                state.selectedCycle.shortBreakMinutes,
+            ),
+            color = KeepTheme.colors.onSurfaceVariant,
+            fontWeight = FontWeight.Bold,
+            fontSize = 22.sp,
+        )
+        Spacer(modifier = Modifier.height(6.dp))
+        PomodoroTotalLengthSummary(cycle = state.selectedCycle)
+        Spacer(modifier = Modifier.height(10.dp))
         Text(
             text = stringResource(R.string.pomodoro_setup_description),
             color = KeepTheme.colors.surfaceVariant,
-            fontSize = 14.sp,
+            fontSize = 13.sp,
         )
 
-        Spacer(modifier = Modifier.height(24.dp))
+        Spacer(modifier = Modifier.height(20.dp))
+        if (!optionsExpanded) {
+            Text(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(8.dp))
+                    .clickable(role = Role.Button) { optionsExpanded = true }
+                    .padding(vertical = 6.dp),
+                text = stringResource(R.string.pomodoro_setup_customize),
+                color = KeepTheme.colors.onPrimaryContainer,
+                fontWeight = FontWeight.Bold,
+                fontSize = 14.sp,
+            )
+        }
+
+        if (optionsExpanded) {
         Text(
             text = stringResource(R.string.pomodoro_setup_cycle_label),
             color = KeepTheme.colors.onSurface,
@@ -450,6 +488,7 @@ private fun PomodoroSetupContent(
                 fontSize = 13.sp,
             )
         }
+        }
 
     }
 
@@ -469,10 +508,6 @@ private fun PomodoroSetupContent(
                 onClick = onPickApps,
             )
         } else {
-            // 고른 것은 "집중 25분"이지만 실제로 예약되는 잠금은 2시간 10분이다. 그 숫자를 커밋
-            // 직전에 말하지 않으면 사용자는 자기가 얼마를 거는지 모르고 시작한다.
-            PomodoroTotalLengthSummary(cycle = state.selectedCycle)
-            Spacer(modifier = Modifier.height(10.dp))
             KeepButton(
                 modifier = Modifier.fillMaxWidth(),
                 text = stringResource(R.string.pomodoro_setup_start),
@@ -516,7 +551,6 @@ private fun PomodoroTotalLengthSummary(cycle: PomodoroCycle) {
         color = KeepTheme.colors.onSurfaceVariant,
         fontWeight = FontWeight.Bold,
         fontSize = 14.sp,
-        textAlign = TextAlign.Center,
     )
 }
 

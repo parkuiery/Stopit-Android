@@ -617,4 +617,6 @@
     <string name="pomodoro_block_during_breaks_description">オフにすると休憩中はアプリが開き、集中が再開するとまたロックされます。</string>
     <string name="pomodoro_custom_cycles_label">繰り返し回数</string>
     <string name="pomodoro_custom_cycles_value">%1$d回</string>
+    <string name="pomodoro_cycle_summary_title">集中%1$d分 · 休憩%2$d分</string>
+    <string name="pomodoro_setup_customize">設定を変える</string>
 </resources>

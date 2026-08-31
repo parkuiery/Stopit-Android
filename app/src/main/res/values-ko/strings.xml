@@ -661,4 +661,6 @@
     <string name="pomodoro_block_during_breaks_description">끄면 휴식 동안 앱이 열리고, 집중이 다시 시작되면 잠겨요.</string>
     <string name="pomodoro_custom_cycles_label">반복 횟수</string>
     <string name="pomodoro_custom_cycles_value">%1$d번</string>
+    <string name="pomodoro_cycle_summary_title">집중 %1$d분 · 휴식 %2$d분</string>
+    <string name="pomodoro_setup_customize">설정 바꾸기</string>
 </resources>

@@ -618,4 +618,6 @@
     <string name="pomodoro_block_during_breaks_description">Si lo desactivas, tus apps se abren en los descansos y se bloquean al volver a concentrarte.</string>
     <string name="pomodoro_custom_cycles_label">Repeticiones</string>
     <string name="pomodoro_custom_cycles_value">%1$d veces</string>
+    <string name="pomodoro_cycle_summary_title">Concentración %1$d min · descanso %2$d min</string>
+    <string name="pomodoro_setup_customize">Cambiar ajustes</string>
 </resources>

@@ -619,4 +619,6 @@
     <string name="pomodoro_block_during_breaks_description">Se disattivi, le app si aprono in pausa e si bloccano di nuovo quando riprende la concentrazione.</string>
     <string name="pomodoro_custom_cycles_label">Ripetizioni</string>
     <string name="pomodoro_custom_cycles_value">%1$d volte</string>
+    <string name="pomodoro_cycle_summary_title">Concentrazione %1$d min · pausa %2$d min</string>
+    <string name="pomodoro_setup_customize">Modifica impostazioni</string>
 </resources>

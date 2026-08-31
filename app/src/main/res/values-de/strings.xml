@@ -619,4 +619,6 @@
     <string name="pomodoro_block_during_breaks_description">Aus bedeutet: In Pausen öffnen sich deine Apps und werden beim nächsten Fokus wieder gesperrt.</string>
     <string name="pomodoro_custom_cycles_label">Wiederholungen</string>
     <string name="pomodoro_custom_cycles_value">%1$d-mal</string>
+    <string name="pomodoro_cycle_summary_title">Fokus %1$d Min. · Pause %2$d Min.</string>
+    <string name="pomodoro_setup_customize">Einstellungen ändern</string>
 </resources>
