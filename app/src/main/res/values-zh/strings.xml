@@ -621,4 +621,13 @@
     <string name="pomodoro_setup_customize">更改设置</string>
     <string name="pomodoro_settings_title">会话设置</string>
     <string name="pomodoro_settings_done">完成</string>
+    <string name="pomodoro_intro_title">专注和休息\n轮流进行</string>
+    <string name="pomodoro_intro_rhythm_title">不用去想的节奏</string>
+    <string name="pomodoro_intro_rhythm_description">专注和休息会自动轮流进行。每段多长由你决定。</string>
+    <string name="pomodoro_intro_break_title">休息时也会拦截</string>
+    <string name="pomodoro_intro_break_description">休息时应用一打开，休息就变成了刷手机。你可以关掉这项。</string>
+    <string name="pomodoro_intro_release_title">结束后自动解锁</string>
+    <string name="pomodoro_intro_release_description">开始前会告诉你会被拦截多久。中途也可以结束。</string>
+    <string name="pomodoro_intro_cta">试试看</string>
+    <string name="pomodoro_setup_confirm_title">将按这样开始</string>
 </resources>

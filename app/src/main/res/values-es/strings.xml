@@ -622,4 +622,13 @@
     <string name="pomodoro_setup_customize">Cambiar ajustes</string>
     <string name="pomodoro_settings_title">Ajustes de la sesión</string>
     <string name="pomodoro_settings_done">Listo</string>
+    <string name="pomodoro_intro_title">Concentración y descansos,\npor turnos</string>
+    <string name="pomodoro_intro_rhythm_title">Un ritmo en el que no tienes que pensar</string>
+    <string name="pomodoro_intro_rhythm_description">La concentración y los descansos se alternan solos. Tú eliges cuánto dura cada uno.</string>
+    <string name="pomodoro_intro_break_title">También bloquea en los descansos</string>
+    <string name="pomodoro_intro_break_description">Si las apps se abren mientras descansas, el descanso se convierte en scroll. Puedes desactivarlo.</string>
+    <string name="pomodoro_intro_release_title">Se desbloquea solo</string>
+    <string name="pomodoro_intro_release_description">Antes de empezar verás cuánto tiempo estarás bloqueado. También puedes terminar antes.</string>
+    <string name="pomodoro_intro_cta">Vamos a probarlo</string>
+    <string name="pomodoro_setup_confirm_title">Así va a funcionar</string>
 </resources>

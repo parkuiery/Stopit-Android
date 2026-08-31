@@ -623,4 +623,13 @@
     <string name="pomodoro_setup_customize">Alterar definições</string>
     <string name="pomodoro_settings_title">Definições da sessão</string>
     <string name="pomodoro_settings_done">Concluído</string>
+    <string name="pomodoro_intro_title">Concentração e pausas,\nà vez</string>
+    <string name="pomodoro_intro_rhythm_title">Um ritmo em que não precisa de pensar</string>
+    <string name="pomodoro_intro_rhythm_description">A concentração e as pausas alternam sozinhas. A duração de cada uma é escolhida por si.</string>
+    <string name="pomodoro_intro_break_title">Também bloqueia nas pausas</string>
+    <string name="pomodoro_intro_break_description">Se as apps abrirem durante o descanso, a pausa vira scroll. Pode desativar isto.</string>
+    <string name="pomodoro_intro_release_title">Desbloqueia sozinho</string>
+    <string name="pomodoro_intro_release_description">Antes de começar mostramos quanto tempo vai ficar bloqueado. Também pode terminar antes.</string>
+    <string name="pomodoro_intro_cta">Vamos experimentar</string>
+    <string name="pomodoro_setup_confirm_title">Vai correr assim</string>
 </resources>

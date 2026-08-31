@@ -665,4 +665,13 @@
     <string name="pomodoro_setup_customize">설정 바꾸기</string>
     <string name="pomodoro_settings_title">세션 설정</string>
     <string name="pomodoro_settings_done">완료</string>
+    <string name="pomodoro_intro_title">집중과 휴식을\n번갈아 돌려요</string>
+    <string name="pomodoro_intro_rhythm_title">생각하지 않아도 되는 리듬</string>
+    <string name="pomodoro_intro_rhythm_description">집중과 휴식이 알아서 번갈아 돌아가요. 각각 얼마나 할지는 직접 정할 수 있어요.</string>
+    <string name="pomodoro_intro_break_title">휴식 중에도 막아요</string>
+    <string name="pomodoro_intro_break_description">쉬는 동안 앱이 열리면 그대로 딴짓이 돼요. 원하지 않으면 끌 수 있어요.</string>
+    <string name="pomodoro_intro_release_title">끝나면 저절로 풀려요</string>
+    <string name="pomodoro_intro_release_description">시작하기 전에 얼마나 잠기는지 알려드려요. 중간에 끝낼 수도 있어요.</string>
+    <string name="pomodoro_intro_cta">시작해볼게요</string>
+    <string name="pomodoro_setup_confirm_title">이렇게 시작할게요</string>
 </resources>

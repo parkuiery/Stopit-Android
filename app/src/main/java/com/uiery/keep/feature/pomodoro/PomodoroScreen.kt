@@ -129,6 +129,14 @@ internal fun PomodoroScreen(
         )
     }
 
+    // 기능을 먼저 소개하고, 계속할지는 사용자가 정한다. 메뉴에서 "집중 세션 시작"을 누른 사람은
+    // 이게 뭘 하는 기능인지 모르는 상태다. 설명 한 줄을 시작 화면에 얹는 것과, 설명을 읽고
+    // **넘어갈지 말지 고르게 하는 것**은 다르다.
+    //
+    // 시트에서 이미 시작을 누르고 들어온 경로(autoStart)는 소개를 지나친다. 재사용 2탭 계약을
+    // 소개 화면으로 깨면 안 된다.
+    var showIntro by rememberSaveable { mutableStateOf(!autoStart) }
+
     // 고르는 일과 시작하는 일을 한 화면에 같이 두면, 시작하러 들어온 사람이 매번 선택지를
     // 지나가게 된다. 설정은 제 화면을 갖고, 시작 화면에는 결과와 버튼만 남는다.
     var showSettings by rememberSaveable { mutableStateOf(false) }
@@ -146,7 +154,7 @@ internal fun PomodoroScreen(
                 title = {
                     // 진행·완료 화면은 본문이 이미 상태를 크게 말한다. 제목을 또 얹으면 같은
                     // 문장이 두 줄 겹치므로 시작·설정 화면에서만 제목을 쓴다.
-                    if (!uiState.isSessionRunning && !uiState.isSessionFinished) {
+                    if (!uiState.isSessionRunning && !uiState.isSessionFinished && !showIntro) {
                         Text(
                             text = stringResource(
                                 if (showSettings) {
@@ -202,6 +210,7 @@ internal fun PomodoroScreen(
                     state = uiState,
                     onEnd = viewModel::showEndConfirm,
                 )
+                showIntro -> PomodoroIntroContent(onNext = { showIntro = false })
                 showSettings -> PomodoroSettingsContent(
                     state = uiState,
                     onSelectCycle = viewModel::selectCycle,
@@ -368,6 +377,80 @@ private fun PomodoroBlockingNotice(
     }
 }
 
+/**
+ * 기능 소개. 이 화면을 지나야 시작 화면이 나온다.
+ *
+ * 설명을 시작 화면 위에 한 줄 얹는 것과, 설명을 읽고 **계속할지 고르게 하는 것**은 다르다.
+ * 앞의 것은 시작 버튼 옆의 곁다리 문장이 되고, 뒤의 것은 사용자가 내리는 결정이 된다.
+ *
+ * 숫자를 쓰지 않는다. "집중 25분"은 마지막에 쓴 사이클에 따라 달라지므로, 여기에 박아 두면
+ * 50/10 을 쓰는 사람에게는 거짓말이 된다. 구체적인 길이는 다음 화면이 말한다.
+ */
+@Composable
+private fun PomodoroIntroContent(onNext: () -> Unit) {
+    Column(modifier = Modifier.fillMaxSize()) {
+        Column(
+            modifier = Modifier
+                .weight(1f)
+                .verticalScroll(rememberScrollState()),
+            horizontalAlignment = Alignment.Start,
+        ) {
+            Spacer(modifier = Modifier.height(24.dp))
+            Text(
+                text = stringResource(R.string.pomodoro_intro_title),
+                color = KeepTheme.colors.onSurfaceVariant,
+                fontWeight = FontWeight.Bold,
+                fontSize = 24.sp,
+                lineHeight = 34.sp,
+            )
+
+            Spacer(modifier = Modifier.height(32.dp))
+            PomodoroIntroPoint(
+                title = stringResource(R.string.pomodoro_intro_rhythm_title),
+                description = stringResource(R.string.pomodoro_intro_rhythm_description),
+            )
+            Spacer(modifier = Modifier.height(24.dp))
+            PomodoroIntroPoint(
+                title = stringResource(R.string.pomodoro_intro_break_title),
+                description = stringResource(R.string.pomodoro_intro_break_description),
+            )
+            Spacer(modifier = Modifier.height(24.dp))
+            PomodoroIntroPoint(
+                title = stringResource(R.string.pomodoro_intro_release_title),
+                description = stringResource(R.string.pomodoro_intro_release_description),
+            )
+            Spacer(modifier = Modifier.height(24.dp))
+        }
+
+        KeepButton(
+            modifier = Modifier.fillMaxWidth(),
+            text = stringResource(R.string.pomodoro_intro_cta),
+            size = KeepButtonSize.Large,
+            bottomSpacing = false,
+            onClick = onNext,
+        )
+        Spacer(modifier = Modifier.height(20.dp))
+    }
+}
+
+@Composable
+private fun PomodoroIntroPoint(title: String, description: String) {
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Text(
+            text = title,
+            color = KeepTheme.colors.onSurfaceVariant,
+            fontWeight = FontWeight.Bold,
+            fontSize = 16.sp,
+        )
+        Text(
+            text = description,
+            color = KeepTheme.colors.surfaceVariant,
+            fontSize = 14.sp,
+            lineHeight = 21.sp,
+        )
+    }
+}
+
 @Composable
 private fun PomodoroSetupContent(
     state: PomodoroUiState,
@@ -390,13 +473,13 @@ private fun PomodoroSetupContent(
             horizontalAlignment = Alignment.Start,
         ) {
             Spacer(modifier = Modifier.height(16.dp))
-            // 이게 뭔지부터 말한다. 메뉴에서 처음 들어온 사람에게 "집중 25분 · 휴식 5분"을 먼저
-            // 내밀면, 그 숫자가 무엇을 하는 숫자인지 모르는 채로 읽게 된다. 설명을 카드 아래
-            // 작은 회색 글씨로 두면 순서만 맞고 실제로는 읽히지 않는다.
+            // 기능 설명은 앞 화면이 이미 했다. 여기서 같은 문장을 되풀이하면 방금 읽은 것을 또
+            // 읽히는 셈이다. 이 화면이 하는 말은 "이대로 갈까요?" 하나다.
             Text(
-                text = stringResource(R.string.pomodoro_setup_description),
+                text = stringResource(R.string.pomodoro_setup_confirm_title),
                 color = KeepTheme.colors.onSurfaceVariant,
-                fontSize = 16.sp,
+                fontWeight = FontWeight.Bold,
+                fontSize = 20.sp,
             )
 
             Spacer(modifier = Modifier.height(20.dp))
@@ -431,7 +514,7 @@ private fun PomodoroSetupContent(
                         ),
                         color = KeepTheme.colors.onSurfaceVariant,
                         fontWeight = FontWeight.Bold,
-                        fontSize = 20.sp,
+                        fontSize = 18.sp,
                     )
                     PomodoroTotalLengthSummary(cycle = state.selectedCycle)
                 }

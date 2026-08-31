@@ -621,4 +621,13 @@
     <string name="pomodoro_setup_customize">設定を変える</string>
     <string name="pomodoro_settings_title">セッション設定</string>
     <string name="pomodoro_settings_done">完了</string>
+    <string name="pomodoro_intro_title">集中と休憩を\n交互にまわします</string>
+    <string name="pomodoro_intro_rhythm_title">考えなくていいリズム</string>
+    <string name="pomodoro_intro_rhythm_description">集中と休憩が自動で交互にまわります。それぞれの長さは自分で決められます。</string>
+    <string name="pomodoro_intro_break_title">休憩中もブロックします</string>
+    <string name="pomodoro_intro_break_description">休んでいる間にアプリが開くと、そのまま脱線します。オフにもできます。</string>
+    <string name="pomodoro_intro_release_title">終われば自動で解除されます</string>
+    <string name="pomodoro_intro_release_description">始める前にどれくらいロックされるかをお知らせします。途中で終わることもできます。</string>
+    <string name="pomodoro_intro_cta">はじめてみる</string>
+    <string name="pomodoro_setup_confirm_title">この内容で始めます</string>
 </resources>

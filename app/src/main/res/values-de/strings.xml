@@ -623,4 +623,13 @@
     <string name="pomodoro_setup_customize">Einstellungen ändern</string>
     <string name="pomodoro_settings_title">Sitzungseinstellungen</string>
     <string name="pomodoro_settings_done">Fertig</string>
+    <string name="pomodoro_intro_title">Fokus und Pausen\nim Wechsel</string>
+    <string name="pomodoro_intro_rhythm_title">Ein Rhythmus, über den du nicht nachdenken musst</string>
+    <string name="pomodoro_intro_rhythm_description">Fokus und Pausen wechseln sich von selbst ab. Wie lang beides dauert, bestimmst du.</string>
+    <string name="pomodoro_intro_break_title">Auch in Pausen blockiert</string>
+    <string name="pomodoro_intro_break_description">Öffnen sich Apps in der Pause, wird aus der Pause schnell Scrollen. Du kannst das ausschalten.</string>
+    <string name="pomodoro_intro_release_title">Es entsperrt sich von selbst</string>
+    <string name="pomodoro_intro_release_description">Du siehst vor dem Start genau, wie lange blockiert wird. Vorzeitig beenden geht auch.</string>
+    <string name="pomodoro_intro_cta">Los geht\'s</string>
+    <string name="pomodoro_setup_confirm_title">So wird es laufen</string>
 </resources>

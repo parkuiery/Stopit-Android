@@ -633,4 +633,13 @@
     <string name="pomodoro_setup_customize">Изменить настройки</string>
     <string name="pomodoro_settings_title">Настройки сессии</string>
     <string name="pomodoro_settings_done">Готово</string>
+    <string name="pomodoro_intro_title">Фокус и перерывы\nпо очереди</string>
+    <string name="pomodoro_intro_rhythm_title">Ритм, о котором не нужно думать</string>
+    <string name="pomodoro_intro_rhythm_description">Фокус и перерывы чередуются сами. Длительность каждого вы задаёте сами.</string>
+    <string name="pomodoro_intro_break_title">Блокирует и на перерывах</string>
+    <string name="pomodoro_intro_break_description">Если приложения открываются на перерыве, перерыв превращается в ленту. Это можно выключить.</string>
+    <string name="pomodoro_intro_release_title">Разблокируется само</string>
+    <string name="pomodoro_intro_release_description">Перед стартом покажем, насколько долго будет заблокировано. Можно завершить раньше.</string>
+    <string name="pomodoro_intro_cta">Попробовать</string>
+    <string name="pomodoro_setup_confirm_title">Вот как это пройдёт</string>
 </resources>
