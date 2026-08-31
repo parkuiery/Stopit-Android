@@ -634,6 +634,7 @@
     <string name="pomodoro_settings_title">Настройки сессии</string>
     <string name="pomodoro_settings_done">Готово</string>
     <string name="pomodoro_intro_title">Не бороться. Просто не открывается.</string>
+    <string name="pomodoro_intro_eyebrow">Сессия фокуса</string>
     <string name="pomodoro_intro_subtitle">Тратьте силы на дело, а не на то, чтобы не взять телефон.</string>
     <string name="pomodoro_intro_willpower_title">Нечему сопротивляться</string>
     <string name="pomodoro_intro_willpower_description">Пока вы работаете, выбранные приложения не открываются.</string>

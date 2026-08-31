@@ -624,6 +624,7 @@
     <string name="pomodoro_settings_title">Impostazioni sessione</string>
     <string name="pomodoro_settings_done">Fatto</string>
     <string name="pomodoro_intro_title">Niente resistenza. Resta chiuso.</string>
+    <string name="pomodoro_intro_eyebrow">Sessione di concentrazione</string>
     <string name="pomodoro_intro_subtitle">Usa le energie per il lavoro, non per resistere al telefono.</string>
     <string name="pomodoro_intro_willpower_title">Niente a cui resistere</string>
     <string name="pomodoro_intro_willpower_description">Mentre ti concentri, le app scelte non si aprono.</string>

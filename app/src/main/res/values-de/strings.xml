@@ -624,6 +624,7 @@
     <string name="pomodoro_settings_title">Sitzungseinstellungen</string>
     <string name="pomodoro_settings_done">Fertig</string>
     <string name="pomodoro_intro_title">Kein Widerstehen. Es bleibt zu.</string>
+    <string name="pomodoro_intro_eyebrow">Fokus-Sitzung</string>
     <string name="pomodoro_intro_subtitle">Steck deine Kraft in die Arbeit, nicht ins Widerstehen.</string>
     <string name="pomodoro_intro_willpower_title">Nichts zu widerstehen</string>
     <string name="pomodoro_intro_willpower_description">Während du fokussierst, gehen die gewählten Apps gar nicht auf.</string>

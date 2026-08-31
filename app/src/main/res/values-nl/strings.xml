@@ -624,6 +624,7 @@
     <string name="pomodoro_settings_title">Sessie-instellingen</string>
     <string name="pomodoro_settings_done">Klaar</string>
     <string name="pomodoro_intro_title">Niet weerstaan. Het blijft dicht.</string>
+    <string name="pomodoro_intro_eyebrow">Focussessie</string>
     <string name="pomodoro_intro_subtitle">Steek je wilskracht in het werk, niet in het weerstaan van je telefoon.</string>
     <string name="pomodoro_intro_willpower_title">Niets om te weerstaan</string>
     <string name="pomodoro_intro_willpower_description">Terwijl je focust, gaan de gekozen apps niet open.</string>

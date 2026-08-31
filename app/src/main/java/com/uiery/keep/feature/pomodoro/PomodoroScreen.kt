@@ -203,26 +203,29 @@ internal fun PomodoroScreen(
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(paddingValues)
-                .padding(horizontal = 20.dp),
+                .padding(paddingValues),
             contentAlignment = Alignment.Center,
         ) {
+            // 소개 화면만 여백을 스스로 관리한다 — 히어로 배경이 화면 끝까지 가야 한다.
+            val gutter = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 20.dp)
             when {
                 uiState.isLoading -> Unit
-                uiState.isSessionFinished -> PomodoroCompleteContent(
+                uiState.isSessionFinished -> Box(gutter) { PomodoroCompleteContent(
                     state = uiState,
                     onRestart = viewModel::restartSession,
                     onLeave = viewModel::finishAndLeave,
-                )
-                uiState.isSessionRunning -> PomodoroRunningContent(
+                ) }
+                uiState.isSessionRunning -> Box(gutter) { PomodoroRunningContent(
                     state = uiState,
                     onEnd = viewModel::showEndConfirm,
-                )
+                ) }
                 showIntro -> PomodoroIntroContent(
                     cycle = uiState.selectedCycle,
                     onNext = { showIntro = false },
                 )
-                showSettings -> PomodoroSettingsContent(
+                showSettings -> Box(gutter) { PomodoroSettingsContent(
                     state = uiState,
                     onSelectCycle = viewModel::selectCycle,
                     onSelectCustom = viewModel::selectCustomCycle,
@@ -233,13 +236,13 @@ internal fun PomodoroScreen(
                     onToggleBlockDuringBreaks = viewModel::setBlockDuringBreaks,
                     onPickApps = onPickApps,
                     onDone = { showSettings = false },
-                )
-                else -> PomodoroSetupContent(
+                ) }
+                else -> Box(gutter) { PomodoroSetupContent(
                     state = uiState,
                     onOpenSettings = { showSettings = true },
                     onPickApps = onPickApps,
                     onStart = { viewModel.startSession() },
-                )
+                ) }
             }
         }
     }
@@ -409,56 +412,100 @@ private fun PomodoroIntroContent(cycle: PomodoroCycle, onNext: () -> Unit) {
             modifier = Modifier
                 .weight(1f)
                 .verticalScroll(rememberScrollState()),
-            horizontalAlignment = Alignment.Start,
         ) {
-            Spacer(modifier = Modifier.height(24.dp))
-            Text(
-                text = stringResource(R.string.pomodoro_intro_title),
-                color = KeepTheme.colors.onSurfaceVariant,
-                fontWeight = FontWeight.Bold,
-                fontSize = 26.sp,
-                lineHeight = 36.sp,
-            )
-            Spacer(modifier = Modifier.height(10.dp))
-            Text(
-                text = stringResource(R.string.pomodoro_intro_subtitle),
-                color = KeepTheme.colors.surfaceVariant,
-                fontSize = 15.sp,
-                lineHeight = 22.sp,
-            )
-
-            Spacer(modifier = Modifier.height(28.dp))
-            PomodoroCycleTrack(cycle = cycle)
+            // 히어로는 화면 끝까지 가는 톤 배경을 깔고 가운데로 모은다. 토스뱅크 상품 페이지를
+            // iPhone 12 규격으로 열어 보고 가져온 구조다 — 작은 아이브로우가 위, 큰 제목이
+            // 아래, 그 아래 시각물, 전부 가운데 정렬, 섹션 전체가 브랜드 톤.
+            //
+            // 다만 토스는 아이브로우에 약속을 넣고 제목에 상품명을 넣는다. 상품명이 곧 파는
+            // 물건이라 그렇다. 앱 안의 기능 소개에서는 약속이 더 센 말이므로 자리를 바꿔
+            // 기능 이름을 위로, 약속을 큰 자리로 보낸다.
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(KeepTheme.semanticColors.background.brandWeak)
+                    .padding(horizontal = 20.dp)
+                    .padding(top = 24.dp, bottom = 28.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+                Text(
+                    text = stringResource(R.string.pomodoro_intro_eyebrow),
+                    color = KeepTheme.colors.surfaceVariant,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 13.sp,
+                )
+                Spacer(modifier = Modifier.height(10.dp))
+                Text(
+                    text = stringResource(R.string.pomodoro_intro_title),
+                    color = KeepTheme.colors.onSurfaceVariant,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 28.sp,
+                    lineHeight = 38.sp,
+                    textAlign = TextAlign.Center,
+                )
+                Spacer(modifier = Modifier.height(12.dp))
+                Text(
+                    text = stringResource(R.string.pomodoro_intro_subtitle),
+                    color = KeepTheme.colors.surfaceVariant,
+                    fontSize = 15.sp,
+                    lineHeight = 22.sp,
+                    textAlign = TextAlign.Center,
+                )
+                Spacer(modifier = Modifier.height(26.dp))
+                PomodoroCycleTrack(cycle = cycle)
+            }
 
             // 순서가 곧 우선순위다. 이 앱이 다른 뽀모도로 타이머와 다른 지점(참지 않아도 된다)이
             // 먼저 오고, 그 다음이 이 기능만의 재해석(휴식도 막는 것은 제약이 아니라 혜택),
             // 마지막이 문턱을 낮추는 말이다.
-            Spacer(modifier = Modifier.height(32.dp))
-            PomodoroIntroPoint(
-                title = stringResource(R.string.pomodoro_intro_willpower_title),
-                description = stringResource(R.string.pomodoro_intro_willpower_description),
-            )
-            Spacer(modifier = Modifier.height(24.dp))
-            PomodoroIntroPoint(
-                title = stringResource(R.string.pomodoro_intro_break_title),
-                description = stringResource(R.string.pomodoro_intro_break_description),
-            )
-            Spacer(modifier = Modifier.height(24.dp))
-            PomodoroIntroPoint(
-                title = stringResource(R.string.pomodoro_intro_start_title),
-                description = stringResource(R.string.pomodoro_intro_start_description),
-            )
-            Spacer(modifier = Modifier.height(24.dp))
+            Column(modifier = Modifier.padding(horizontal = 20.dp)) {
+                Spacer(modifier = Modifier.height(32.dp))
+                PomodoroIntroPoint(
+                    title = stringResource(R.string.pomodoro_intro_willpower_title),
+                    description = stringResource(R.string.pomodoro_intro_willpower_description),
+                )
+                Spacer(modifier = Modifier.height(24.dp))
+                PomodoroIntroPoint(
+                    title = stringResource(R.string.pomodoro_intro_break_title),
+                    description = stringResource(R.string.pomodoro_intro_break_description),
+                )
+                Spacer(modifier = Modifier.height(24.dp))
+                PomodoroIntroPoint(
+                    title = stringResource(R.string.pomodoro_intro_start_title),
+                    description = stringResource(R.string.pomodoro_intro_start_description),
+                )
+                Spacer(modifier = Modifier.height(24.dp))
+            }
         }
 
-        KeepButton(
-            modifier = Modifier.fillMaxWidth(),
-            text = stringResource(R.string.pomodoro_intro_cta),
-            size = KeepButtonSize.Large,
-            bottomSpacing = false,
-            onClick = onNext,
+        Column(modifier = Modifier.padding(horizontal = 20.dp)) {
+            KeepButton(
+                modifier = Modifier.fillMaxWidth(),
+                text = stringResource(R.string.pomodoro_intro_cta),
+                size = KeepButtonSize.Large,
+                bottomSpacing = false,
+                onClick = onNext,
+            )
+            Spacer(modifier = Modifier.height(20.dp))
+        }
+    }
+}
+
+@Composable
+private fun PomodoroIntroPoint(title: String, description: String) {
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Text(
+            text = title,
+            color = KeepTheme.colors.onSurfaceVariant,
+            fontWeight = FontWeight.Bold,
+            fontSize = 16.sp,
         )
-        Spacer(modifier = Modifier.height(20.dp))
+        Text(
+            text = description,
+            color = KeepTheme.colors.surfaceVariant,
+            fontSize = 14.sp,
+            lineHeight = 21.sp,
+        )
     }
 }
 
@@ -580,23 +627,6 @@ private fun PomodoroTrackLegend(color: Color, label: String) {
     }
 }
 
-@Composable
-private fun PomodoroIntroPoint(title: String, description: String) {
-    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        Text(
-            text = title,
-            color = KeepTheme.colors.onSurfaceVariant,
-            fontWeight = FontWeight.Bold,
-            fontSize = 16.sp,
-        )
-        Text(
-            text = description,
-            color = KeepTheme.colors.surfaceVariant,
-            fontSize = 14.sp,
-            lineHeight = 21.sp,
-        )
-    }
-}
 
 @Composable
 private fun PomodoroSetupContent(
