@@ -28,6 +28,8 @@ import com.uiery.keep.feature.goallock.navigateToGoalLockCreation
 import com.uiery.keep.feature.goallock.navigateToGoalLockDetail
 import com.uiery.keep.feature.goallock.navigateToGoalLockDetailAfterCreation
 import com.uiery.keep.feature.lock.lockScreen
+import com.uiery.keep.feature.pomodoro.navigateToPomodoro
+import com.uiery.keep.feature.pomodoro.pomodoroScreen
 import com.uiery.keep.feature.lock.navigateToLock
 import com.uiery.keep.feature.menu.menuScreen
 import com.uiery.keep.feature.menu.navigateToMenu
@@ -100,7 +102,8 @@ internal fun KeepApp(
         startDestination = startDestination,
     ) {
         splashScreen(
-            onNavigateHome = navController::navigateToHome,
+            onNavigateHome = { navController.navigateToHome() },
+            onNavigatePomodoro = { navController.navigateToPomodoro() },
             onNavigateOnboarding = navController::navigateToOnboarding,
             onNavigateLock = navController::navigateToLock,
         )
@@ -131,6 +134,7 @@ internal fun KeepApp(
         )
         homeScreen(
             onNavigateMenu = navController::navigateToMenu,
+            onNavigatePomodoro = { autoStart -> navController.navigateToPomodoro(autoStart) },
             onNavigateLock = navController::navigateToLock,
             onNavigateLockHistory = navController::navigateToLockHistory,
             onNavigateRoutine = { entrySurface, creationSource ->
@@ -157,6 +161,7 @@ internal fun KeepApp(
                 {}
             },
             onNavigateBack = navController::navigateUp,
+            onNavigatePomodoro = { navController.navigateToPomodoro() },
             onNavigateRoutine = navController::navigateToRoutine,
             onNavigateGoalLockCreation = navController::navigateToGoalLockCreation,
             onNavigateGoalLockDetail = navController::navigateToGoalLockDetail,
@@ -165,6 +170,11 @@ internal fun KeepApp(
             onNavigateEmergencyUnlockSettings = navController::navigateToEmergencyUnlockSettings,
         )
         lockScreen(onNavigateHome = navController::navigateToHome)
+        pomodoroScreen(
+            onNavigateHome = { navController.navigateToHome() },
+            // 앱 선택은 홈의 바텀시트가 소유한다. 홈으로 보내면서 시트까지 열어 준다.
+            onPickApps = { navController.navigateToHome(openAppSelection = true) },
+        )
         if (isDevToolEnabled) {
             devToolScreen(onNavigateBack = navController::navigateUp)
         }

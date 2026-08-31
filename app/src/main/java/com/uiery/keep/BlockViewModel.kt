@@ -28,6 +28,8 @@ import com.uiery.keep.service.DEFAULT_EMERGENCY_UNLOCK_DURATION_OPTIONS
 import com.uiery.keep.service.EmergencyUnlockAvailabilityReason
 import com.uiery.keep.service.EmergencyUnlockCoordinator
 import com.uiery.keep.domain.parentmode.ParentModeBlockReason
+import com.uiery.keep.domain.pomodoro.PomodoroBlockContext
+import com.uiery.keep.domain.pomodoro.PomodoroBlockContextSource
 import com.uiery.keep.domain.parentmode.ParentModeBlockReasonSource
 import com.uiery.keep.service.EmergencyUnlockRequestResult
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -54,6 +56,7 @@ class BlockViewModel
         private val repeatBlockSuggestionStore: RepeatBlockRoutineSuggestionStore,
         private val appCategoryResolver: AppCategoryResolver,
         private val parentModeBlockReasonSource: ParentModeBlockReasonSource,
+        private val pomodoroBlockContextSource: PomodoroBlockContextSource,
     ) : ViewModel(),
         ContainerHost<BlockUiState, BlockSideEffect> {
         override val container: Container<BlockUiState, BlockSideEffect> = container(BlockUiState())
@@ -90,6 +93,25 @@ class BlockViewModel
 
             val reason = parentModeBlockReasonSource.blockReason(nowMillis)
             reduce { state.copy(parentModeBlockReason = reason) }
+        }
+
+        /**
+         * 집중 세션이 이 화면을 띄웠다면 지금이 어느 구간인지 알려준다.
+         *
+         * 특히 휴식 중이면 "쉬는 중인데 왜 안 열리지"가 첫 반응이다. 그 순간이 휴식에도 차단이
+         * 유지된다는 계약을 다시 말해야 하는 자리다.
+         */
+        internal fun syncPomodoroBlockContext(
+            blockSource: String,
+            now: Instant = Instant.now(),
+        ) = intent {
+            if (blockSource != AnalyticsBlockSource.POMODORO) {
+                reduce { state.copy(pomodoroBlockContext = null) }
+                return@intent
+            }
+
+            val context = pomodoroBlockContextSource.blockContext(now)
+            reduce { state.copy(pomodoroBlockContext = context) }
         }
 
         internal fun syncManualTimedLockReentry(
@@ -304,6 +326,7 @@ data class BlockUiState(
     val timedLockDeadline: LocalDateTime? = null,
     val repeatBlockRoutineSuggestion: RepeatBlockRoutineSuggestion? = null,
     val parentModeBlockReason: ParentModeBlockReason? = null,
+    val pomodoroBlockContext: PomodoroBlockContext? = null,
 )
 
 sealed class BlockSideEffect {
@@ -320,6 +343,7 @@ internal fun String?.orDefaultBlockSource(): String =
         AnalyticsBlockSource.TIMED_LOCK,
         AnalyticsBlockSource.ROUTINE,
         AnalyticsBlockSource.GOAL_LOCK,
+        AnalyticsBlockSource.POMODORO,
         AnalyticsBlockSource.PARENT_MODE -> this
         else -> AnalyticsBlockSource.MANUAL_KEEP
     }

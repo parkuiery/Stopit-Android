@@ -63,6 +63,27 @@ object BackupRestoreDataStoreKeyPolicy {
         PreferencesKey.FIRST_PROMISE_PRACTICE_TOKEN,
         PreferencesKey.FIRST_PROMISE_PRACTICE_DECISION,
         PreferencesKey.FIRST_PROMISE_CREATION_BARRIER_DRAFT_IDS,
+        // 진행 중이던 집중 세션은 기기에 묶인 런타임 상태다. 복원된 기기에서 몇 시간 전에
+        // 시작된 세션이 되살아나면, 사용자가 예약한 적 없는 잠금이 켜진 채로 앱이 열린다.
+        PreferencesKey.POMODORO_PRESET,
+        PreferencesKey.POMODORO_FOCUS_MINUTES,
+        PreferencesKey.POMODORO_SHORT_BREAK_MINUTES,
+        PreferencesKey.POMODORO_LONG_BREAK_MINUTES,
+        PreferencesKey.POMODORO_CYCLES,
+        PreferencesKey.POMODORO_STARTED_AT,
+        PreferencesKey.POMODORO_PHASE,
+        PreferencesKey.POMODORO_CYCLE_INDEX,
+        PreferencesKey.POMODORO_PHASE_DEADLINE,
+        PreferencesKey.POMODORO_COMPLETED_FOCUS_COUNT,
+        PreferencesKey.POMODORO_STATUS,
+        PreferencesKey.POMODORO_TODAY_DATE,
+        PreferencesKey.POMODORO_TODAY_FOCUS_COUNT,
+        PreferencesKey.POMODORO_BLOCK_DURING_BREAKS,
+        PreferencesKey.POMODORO_LAST_PRESET,
+        PreferencesKey.POMODORO_LAST_FOCUS_MINUTES,
+        PreferencesKey.POMODORO_LAST_SHORT_BREAK_MINUTES,
+        PreferencesKey.POMODORO_LAST_LONG_BREAK_MINUTES,
+        PreferencesKey.POMODORO_LAST_CYCLES,
     )
 
     val rehydratedCompatibilityCacheKeys: Set<Preferences.Key<*>> = setOf(

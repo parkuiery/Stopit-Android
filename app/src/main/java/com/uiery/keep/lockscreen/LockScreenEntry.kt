@@ -14,6 +14,15 @@ enum class LockScreenMode {
     Routine,
     GoalLock,
     ParentMode,
+
+    /**
+     * 집중 세션이 만든 차단.
+     *
+     * 잠금 자체는 타이머 잠금과 같지만 화면이 하는 말이 다르다 — 남은 시간뿐 아니라 지금이
+     * 집중인지 휴식인지, 몇 번째 사이클인지를 말해야 한다. 이 값을 빼면 [ManualKeep] 으로
+     * 떨어져 세션 문구가 통째로 사라진다.
+     */
+    Pomodoro,
 }
 
 data class LockScreenEntry(
@@ -68,6 +77,7 @@ fun String?.toLockScreenMode(): LockScreenMode =
         AnalyticsBlockSource.ROUTINE -> LockScreenMode.Routine
         AnalyticsBlockSource.GOAL_LOCK -> LockScreenMode.GoalLock
         AnalyticsBlockSource.PARENT_MODE -> LockScreenMode.ParentMode
+        AnalyticsBlockSource.POMODORO -> LockScreenMode.Pomodoro
         else -> LockScreenMode.ManualKeep
     }
 
@@ -78,4 +88,5 @@ fun LockScreenMode.toAnalyticsBlockSource(): String =
         LockScreenMode.Routine -> AnalyticsBlockSource.ROUTINE
         LockScreenMode.GoalLock -> AnalyticsBlockSource.GOAL_LOCK
         LockScreenMode.ParentMode -> AnalyticsBlockSource.PARENT_MODE
+        LockScreenMode.Pomodoro -> AnalyticsBlockSource.POMODORO
     }

@@ -20,6 +20,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.foundation.layout.Arrangement
+import com.uiery.kds.KeepTextButton
+import com.uiery.kds.KeepTextButtonVariant
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -32,6 +36,8 @@ import com.uiery.keep.ui.component.TimerPicker
 import com.uiery.keep.util.timeNow
 import kotlinx.datetime.LocalTime
 
+private const val POMODORO_SEGMENT_INDEX = 2
+
 @Composable
 fun TimeBottomSheetContent(
     modifier: Modifier = Modifier,
@@ -40,9 +46,18 @@ fun TimeBottomSheetContent(
     countdownTime: LocalTime = LocalTime(0, 0),
     onChangeCountdownDuration: (CountdownDuration) -> Unit,
     onChangeTimerTIme: (LocalTime) -> Unit,
+    pomodoroFocusMinutes: Int = 0,
+    pomodoroTotalMinutes: Int = 0,
+    hasUsedPomodoro: Boolean = false,
     onLockClick: () -> Unit,
+    onPomodoroClick: () -> Unit,
+    onPomodoroSettingsClick: () -> Unit = onPomodoroClick,
 ) {
-    var selectedIndex by remember { mutableIntStateOf(0) }
+    // 이 카테고리의 기본 요건이 "1–2탭 안에 시작"이다. 전에 사이클을 써 본 사용자는 시트가
+    // 열리자마자 시작 버튼 앞에 서 있어야 한다.
+    var selectedIndex by remember {
+        mutableIntStateOf(if (hasUsedPomodoro) POMODORO_SEGMENT_INDEX else 0)
+    }
 
     Column(
         modifier = modifier
@@ -59,6 +74,9 @@ fun TimeBottomSheetContent(
                     color = KeepTheme.semanticColors.background.neutralWeak,
                 ),
         ) {
+            // 사이클은 여기서 만료 시각을 고르지 않는다. 남겨 두면 세션과 무관한 시각이
+            // 이 세션의 종료 시간인 것처럼 읽힌다.
+            if (selectedIndex != POMODORO_SEGMENT_INDEX) {
             Row(
                 modifier = Modifier.padding(12.dp),
                 verticalAlignment = Alignment.CenterVertically,
@@ -100,12 +118,19 @@ fun TimeBottomSheetContent(
                     .padding(horizontal = 8.dp),
                 thickness = 1.dp,
             )
+            }
             KeepSegmentedControl(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(top = 8.dp)
                     .padding(horizontal = 68.dp),
-                items = listOf(stringResource(R.string.countdown), stringResource(R.string.timer)),
+                // 집중 세션도 "앱이 언제까지 막히는가"를 정하는 일이다. 별도 진입점을 두면
+                // 사용자는 잠금에 대한 모델을 두 개 갖게 된다. 여기가 그 질문을 하는 자리다.
+                items = listOf(
+                    stringResource(R.string.countdown),
+                    stringResource(R.string.timer),
+                    stringResource(R.string.pomodoro_sheet_segment),
+                ),
                 selectedIndex = selectedIndex,
                 onItemSelected = { selectedIndex = it },
             )
@@ -121,14 +146,58 @@ fun TimeBottomSheetContent(
                         time = blockTime,
                         onChangeTimerTime = onChangeTimerTIme,
                     )
+                    // 사이클은 길이 하나가 아니라 시간표를 고르는 일이라 여기서 다 담지 않는다.
+                    // 2시간이 넘는 잠금을 거는 결정이므로 좁은 시트가 아니라 제 화면에서 한다.
+                    2 -> Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 20.dp, vertical = 20.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        // 마지막으로 쓰던 사이클과 그 세션이 실제로 잠그는 전체 시간.
+                        val hours = pomodoroTotalMinutes / 60
+                        val minutes = pomodoroTotalMinutes % 60
+                        Text(
+                            text = if (hours > 0) {
+                                stringResource(
+                                    R.string.pomodoro_sheet_summary_hours,
+                                    pomodoroFocusMinutes,
+                                    hours,
+                                    minutes,
+                                )
+                            } else {
+                                stringResource(
+                                    R.string.pomodoro_sheet_summary_minutes,
+                                    pomodoroFocusMinutes,
+                                    pomodoroTotalMinutes,
+                                )
+                            },
+                            color = KeepTheme.colors.onSurfaceVariant,
+                            fontWeight = FontWeight.Bold,
+                        )
+                        Text(
+                            text = stringResource(R.string.pomodoro_sheet_description),
+                            color = KeepTheme.colors.surfaceVariant,
+                            textAlign = TextAlign.Center,
+                        )
+                        KeepTextButton(
+                            onClick = onPomodoroSettingsClick,
+                            variant = KeepTextButtonVariant.Brand,
+                        ) {
+                            Text(text = stringResource(R.string.pomodoro_sheet_change))
+                        }
+                    }
                 }
             }
         }
         Spacer(modifier = Modifier.weight(1f))
-        Text(
-            text = stringResource(R.string.lock_message),
-            color = KeepTheme.colors.surface,
-        )
+        if (selectedIndex != POMODORO_SEGMENT_INDEX) {
+            Text(
+                text = stringResource(R.string.lock_message),
+                color = KeepTheme.colors.surface,
+            )
+        }
         val timerDuration = calculateTimerDuration(now = timeNow, target = blockTime)
         val hour = if (selectedIndex == 0) {
             countdownTime.hour
@@ -149,9 +218,14 @@ fun TimeBottomSheetContent(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(top = 12.dp),
-            text = lockButtonLabel,
-            enabled = countdownDays > 0 || hour != 0 || minute != 0,
-            onClick = onLockClick,
+            text = if (selectedIndex == POMODORO_SEGMENT_INDEX) {
+                stringResource(R.string.pomodoro_setup_start)
+            } else {
+                lockButtonLabel
+            },
+            enabled = selectedIndex == POMODORO_SEGMENT_INDEX ||
+                countdownDays > 0 || hour != 0 || minute != 0,
+            onClick = if (selectedIndex == POMODORO_SEGMENT_INDEX) onPomodoroClick else onLockClick,
         )
     }
 }
@@ -166,5 +240,6 @@ private fun TimeBottomSheetContentPreview() {
         onChangeCountdownDuration = {},
         onChangeTimerTIme = {},
         onLockClick = {},
+        onPomodoroClick = {},
     )
 }

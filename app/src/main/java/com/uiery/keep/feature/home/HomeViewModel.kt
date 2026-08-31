@@ -16,6 +16,9 @@ import com.uiery.keep.analytics.routine.RoutineSavedCreationSource
 import com.uiery.keep.analytics.RoutineCountAnalyticsSync
 import com.uiery.keep.datastore.BlockingStateStore
 import com.uiery.keep.datastore.ManualLockTimePolicy
+import com.uiery.keep.datastore.PomodoroSessionStore
+import com.uiery.keep.domain.pomodoro.PomodoroCycle
+import com.uiery.keep.domain.pomodoro.PomodoroPolicy
 import com.uiery.keep.datastore.ReviewPromptStateStore
 import com.uiery.keep.datastore.RoutineNoticeStore
 import com.uiery.keep.domain.goallock.GoalLock
@@ -108,9 +111,15 @@ class HomeViewModel
         // key = "permission_needed" 또는 인사이트 type.analyticsValue. dismiss 시 null 로 초기화한다.
         private var lastShownCardKey: String? = null
 
+        // HomeViewModel 은 public 이라 internal 타입을 생성자에 노출할 수 없다.
+        // 주입 대신 같은 DataStore 위에 직접 세운다.
+        private val pomodoroSessionStore = PomodoroSessionStore(dataStore)
+
         init {
             getIsKeep()
             getActiveTimedLock()
+            refreshActivePomodoroSession()
+            getPomodoroCycleSummary()
             getSelectedApp()
             observeRoutines()
             syncRoutinesCount()
@@ -820,6 +829,34 @@ class HomeViewModel
                 }
             }
 
+        /**
+         * 집중 세션이 도는 동안 홈이 "꺼짐"이라고 말하면 안 된다. 사용자는 앱이 실제로 막히는 것을
+         * 보고 있는데 홈은 아무것도 지키지 않는다고 말하는 셈이라, 잠금 상태에 대한 신뢰가 깨진다.
+         */
+        /** 시트가 쓸 마지막 사이클 요약. 한 번도 안 썼으면 기본 프리셋으로 보여준다. */
+        private fun getPomodoroCycleSummary() =
+            intent {
+                val stored = pomodoroSessionStore.readLastCycle()
+                val cycle = stored ?: PomodoroCycle.Default
+                reduce {
+                    state.copy(
+                        pomodoroFocusMinutes = cycle.focusMinutes,
+                        pomodoroTotalMinutes = PomodoroPolicy.totalDuration(cycle).toMinutes().toInt(),
+                        hasUsedPomodoro = stored != null,
+                    )
+                }
+            }
+
+        internal fun refreshActivePomodoroSession() =
+            intent {
+                val stored = pomodoroSessionStore.readStoredSession()
+                val isActive = PomodoroPolicy.isActive(
+                    session = stored,
+                    now = java.time.Instant.now(),
+                )
+                reduce { state.copy(hasActivePomodoroSession = isActive) }
+            }
+
         internal fun updateCountdownDuration(duration: CountdownDuration) =
             intent {
                 val blockTime =
@@ -1000,6 +1037,11 @@ data class HomeUiState(
     val routineCount: Int = 0,
     val pendingManualLockRouteDeadline: String? = null,
     val hasActiveTimedLock: Boolean = false,
+    val hasActivePomodoroSession: Boolean = false,
+    // 시트가 마지막으로 쓰던 사이클을 그대로 보여주고 바로 시작할 수 있게 하는 값.
+    val pomodoroFocusMinutes: Int = 0,
+    val pomodoroTotalMinutes: Int = 0,
+    val hasUsedPomodoro: Boolean = false,
     val activeTimedLockDeadlineMillis: Long? = null,
     val blockingTargetsLoaded: Boolean = false,
     val isKeepStateLoaded: Boolean = false,

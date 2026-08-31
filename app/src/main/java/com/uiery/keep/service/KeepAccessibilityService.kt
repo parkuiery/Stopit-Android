@@ -18,12 +18,14 @@ import com.uiery.keep.data.goallock.GoalLockRepository
 import com.uiery.keep.data.parentmode.ParentModeSessionStore
 import com.uiery.keep.datastore.AccessibilityBlockingSnapshot
 import com.uiery.keep.datastore.BlockingStateStore
+import com.uiery.keep.datastore.PomodoroSessionStore
 import com.uiery.keep.datastore.dataStore
 import com.uiery.keep.domain.goallock.GoalLock
 import com.uiery.keep.domain.goallock.GoalLockMode
 import com.uiery.keep.domain.goallock.GoalLockPolicy
 import com.uiery.keep.domain.goallock.GoalLockStoredStatus
 import com.uiery.keep.domain.parentmode.ParentModeSession
+import com.uiery.keep.domain.pomodoro.PomodoroSession
 import com.uiery.keep.model.RoutineModel
 import com.uiery.keep.util.toDayOfWeekList
 import dagger.hilt.EntryPoint
@@ -84,6 +86,14 @@ class KeepAccessibilityService :
 
     @Volatile
     private var cachedParentModeSession: ParentModeSession? = null
+
+    // 저장된 그대로의 세션이다. 지금 상태로 따라잡는 일은 `PomodoroPolicy.isBlocking` 이 판정
+    // 시점에 직접 한다. 여기서 미리 따라잡아 두면 캐시가 갱신되지 않는 동안 상태가 늙는다.
+    @Volatile
+    private var cachedPomodoroSession: PomodoroSession? = null
+
+    @Volatile
+    private var cachedPomodoroBlockDuringBreaks: Boolean = true
 
     private val handler = Handler(Looper.getMainLooper())
     private val isCleaningUp = AtomicBoolean(false)
@@ -177,6 +187,32 @@ class KeepAccessibilityService :
                         updateParentModeDebugState(session)
                         reevaluateCurrentForegroundAfterStateUpdate()
                         scheduleNextTimeBasedStartReevaluation()
+                    }
+            }
+            launch {
+                // 세션의 구간 전환과 완료는 포그라운드 서비스가 저장소에 쓴다. 그 쓰기가 여기로
+                // 흘러와 재평가를 돌리므로, 세션이 끝나는 순간 차단도 함께 풀린다.
+                PomodoroSessionStore(applicationContext.dataStore).storedSession
+                    .withAccessibilityRuntimeRecovery(
+                        source = AccessibilityRuntimeFlowSource.Pomodoro,
+                        onRecoveryEvent = ::recordRuntimeFlowRecovery,
+                    )
+                    .collect { session ->
+                        cachedPomodoroSession = session
+                        reevaluateCurrentForegroundAfterStateUpdate()
+                    }
+            }
+            launch {
+                // 휴식 차단 설정이 바뀌면 지금 화면부터 다시 판정해야 한다. 휴식 중에 끄면 그
+                // 자리에서 열려야 하고, 켜면 그 자리에서 다시 막혀야 한다.
+                PomodoroSessionStore(applicationContext.dataStore).blockDuringBreaks
+                    .withAccessibilityRuntimeRecovery(
+                        source = AccessibilityRuntimeFlowSource.Pomodoro,
+                        onRecoveryEvent = ::recordRuntimeFlowRecovery,
+                    )
+                    .collect { blockDuringBreaks ->
+                        cachedPomodoroBlockDuringBreaks = blockDuringBreaks
+                        reevaluateCurrentForegroundAfterStateUpdate()
                     }
             }
         }
@@ -275,6 +311,8 @@ class KeepAccessibilityService :
             cachedRoutines = cachedRoutines,
             cachedGoalLocks = cachedGoalLocks,
             parentModeSession = cachedParentModeSession,
+            pomodoroSession = cachedPomodoroSession,
+            pomodoroBlockDuringBreaks = cachedPomodoroBlockDuringBreaks,
             parentControlPackages = setOf(BuildConfig.APPLICATION_ID),
             isEmergencyUnlocked = false,
             isDuplicateBlock = false,
@@ -332,6 +370,8 @@ class KeepAccessibilityService :
             cachedRoutines = cachedRoutines,
             cachedGoalLocks = cachedGoalLocks,
             parentModeSession = cachedParentModeSession,
+            pomodoroSession = cachedPomodoroSession,
+            pomodoroBlockDuringBreaks = cachedPomodoroBlockDuringBreaks,
             parentControlPackages = setOf(BuildConfig.APPLICATION_ID),
             isEmergencyUnlocked = false,
             isDuplicateBlock = false,

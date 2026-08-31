@@ -30,6 +30,7 @@ import com.uiery.keep.feature.review.FakeEmergencyUnlockDao
 import com.uiery.keep.data.repeatblock.RepeatBlockRoutineSuggestionStore
 import com.uiery.keep.lockscreen.LockScreenEntry
 import com.uiery.keep.domain.parentmode.ParentModeBlockReason
+import com.uiery.keep.domain.pomodoro.PomodoroBlockContext
 import com.uiery.keep.domain.parentmode.ParentModeBlockReasonSource
 import com.uiery.keep.domain.repeatblock.AppCategoryResolver
 import com.uiery.keep.model.RoutineModel
@@ -511,6 +512,7 @@ class BlockViewModelTest {
         routineRepository: RoutineRepository = EmptyRoutineRepository(),
         repeatBlockSuggestionStore: RepeatBlockRoutineSuggestionStore = RepeatBlockRoutineSuggestionStore(dataStore),
         parentModeBlockReason: ParentModeBlockReason? = null,
+        pomodoroBlockContext: PomodoroBlockContext? = null,
     ): BlockViewModel =
         BlockViewModel(
             blockingStateStore = BlockingStateStore(dataStore),
@@ -532,7 +534,58 @@ class BlockViewModelTest {
             repeatBlockSuggestionStore = repeatBlockSuggestionStore,
             appCategoryResolver = AppCategoryResolver.FromPackageName,
             parentModeBlockReasonSource = ParentModeBlockReasonSource { parentModeBlockReason },
+            pomodoroBlockContextSource = { pomodoroBlockContext },
         )
+
+    /**
+     * 휴식 중에 막힌 앱을 열면 "쉬는 중인데 왜 안 열리지"가 첫 반응이다. 차단 화면이 그 답을
+     * 들고 있어야 사용자가 세션 화면으로 돌아가지 않고도 자기가 어디쯤인지 안다.
+     */
+    @Test
+    fun pomodoroBlockContextIsLoadedOnlyForPomodoroBlocks() = runBlocking {
+        val context = PomodoroBlockContext(
+            isBreak = true,
+            remainingSeconds = 198,
+            cycleIndex = 2,
+            cyclesPerSession = 4,
+        )
+        val viewModel = createViewModel(
+            dataStore = FakeDataStore(),
+            analytics = BlockRecordingKeepAnalytics(),
+            pomodoroBlockContext = context,
+        )
+
+        viewModel.syncPomodoroBlockContext(AnalyticsBlockSource.POMODORO)
+
+        awaitUntil { viewModel.container.stateFlow.value.pomodoroBlockContext != null }
+        assertEquals(context, viewModel.container.stateFlow.value.pomodoroBlockContext)
+    }
+
+    /**
+     * 다른 잠금이 만든 차단에 집중 세션 문구를 얹으면 거짓말이 된다. 세션이 살아 있어도
+     * 이 차단의 출처가 아니면 붙이지 않는다.
+     */
+    @Test
+    fun pomodoroBlockContextIsClearedForOtherBlockSources() = runBlocking {
+        val viewModel = createViewModel(
+            dataStore = FakeDataStore(),
+            analytics = BlockRecordingKeepAnalytics(),
+            pomodoroBlockContext = PomodoroBlockContext(
+                isBreak = false,
+                remainingSeconds = 60,
+                cycleIndex = 1,
+                cyclesPerSession = 4,
+            ),
+        )
+
+        viewModel.syncPomodoroBlockContext(AnalyticsBlockSource.POMODORO)
+        awaitUntil { viewModel.container.stateFlow.value.pomodoroBlockContext != null }
+
+        viewModel.syncPomodoroBlockContext(AnalyticsBlockSource.ROUTINE)
+
+        awaitUntil { viewModel.container.stateFlow.value.pomodoroBlockContext == null }
+        assertNull(viewModel.container.stateFlow.value.pomodoroBlockContext)
+    }
 
     /**
      * The block screen is the only place a child learns why the phone stopped, and the two parent

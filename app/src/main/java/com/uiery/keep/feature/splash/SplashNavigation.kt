@@ -15,12 +15,14 @@ fun NavController.navigateToSplash(
 
 fun NavGraphBuilder.splashScreen(
     onNavigateHome:() -> Unit,
+    onNavigatePomodoro: () -> Unit,
     onNavigateOnboarding: () -> Unit,
     onNavigateLock: (lockTime: String?,Boolean) -> Unit,
 ) {
     composable<SplashRoute> {
         SplashScreen(
             onNavigateHome = onNavigateHome,
+            onNavigatePomodoro = onNavigatePomodoro,
             onNavigateOnboarding = onNavigateOnboarding,
             onNavigateLock = onNavigateLock,
         )

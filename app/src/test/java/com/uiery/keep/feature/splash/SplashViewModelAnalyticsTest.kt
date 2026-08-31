@@ -32,7 +32,8 @@ class SplashViewModelAnalyticsTest {
             blockingStateStore = BlockingStateStore(dataStore),
             firstPromiseDraftStore = FirstPromiseDraftStore(dataStore),
             analytics = analytics,
-            routineRestoreAftercare = RoutineRestoreAftercare(
+            pomodoroBlockContextSource = { null },
+                routineRestoreAftercare = RoutineRestoreAftercare(
                 routineRepository = routineRepository,
                 dataStore = dataStore,
                 exactAlarmOrchestrator = RoutineExactAlarmOrchestrator(scheduler),

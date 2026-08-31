@@ -16,6 +16,7 @@ fun NavController.navigateToMenu(
 fun NavGraphBuilder.menuScreen(
     onNavigateDevTool: () -> Unit,
     onNavigateBack: () -> Unit,
+    onNavigatePomodoro: () -> Unit,
     onNavigateRoutine: () -> Unit,
     onNavigateGoalLockCreation: () -> Unit,
     onNavigateGoalLockDetail: (goalLockId: Long) -> Unit,
@@ -27,6 +28,7 @@ fun NavGraphBuilder.menuScreen(
         MenuScreen(
             onNavigateDevTool = onNavigateDevTool,
             onNavigateBack = onNavigateBack,
+            onNavigatePomodoro = onNavigatePomodoro,
             onNavigateRoutine = onNavigateRoutine,
             onNavigateGoalLockCreation = onNavigateGoalLockCreation,
             onNavigateGoalLockDetail = onNavigateGoalLockDetail,

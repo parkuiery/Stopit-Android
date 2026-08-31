@@ -109,7 +109,9 @@ import org.orbitmvi.orbit.compose.collectSideEffect
 @Composable
 fun HomeScreen(
     viewModel: HomeViewModel = hiltViewModel(),
+    openAppSelectionOnEntry: Boolean = false,
     onNavigateMenu: () -> Unit,
+    onNavigatePomodoro: (autoStart: Boolean) -> Unit,
     onNavigateLock: (lockTime: String?, Boolean) -> Unit,
     onNavigateLockHistory: () -> Unit = {},
     onNavigateRoutine: (routineSavedEntrySurface: String?, routineSavedCreationSource: String?) -> Unit = { _, _ -> },
@@ -190,6 +192,16 @@ fun HomeScreen(
     val observedLifecycle = (activity as? LifecycleOwner)?.lifecycle ?: lifecycleOwner.lifecycle
     // 돌아온 횟수. 웹 차단 판정은 값이 바뀔 때만 도는데, 창 안에서 서비스만 죽으면 판정은
     // 그대로라 아무도 다시 세우지 않는다. 돌아온 사실 자체가 재확인 계기가 되어야 한다.
+    // 집중 세션 설정에서 "막을 앱이 없다"로 되돌아온 경우, 홈에 내려놓고 끝내지 않고 선택 시트까지
+    // 열어 준다. 그러지 않으면 사용자는 왜 돌아왔는지 모른 채 홈을 다시 훑어야 한다.
+    var hasOpenedAppSelectionOnEntry by rememberSaveable { mutableStateOf(false) }
+    LaunchedEffect(openAppSelectionOnEntry) {
+        if (openAppSelectionOnEntry && !hasOpenedAppSelectionOnEntry) {
+            hasOpenedAppSelectionOnEntry = true
+            viewModel.showCategoryBottomSheet()
+        }
+    }
+
     var resumeCount by rememberSaveable { mutableIntStateOf(0) }
     DisposableEffect(observedLifecycle, activity) {
         val observer = LifecycleEventObserver { _, event ->
@@ -202,6 +214,9 @@ fun HomeScreen(
                 viewModel.onFirstPromiseExactAlarmResume()
                 // 알람이 지연·누락되었거나 창 도중 재부팅한 회차는 여기서 되살아난다.
                 viewModel.refreshRoutineWebsiteSession()
+                // 집중 세션은 이 화면 밖에서 시작되고 끝난다. 돌아올 때마다 다시 읽지
+                // 않으면 홈이 세션이 도는 동안에도 "꺼짐"이라고 말한다.
+                viewModel.refreshActivePomodoroSession()
                 resumeCount += 1
             }
         }
@@ -282,6 +297,30 @@ fun HomeScreen(
                 countdownTime = uiState.countdownTime,
                 onChangeCountdownDuration = viewModel::updateCountdownDuration,
                 onChangeTimerTIme = viewModel::updateTimerTime,
+                pomodoroFocusMinutes = uiState.pomodoroFocusMinutes,
+                pomodoroTotalMinutes = uiState.pomodoroTotalMinutes,
+                hasUsedPomodoro = uiState.hasUsedPomodoro,
+                // 시트의 CTA 는 바로 시작한다. 설정을 다시 보고 싶은 사람만 "변경"으로 간다.
+                onPomodoroSettingsClick = {
+                    coroutineScope
+                        .launch { timeBottomSheetState.hide() }
+                        .invokeOnCompletion {
+                            if (!timeBottomSheetState.isVisible) {
+                                viewModel.hideTimeBottomSheet()
+                                onNavigatePomodoro(false)
+                            }
+                        }
+                },
+                onPomodoroClick = {
+                    coroutineScope
+                        .launch { timeBottomSheetState.hide() }
+                        .invokeOnCompletion {
+                            if (!timeBottomSheetState.isVisible) {
+                                viewModel.hideTimeBottomSheet()
+                                onNavigatePomodoro(true)
+                            }
+                        }
+                },
                 onLockClick = {
                     viewModel.lockTime()
                     // 차단 대상이 없으면 lockTime 이 선택 시트를 연다. 그 위에서 시간 시트를 닫고
@@ -494,6 +533,7 @@ fun HomeScreen(
                     isKeep = uiState.isKeep,
                     startTime = uiState.startTime,
                     lockTargetKind = uiState.lockTargetKind(),
+                    hasActivePomodoroSession = uiState.hasActivePomodoroSession,
                 )
                 TrackedBannerAd(
                     metadata = AdPlacementMetadata(

@@ -230,6 +230,20 @@ class BlockingStateStore @Inject constructor(
     suspend fun readLockTime(): String? =
         dataStore.data.first()[PreferencesKey.LOCK_TIME]
 
+    /**
+     * 예약된 만료 시각 전에 타이머 잠금을 내린다.
+     *
+     * 집중 세션을 중간에 끝냈을 때 쓴다. `LOCK_TIME` 을 남겨 두면 세션은 끝났는데 잠금만 예약된
+     * 시각까지 계속 도는, 사용자가 어디서도 끌 수 없는 상태가 된다. 선택 앱 목록은 건드리지
+     * 않는다 — 그건 세션이 아니라 사용자의 설정이다.
+     */
+    suspend fun clearTimedLockSession() {
+        dataStore.edit { preferences ->
+            preferences.remove(PreferencesKey.LOCK_TIME)
+            preferences.remove(PreferencesKey.START_TIME)
+        }
+    }
+
     suspend fun startTimedLockSession(
         packages: Set<String>,
         startTimeMillis: Long,

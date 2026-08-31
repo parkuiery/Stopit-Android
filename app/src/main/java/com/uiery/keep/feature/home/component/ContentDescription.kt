@@ -27,6 +27,7 @@ fun ContentDescription(
     isKeep: Boolean,
     startTime: Long,
     lockTargetKind: LockTargetKind = LockTargetKind.Apps,
+    hasActivePomodoroSession: Boolean = false,
 ) {
     Column(
         modifier = modifier
@@ -37,7 +38,12 @@ fun ContentDescription(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
-        val description = if (isKeep) keepOnMessageRes(lockTargetKind) else R.string.keep_off_message
+        // 세션이 도는 동안 "켜서 막아 보세요"라고 권하면, 이미 막고 있는 사실과 어긋난다.
+        val description = when {
+            isKeep -> keepOnMessageRes(lockTargetKind)
+            hasActivePomodoroSession -> R.string.pomodoro_home_active_message
+            else -> R.string.keep_off_message
+        }
         // 켜짐은 32sp 타이머, 꺼짐은 18sp 문구라 높이가 다르다. 이 영역은 화면 하단에 고정돼
         // 있어 높이가 변하면 그 위의 토글 위치가 함께 움직인다. 두 상태가 같은 자리를 쓰도록
         // 최소 높이를 잡아 둔다.
@@ -47,6 +53,15 @@ fun ContentDescription(
         ) {
             if(isKeep) {
                 TimerContent(startTime = startTime)
+            } else if (hasActivePomodoroSession) {
+                // 집중 세션이 앱을 막고 있는 동안 "꺼짐"이라고 말하면 사용자가 보고 있는 사실과
+                // 어긋난다. Keep 토글은 실제로 꺼져 있으므로 타이머가 아니라 세션 상태를 말한다.
+                Text(
+                    text = stringResource(R.string.pomodoro_phase_focus),
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = KeepTheme.colors.primary,
+                )
             } else {
                 Text(
                     text = stringResource(R.string.keep_off_status),
