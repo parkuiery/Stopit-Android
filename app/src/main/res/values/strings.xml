@@ -664,4 +664,6 @@
     <string name="pomodoro_custom_cycles_value">%1$d times</string>
     <string name="pomodoro_cycle_summary_title">Focus %1$d min · break %2$d min</string>
     <string name="pomodoro_setup_customize">Change settings</string>
+    <string name="pomodoro_settings_title">Session settings</string>
+    <string name="pomodoro_settings_done">Done</string>
 </resources>

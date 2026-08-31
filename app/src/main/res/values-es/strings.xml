@@ -620,4 +620,6 @@
     <string name="pomodoro_custom_cycles_value">%1$d veces</string>
     <string name="pomodoro_cycle_summary_title">Concentración %1$d min · descanso %2$d min</string>
     <string name="pomodoro_setup_customize">Cambiar ajustes</string>
+    <string name="pomodoro_settings_title">Ajustes de la sesión</string>
+    <string name="pomodoro_settings_done">Listo</string>
 </resources>

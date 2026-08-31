@@ -621,4 +621,6 @@
     <string name="pomodoro_custom_cycles_value">%1$d keer</string>
     <string name="pomodoro_cycle_summary_title">Focus %1$d min · pauze %2$d min</string>
     <string name="pomodoro_setup_customize">Instellingen wijzigen</string>
+    <string name="pomodoro_settings_title">Sessie-instellingen</string>
+    <string name="pomodoro_settings_done">Klaar</string>
 </resources>

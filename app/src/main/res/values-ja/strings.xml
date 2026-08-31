@@ -619,4 +619,6 @@
     <string name="pomodoro_custom_cycles_value">%1$d回</string>
     <string name="pomodoro_cycle_summary_title">集中%1$d分 · 休憩%2$d分</string>
     <string name="pomodoro_setup_customize">設定を変える</string>
+    <string name="pomodoro_settings_title">セッション設定</string>
+    <string name="pomodoro_settings_done">完了</string>
 </resources>

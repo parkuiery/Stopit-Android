@@ -18,6 +18,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.activity.compose.BackHandler
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -127,6 +128,15 @@ internal fun PomodoroScreen(
         )
     }
 
+    // 고르는 일과 시작하는 일을 한 화면에 같이 두면, 시작하러 들어온 사람이 매번 선택지를
+    // 지나가게 된다. 설정은 제 화면을 갖고, 시작 화면에는 결과와 버튼만 남는다.
+    var showSettings by rememberSaveable { mutableStateOf(false) }
+    // 세션이 시작되면 설정 화면은 의미가 없다. 시스템 back 이 아니라 상태로 닫는다.
+    if (showSettings && (uiState.isSessionRunning || uiState.isSessionFinished)) {
+        showSettings = false
+    }
+    BackHandler(enabled = showSettings) { showSettings = false }
+
     val navigateBackLabel = stringResource(R.string.cd_navigate_back)
     Scaffold(
         modifier = modifier.fillMaxSize(),
@@ -134,10 +144,16 @@ internal fun PomodoroScreen(
             KeepTopAppBar(
                 title = {
                     // 진행·완료 화면은 본문이 이미 상태를 크게 말한다. 제목을 또 얹으면 같은
-                    // 문장이 두 줄 겹치므로 설정 화면에서만 제목을 쓴다.
+                    // 문장이 두 줄 겹치므로 시작·설정 화면에서만 제목을 쓴다.
                     if (!uiState.isSessionRunning && !uiState.isSessionFinished) {
                         Text(
-                            text = stringResource(R.string.pomodoro_setup_title),
+                            text = stringResource(
+                                if (showSettings) {
+                                    R.string.pomodoro_settings_title
+                                } else {
+                                    R.string.pomodoro_setup_title
+                                },
+                            ),
                             color = KeepTheme.colors.onSurfaceVariant,
                             fontWeight = FontWeight.SemiBold,
                             fontSize = 18.sp,
@@ -149,10 +165,10 @@ internal fun PomodoroScreen(
                         onClick = {
                             // 끝난 세션을 남겨 두고 나가면 다음 진입에서 완료 화면이 다시 뜬다.
                             // 나가는 순간 치우고, 진행 중 세션은 그대로 두고 홈으로만 돌아간다.
-                            if (uiState.isSessionFinished) {
-                                viewModel.finishAndLeave()
-                            } else {
-                                onNavigateHome()
+                            when {
+                                showSettings -> showSettings = false
+                                uiState.isSessionFinished -> viewModel.finishAndLeave()
+                                else -> onNavigateHome()
                             }
                         },
                     ) {
@@ -185,7 +201,7 @@ internal fun PomodoroScreen(
                     state = uiState,
                     onEnd = viewModel::showEndConfirm,
                 )
-                else -> PomodoroSetupContent(
+                showSettings -> PomodoroSettingsContent(
                     state = uiState,
                     onSelectCycle = viewModel::selectCycle,
                     onSelectCustom = viewModel::selectCustomCycle,
@@ -194,6 +210,12 @@ internal fun PomodoroScreen(
                     onChangeCustomLongBreak = viewModel::changeCustomLongBreakMinutes,
                     onChangeCustomCycles = viewModel::changeCustomCycles,
                     onToggleBlockDuringBreaks = viewModel::setBlockDuringBreaks,
+                    onPickApps = onPickApps,
+                    onDone = { showSettings = false },
+                )
+                else -> PomodoroSetupContent(
+                    state = uiState,
+                    onOpenSettings = { showSettings = true },
                     onPickApps = onPickApps,
                     onStart = { viewModel.startSession() },
                 )
@@ -348,61 +370,51 @@ private fun PomodoroBlockingNotice(
 @Composable
 private fun PomodoroSetupContent(
     state: PomodoroUiState,
-    onSelectCycle: (PomodoroCycle) -> Unit,
-    onSelectCustom: () -> Unit,
-    onChangeCustomFocus: (Int) -> Unit,
-    onChangeCustomShortBreak: (Int) -> Unit,
-    onChangeCustomLongBreak: (Int) -> Unit,
-    onChangeCustomCycles: (Int) -> Unit,
-    onToggleBlockDuringBreaks: (Boolean) -> Unit,
+    onOpenSettings: () -> Unit,
     onPickApps: () -> Unit,
     onStart: () -> Unit,
 ) {
-    // 세션을 시작하려고 들어온 사람에게 고를 것을 먼저 내밀면, 아무것도 고르고 싶지 않은
-    // 사람까지 결정을 하게 만든다. 기본값은 이미 정해져 있고(직전에 쓴 사이클이 복원된다)
-    // 대부분은 그대로 쓴다. 그래서 기본 화면은 **무엇이 일어나는지 한 문단과 시작 버튼**이고,
-    // 고르는 항목은 "설정 바꾸기" 뒤로 접어 둔다. 접힌 것을 펴는 건 한 번 더 누르면 되지만,
-    // 펼쳐진 화면을 매번 지나치는 건 되돌릴 수 없다.
+    // 한 화면에 질문 하나. 여기가 묻는 것은 "시작할까?" 뿐이다 — 무엇이 일어나는지 말하고 버튼
+    // 하나를 준다. 고르는 일은 제 화면으로 갔다.
     //
-    // 내용은 스크롤하고 시작 버튼은 바닥에 고정한다. 커스텀 카드를 펼치면 스테퍼 네 개가
-    // 더해져 내용이 화면보다 길어지는데, 한 덩어리로 두면 버튼이 화면 밖으로 밀려 **커스텀
-    // 세션을 아예 시작할 수 없다.** 큰 글꼴에서는 프리셋만으로도 넘칠 수 있다.
-    var optionsExpanded by rememberSaveable { mutableStateOf(false) }
+    // 기본값은 이미 정해져 있고 직전에 쓴 사이클이 복원되므로 대부분은 그대로 쓴다. 시작하러
+    // 들어온 사람에게 선택지를 먼저 내밀면, 아무것도 고르고 싶지 않은 사람까지 결정을 하게 된다.
+    //
+    // 본문은 스크롤하고 시작 버튼은 바닥에 고정한다. 큰 글꼴에서는 이 짧은 본문도 넘칠 수 있다.
     Column(modifier = Modifier.fillMaxSize()) {
-    Column(
-        modifier = Modifier
-            .weight(1f)
-            .verticalScroll(rememberScrollState()),
-        horizontalAlignment = Alignment.Start,
-    ) {
-        Spacer(modifier = Modifier.height(16.dp))
-        // 고른 것은 "집중 25분"이지만 실제로 예약되는 잠금은 2시간 10분이다. 접어 둔 화면에서도
-        // 그 숫자만은 시작 전에 반드시 보여야 한다.
-        Text(
-            text = stringResource(
-                R.string.pomodoro_cycle_summary_title,
-                state.selectedCycle.focusMinutes,
-                state.selectedCycle.shortBreakMinutes,
-            ),
-            color = KeepTheme.colors.onSurfaceVariant,
-            fontWeight = FontWeight.Bold,
-            fontSize = 22.sp,
-        )
-        Spacer(modifier = Modifier.height(6.dp))
-        PomodoroTotalLengthSummary(cycle = state.selectedCycle)
-        Spacer(modifier = Modifier.height(10.dp))
-        Text(
-            text = stringResource(R.string.pomodoro_setup_description),
-            color = KeepTheme.colors.surfaceVariant,
-            fontSize = 13.sp,
-        )
+        Column(
+            modifier = Modifier
+                .weight(1f)
+                .verticalScroll(rememberScrollState()),
+            horizontalAlignment = Alignment.Start,
+        ) {
+            Spacer(modifier = Modifier.height(16.dp))
+            Text(
+                text = stringResource(
+                    R.string.pomodoro_cycle_summary_title,
+                    state.selectedCycle.focusMinutes,
+                    state.selectedCycle.shortBreakMinutes,
+                ),
+                color = KeepTheme.colors.onSurfaceVariant,
+                fontWeight = FontWeight.Bold,
+                fontSize = 22.sp,
+            )
+            Spacer(modifier = Modifier.height(6.dp))
+            // 고른 것은 "집중 25분"이지만 실제로 예약되는 잠금은 2시간 10분이다. 그 숫자를 모르고
+            // 시작하면 예측 가능한 잠금이라는 이 앱의 약속이 깨진다. 설정을 접어도 이건 남긴다.
+            PomodoroTotalLengthSummary(cycle = state.selectedCycle)
+            Spacer(modifier = Modifier.height(10.dp))
+            Text(
+                text = stringResource(R.string.pomodoro_setup_description),
+                color = KeepTheme.colors.surfaceVariant,
+                fontSize = 13.sp,
+            )
 
-        Spacer(modifier = Modifier.height(20.dp))
-        if (!optionsExpanded) {
+            Spacer(modifier = Modifier.height(20.dp))
             Text(
                 modifier = Modifier
                     .clip(RoundedCornerShape(8.dp))
-                    .clickable(role = Role.Button) { optionsExpanded = true }
+                    .clickable(role = Role.Button, onClick = onOpenSettings)
                     .padding(vertical = 6.dp),
                 text = stringResource(R.string.pomodoro_setup_customize),
                 color = KeepTheme.colors.onPrimaryContainer,
@@ -410,87 +422,6 @@ private fun PomodoroSetupContent(
                 fontSize = 14.sp,
             )
         }
-
-        if (optionsExpanded) {
-        Text(
-            text = stringResource(R.string.pomodoro_setup_cycle_label),
-            color = KeepTheme.colors.onSurface,
-            fontWeight = FontWeight.Bold,
-            fontSize = 13.sp,
-        )
-        Spacer(modifier = Modifier.height(10.dp))
-        PomodoroCycleOptions(
-            state = state,
-            onSelectCycle = onSelectCycle,
-            onSelectCustom = onSelectCustom,
-            onChangeCustomFocus = onChangeCustomFocus,
-            onChangeCustomShortBreak = onChangeCustomShortBreak,
-            onChangeCustomLongBreak = onChangeCustomLongBreak,
-            onChangeCustomCycles = onChangeCustomCycles,
-        )
-
-        Spacer(modifier = Modifier.height(20.dp))
-        // 뽀모도로 카테고리의 기본 동작은 "휴식엔 열림"이다. 이 앱을 고른 이유가 차단이라 기본은
-        // 계속 막는 쪽으로 두되, 쉬는 동안 열어 두고 싶은 사용자에게 끌 수 있는 길을 준다.
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            Column(
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(2.dp),
-            ) {
-                Text(
-                    text = stringResource(R.string.pomodoro_block_during_breaks_title),
-                    color = KeepTheme.colors.onSurfaceVariant,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 14.sp,
-                )
-                Text(
-                    text = stringResource(R.string.pomodoro_block_during_breaks_description),
-                    color = KeepTheme.colors.surfaceVariant,
-                    fontSize = 13.sp,
-                )
-            }
-            KeepSwitch(
-                checked = state.blockDuringBreaks,
-                onCheckedChange = onToggleBlockDuringBreaks,
-            )
-        }
-
-        Spacer(modifier = Modifier.height(20.dp))
-        Text(
-            text = stringResource(R.string.pomodoro_setup_targets_title),
-            color = KeepTheme.colors.onSurfaceVariant,
-            fontWeight = FontWeight.Bold,
-            fontSize = 14.sp,
-        )
-        Spacer(modifier = Modifier.height(4.dp))
-        Row(
-            modifier = Modifier
-                .clip(RoundedCornerShape(8.dp))
-                // 읽기만 되는 줄이면 대상을 바꾸려고 홈까지 나갔다 와야 한다. 여기서 바로 간다.
-                .clickable(onClick = onPickApps)
-                .padding(vertical = 4.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(4.dp),
-        ) {
-            Text(
-                text = stringResource(R.string.pomodoro_setup_targets_summary, state.selectedAppCount),
-                color = KeepTheme.colors.surfaceVariant,
-                fontSize = 13.sp,
-            )
-            Text(
-                text = stringResource(R.string.pomodoro_setup_choose_apps),
-                color = KeepTheme.colors.onPrimaryContainer,
-                fontWeight = FontWeight.Bold,
-                fontSize = 13.sp,
-            )
-        }
-        }
-
-    }
 
         if (state.selectedAppCount == 0) {
             // 비활성 버튼만 두면 왜 못 누르는지도, 어디서 고치는지도 알 수 없는 막다른 길이 된다.
@@ -516,6 +447,144 @@ private fun PomodoroSetupContent(
                 onClick = onStart,
             )
         }
+        Spacer(modifier = Modifier.height(20.dp))
+    }
+}
+
+/**
+ * 세션 설정. 시작 화면의 "설정 바꾸기"로 들어온다.
+ *
+ * **여기에 시작 버튼을 두지 않는다.** 이 화면이 하는 일은 고르는 것 하나고, 시작은 돌아가서 한다.
+ * 둘을 한 화면에 같이 두면 "고르는 중"과 "시작하는 중"이 섞여 무엇을 누르는 자리인지 흐려진다.
+ *
+ * 상단 요약은 고를 때마다 같이 움직인다. 사이클을 바꾸는 건 총 잠금을 2시간 10분에서 4시간 10분으로
+ * 바꾸는 결정이라, 그 결과가 선택과 같은 화면에 보여야 한다.
+ */
+@Composable
+private fun PomodoroSettingsContent(
+    state: PomodoroUiState,
+    onSelectCycle: (PomodoroCycle) -> Unit,
+    onSelectCustom: () -> Unit,
+    onChangeCustomFocus: (Int) -> Unit,
+    onChangeCustomShortBreak: (Int) -> Unit,
+    onChangeCustomLongBreak: (Int) -> Unit,
+    onChangeCustomCycles: (Int) -> Unit,
+    onToggleBlockDuringBreaks: (Boolean) -> Unit,
+    onPickApps: () -> Unit,
+    onDone: () -> Unit,
+) {
+    // 커스텀 카드를 펼치면 스테퍼 네 개가 더해져 내용이 화면보다 길어진다. 한 덩어리로 두면 완료
+    // 버튼이 화면 밖으로 밀려 **커스텀 세션을 확정할 수 없다.**
+    Column(modifier = Modifier.fillMaxSize()) {
+        Column(
+            modifier = Modifier
+                .weight(1f)
+                .verticalScroll(rememberScrollState()),
+            horizontalAlignment = Alignment.Start,
+        ) {
+            Spacer(modifier = Modifier.height(16.dp))
+            Text(
+                text = stringResource(
+                    R.string.pomodoro_cycle_summary_title,
+                    state.selectedCycle.focusMinutes,
+                    state.selectedCycle.shortBreakMinutes,
+                ),
+                color = KeepTheme.colors.onSurfaceVariant,
+                fontWeight = FontWeight.Bold,
+                fontSize = 18.sp,
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            PomodoroTotalLengthSummary(cycle = state.selectedCycle)
+
+            Spacer(modifier = Modifier.height(24.dp))
+            Text(
+                text = stringResource(R.string.pomodoro_setup_cycle_label),
+                color = KeepTheme.colors.onSurface,
+                fontWeight = FontWeight.Bold,
+                fontSize = 13.sp,
+            )
+            Spacer(modifier = Modifier.height(10.dp))
+            PomodoroCycleOptions(
+                state = state,
+                onSelectCycle = onSelectCycle,
+                onSelectCustom = onSelectCustom,
+                onChangeCustomFocus = onChangeCustomFocus,
+                onChangeCustomShortBreak = onChangeCustomShortBreak,
+                onChangeCustomLongBreak = onChangeCustomLongBreak,
+                onChangeCustomCycles = onChangeCustomCycles,
+            )
+
+            Spacer(modifier = Modifier.height(20.dp))
+            // 뽀모도로 카테고리의 기본 동작은 "휴식엔 열림"이다. 이 앱을 고른 이유가 차단이라 기본은
+            // 계속 막는 쪽으로 두되, 쉬는 동안 열어 두고 싶은 사용자에게 끌 수 있는 길을 준다.
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(2.dp),
+                ) {
+                    Text(
+                        text = stringResource(R.string.pomodoro_block_during_breaks_title),
+                        color = KeepTheme.colors.onSurfaceVariant,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 14.sp,
+                    )
+                    Text(
+                        text = stringResource(R.string.pomodoro_block_during_breaks_description),
+                        color = KeepTheme.colors.surfaceVariant,
+                        fontSize = 13.sp,
+                    )
+                }
+                KeepSwitch(
+                    checked = state.blockDuringBreaks,
+                    onCheckedChange = onToggleBlockDuringBreaks,
+                )
+            }
+
+            Spacer(modifier = Modifier.height(20.dp))
+            Text(
+                text = stringResource(R.string.pomodoro_setup_targets_title),
+                color = KeepTheme.colors.onSurfaceVariant,
+                fontWeight = FontWeight.Bold,
+                fontSize = 14.sp,
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            Row(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(8.dp))
+                    // 읽기만 되는 줄이면 대상을 바꾸려고 홈까지 나갔다 와야 한다. 여기서 바로 간다.
+                    .clickable(onClick = onPickApps)
+                    .padding(vertical = 4.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+            ) {
+                Text(
+                    text = stringResource(
+                        R.string.pomodoro_setup_targets_summary,
+                        state.selectedAppCount,
+                    ),
+                    color = KeepTheme.colors.surfaceVariant,
+                    fontSize = 13.sp,
+                )
+                Text(
+                    text = stringResource(R.string.pomodoro_setup_choose_apps),
+                    color = KeepTheme.colors.onPrimaryContainer,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 13.sp,
+                )
+            }
+        }
+
+        KeepButton(
+            modifier = Modifier.fillMaxWidth(),
+            text = stringResource(R.string.pomodoro_settings_done),
+            size = KeepButtonSize.Large,
+            bottomSpacing = false,
+            onClick = onDone,
+        )
         Spacer(modifier = Modifier.height(20.dp))
     }
 }

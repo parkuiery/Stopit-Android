@@ -663,4 +663,6 @@
     <string name="pomodoro_custom_cycles_value">%1$d번</string>
     <string name="pomodoro_cycle_summary_title">집중 %1$d분 · 휴식 %2$d분</string>
     <string name="pomodoro_setup_customize">설정 바꾸기</string>
+    <string name="pomodoro_settings_title">세션 설정</string>
+    <string name="pomodoro_settings_done">완료</string>
 </resources>

@@ -631,4 +631,6 @@
     <string name="pomodoro_custom_cycles_value">%1$d раз</string>
     <string name="pomodoro_cycle_summary_title">Фокус %1$d мин · перерыв %2$d мин</string>
     <string name="pomodoro_setup_customize">Изменить настройки</string>
+    <string name="pomodoro_settings_title">Настройки сессии</string>
+    <string name="pomodoro_settings_done">Готово</string>
 </resources>

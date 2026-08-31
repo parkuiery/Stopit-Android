@@ -621,4 +621,6 @@
     <string name="pomodoro_custom_cycles_value">%1$d vezes</string>
     <string name="pomodoro_cycle_summary_title">Foco %1$d min · pausa %2$d min</string>
     <string name="pomodoro_setup_customize">Alterar definições</string>
+    <string name="pomodoro_settings_title">Definições da sessão</string>
+    <string name="pomodoro_settings_done">Concluído</string>
 </resources>
