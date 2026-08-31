@@ -1,5 +1,6 @@
 package com.uiery.keep.feature.pomodoro
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -389,38 +390,59 @@ private fun PomodoroSetupContent(
             horizontalAlignment = Alignment.Start,
         ) {
             Spacer(modifier = Modifier.height(16.dp))
-            Text(
-                text = stringResource(
-                    R.string.pomodoro_cycle_summary_title,
-                    state.selectedCycle.focusMinutes,
-                    state.selectedCycle.shortBreakMinutes,
-                ),
-                color = KeepTheme.colors.onSurfaceVariant,
-                fontWeight = FontWeight.Bold,
-                fontSize = 22.sp,
-            )
-            Spacer(modifier = Modifier.height(6.dp))
-            // 고른 것은 "집중 25분"이지만 실제로 예약되는 잠금은 2시간 10분이다. 그 숫자를 모르고
-            // 시작하면 예측 가능한 잠금이라는 이 앱의 약속이 깨진다. 설정을 접어도 이건 남긴다.
-            PomodoroTotalLengthSummary(cycle = state.selectedCycle)
-            Spacer(modifier = Modifier.height(10.dp))
+            // 이게 뭔지부터 말한다. 메뉴에서 처음 들어온 사람에게 "집중 25분 · 휴식 5분"을 먼저
+            // 내밀면, 그 숫자가 무엇을 하는 숫자인지 모르는 채로 읽게 된다. 설명을 카드 아래
+            // 작은 회색 글씨로 두면 순서만 맞고 실제로는 읽히지 않는다.
             Text(
                 text = stringResource(R.string.pomodoro_setup_description),
-                color = KeepTheme.colors.surfaceVariant,
-                fontSize = 13.sp,
+                color = KeepTheme.colors.onSurfaceVariant,
+                fontSize = 16.sp,
             )
 
             Spacer(modifier = Modifier.height(20.dp))
-            Text(
+            // 바꿀 대상이 곧 누를 자리다. 요약 옆에 "설정 바꾸기"라는 맨 글자를 따로 띄워 두면
+            // 눌리는 것처럼 보이지도 않고, 그 글자와 요약이 같은 것을 가리킨다는 것도 안 읽힌다.
+            //
+            // 고른 것은 "집중 25분"이지만 실제로 예약되는 잠금은 2시간 10분이다. 그 숫자를 모르고
+            // 시작하면 예측 가능한 잠금이라는 이 앱의 약속이 깨지므로, 카드가 그것부터 말한다.
+            Row(
                 modifier = Modifier
-                    .clip(RoundedCornerShape(8.dp))
-                    .clickable(role = Role.Button, onClick = onOpenSettings)
-                    .padding(vertical = 6.dp),
-                text = stringResource(R.string.pomodoro_setup_customize),
-                color = KeepTheme.colors.onPrimaryContainer,
-                fontWeight = FontWeight.Bold,
-                fontSize = 14.sp,
-            )
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(KeepTheme.semanticColors.background.layerDefault)
+                    .clickable(
+                        role = Role.Button,
+                        onClickLabel = stringResource(R.string.pomodoro_setup_customize),
+                        onClick = onOpenSettings,
+                    )
+                    .padding(horizontal = 16.dp, vertical = 14.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(6.dp),
+                ) {
+                    Text(
+                        text = stringResource(
+                            R.string.pomodoro_cycle_summary_title,
+                            state.selectedCycle.focusMinutes,
+                            state.selectedCycle.shortBreakMinutes,
+                        ),
+                        color = KeepTheme.colors.onSurfaceVariant,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 20.sp,
+                    )
+                    PomodoroTotalLengthSummary(cycle = state.selectedCycle)
+                }
+                Icon(
+                    modifier = Modifier.size(18.dp),
+                    painter = painterResource(R.drawable.round_arrow_forward_ios_24),
+                    contentDescription = null,
+                    tint = KeepTheme.colors.onTertiaryContainer,
+                )
+            }
+
         }
 
         if (state.selectedAppCount == 0) {
