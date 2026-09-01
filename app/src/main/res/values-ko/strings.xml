@@ -664,11 +664,11 @@
     <string name="pomodoro_setup_customize">설정 바꾸기</string>
     <string name="pomodoro_settings_title">세션 설정</string>
     <string name="pomodoro_settings_done">완료</string>
-    <string name="pomodoro_intro_title">참지 않아도 돼요</string>
+    <string name="pomodoro_intro_title">손이 가도 안 열려요</string>
     <string name="pomodoro_intro_eyebrow">앉자마자 손이 폰으로 갈 때</string>
-    <string name="pomodoro_intro_subtitle">참는 데 쓰던 힘을 하려던 일에 쓰세요.</string>
-    <string name="pomodoro_intro_willpower_title">고른 앱이 안 열려요</string>
-    <string name="pomodoro_intro_willpower_description">집중하는 동안에는 눌러도 열리지 않아요.</string>
+    <string name="pomodoro_intro_subtitle">참을 필요가 없으니, 그 힘을 하려던 일에 쓰세요.</string>
+    <string name="pomodoro_intro_willpower_title">고른 앱만 막아요</string>
+    <string name="pomodoro_intro_willpower_description">나머지는 그대로 써요. 전화나 지도는 평소처럼 열려요.</string>
     <string name="pomodoro_intro_break_title">쉬다가 딴 데로 새지 않아요</string>
     <string name="pomodoro_intro_break_description">휴식에도 막혀 있어서 ‘5분만’이 한 시간이 되지 않아요.</string>
     <string name="pomodoro_intro_start_title">시작이 가벼워요</string>

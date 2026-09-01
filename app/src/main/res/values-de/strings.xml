@@ -622,11 +622,11 @@
     <string name="pomodoro_setup_customize">Einstellungen ändern</string>
     <string name="pomodoro_settings_title">Sitzungseinstellungen</string>
     <string name="pomodoro_settings_done">Fertig</string>
-    <string name="pomodoro_intro_title">Du musst nicht widerstehen</string>
+    <string name="pomodoro_intro_title">Sie geht trotzdem nicht auf</string>
     <string name="pomodoro_intro_eyebrow">Wenn die Hand zum Handy wandert</string>
-    <string name="pomodoro_intro_subtitle">Steck die Kraft in die Arbeit statt ins Widerstehen.</string>
-    <string name="pomodoro_intro_willpower_title">Die App geht einfach nicht auf</string>
-    <string name="pomodoro_intro_willpower_description">Während du fokussierst, passiert beim Tippen nichts.</string>
+    <string name="pomodoro_intro_subtitle">Keine Willenskraft nötig – steck sie in die Arbeit.</string>
+    <string name="pomodoro_intro_willpower_title">Nur die gewählten Apps</string>
+    <string name="pomodoro_intro_willpower_description">Alles andere bleibt normal – Anrufe und Karten gehen weiter.</string>
     <string name="pomodoro_intro_break_title">Pausen bleiben Pausen</string>
     <string name="pomodoro_intro_break_description">Auch in der Pause blockiert – aus ‚fünf Minuten‘ wird keine Stunde.</string>
     <string name="pomodoro_intro_start_title">Leicht anzufangen</string>

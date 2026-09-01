@@ -621,11 +621,11 @@
     <string name="pomodoro_setup_customize">Cambiar ajustes</string>
     <string name="pomodoro_settings_title">Ajustes de la sesión</string>
     <string name="pomodoro_settings_done">Listo</string>
-    <string name="pomodoro_intro_title">No tienes que resistirte</string>
+    <string name="pomodoro_intro_title">Aun así no se abre</string>
     <string name="pomodoro_intro_eyebrow">Cuando la mano va sola al móvil</string>
-    <string name="pomodoro_intro_subtitle">Pon esa energía en el trabajo, no en resistirte.</string>
-    <string name="pomodoro_intro_willpower_title">La app no se abre</string>
-    <string name="pomodoro_intro_willpower_description">Mientras te concentras, tocarla no hace nada.</string>
+    <string name="pomodoro_intro_subtitle">No hace falta fuerza de voluntad; úsala en el trabajo.</string>
+    <string name="pomodoro_intro_willpower_title">Solo las apps que elijas</string>
+    <string name="pomodoro_intro_willpower_description">El resto sigue igual: llamadas y mapas se abren normal.</string>
     <string name="pomodoro_intro_break_title">El descanso sigue siendo descanso</string>
     <string name="pomodoro_intro_break_description">Sigue bloqueado en el descanso, así ‘cinco minutos’ no se vuelve una hora.</string>
     <string name="pomodoro_intro_start_title">Fácil de empezar</string>

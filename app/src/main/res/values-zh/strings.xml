@@ -620,11 +620,11 @@
     <string name="pomodoro_setup_customize">更改设置</string>
     <string name="pomodoro_settings_title">会话设置</string>
     <string name="pomodoro_settings_done">完成</string>
-    <string name="pomodoro_intro_title">不用忍着</string>
+    <string name="pomodoro_intro_title">手伸过去也打不开</string>
     <string name="pomodoro_intro_eyebrow">刚坐下手就伸向手机时</string>
-    <string name="pomodoro_intro_subtitle">把忍耐的力气用在要做的事上。</string>
-    <string name="pomodoro_intro_willpower_title">选中的应用打不开</string>
-    <string name="pomodoro_intro_willpower_description">专注期间，点了也不会打开。</string>
+    <string name="pomodoro_intro_subtitle">不用靠意志力，把那份力气用在要做的事上。</string>
+    <string name="pomodoro_intro_willpower_title">只拦你选的应用</string>
+    <string name="pomodoro_intro_willpower_description">其他照常使用，电话和地图还能打开。</string>
     <string name="pomodoro_intro_break_title">休息就只是休息</string>
     <string name="pomodoro_intro_break_description">休息时也拦着，所以“就五分钟”不会变成一小时。</string>
     <string name="pomodoro_intro_start_title">开始很轻松</string>

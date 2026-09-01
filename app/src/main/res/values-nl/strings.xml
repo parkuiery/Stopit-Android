@@ -622,11 +622,11 @@
     <string name="pomodoro_setup_customize">Instellingen wijzigen</string>
     <string name="pomodoro_settings_title">Sessie-instellingen</string>
     <string name="pomodoro_settings_done">Klaar</string>
-    <string name="pomodoro_intro_title">Je hoeft niet te weerstaan</string>
+    <string name="pomodoro_intro_title">Hij gaat toch niet open</string>
     <string name="pomodoro_intro_eyebrow">Als je hand naar je telefoon gaat</string>
-    <string name="pomodoro_intro_subtitle">Steek die energie in het werk, niet in weerstaan.</string>
-    <string name="pomodoro_intro_willpower_title">De app gaat gewoon niet open</string>
-    <string name="pomodoro_intro_willpower_description">Terwijl je focust, doet erop tikken niets.</string>
+    <string name="pomodoro_intro_subtitle">Geen wilskracht nodig — steek die in het werk.</string>
+    <string name="pomodoro_intro_willpower_title">Alleen de apps die je kiest</string>
+    <string name="pomodoro_intro_willpower_description">De rest werkt gewoon: bellen en kaarten openen normaal.</string>
     <string name="pomodoro_intro_break_title">Pauzes blijven pauzes</string>
     <string name="pomodoro_intro_break_description">Ook in de pauze geblokkeerd, dus ‘vijf minuten’ wordt geen uur.</string>
     <string name="pomodoro_intro_start_title">Makkelijk te beginnen</string>

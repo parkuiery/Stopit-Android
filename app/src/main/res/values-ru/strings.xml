@@ -632,11 +632,11 @@
     <string name="pomodoro_setup_customize">Изменить настройки</string>
     <string name="pomodoro_settings_title">Настройки сессии</string>
     <string name="pomodoro_settings_done">Готово</string>
-    <string name="pomodoro_intro_title">Не нужно себя сдерживать</string>
+    <string name="pomodoro_intro_title">Всё равно не откроется</string>
     <string name="pomodoro_intro_eyebrow">Когда рука сама тянется к телефону</string>
-    <string name="pomodoro_intro_subtitle">Направьте эти силы в работу, а не на борьбу с собой.</string>
-    <string name="pomodoro_intro_willpower_title">Приложение просто не откроется</string>
-    <string name="pomodoro_intro_willpower_description">Пока вы работаете, нажатие ничего не даёт.</string>
+    <string name="pomodoro_intro_subtitle">Сила воли не нужна — направьте её в работу.</string>
+    <string name="pomodoro_intro_willpower_title">Только выбранные приложения</string>
+    <string name="pomodoro_intro_willpower_description">Остальное работает как обычно — звонки и карты открываются.</string>
     <string name="pomodoro_intro_break_title">Перерыв остаётся перерывом</string>
     <string name="pomodoro_intro_break_description">В перерыв тоже заблокировано, поэтому «пять минут» не станут часом.</string>
     <string name="pomodoro_intro_start_title">Легко начать</string>

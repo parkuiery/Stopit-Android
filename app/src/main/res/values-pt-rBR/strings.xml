@@ -622,11 +622,11 @@
     <string name="pomodoro_setup_customize">Alterar configurações</string>
     <string name="pomodoro_settings_title">Configurações da sessão</string>
     <string name="pomodoro_settings_done">Concluído</string>
-    <string name="pomodoro_intro_title">Você não precisa resistir</string>
+    <string name="pomodoro_intro_title">Mesmo assim não abre</string>
     <string name="pomodoro_intro_eyebrow">Quando a mão vai sozinha para o celular</string>
-    <string name="pomodoro_intro_subtitle">Coloque essa energia no trabalho, não em resistir.</string>
-    <string name="pomodoro_intro_willpower_title">O app não abre</string>
-    <string name="pomodoro_intro_willpower_description">Enquanto você foca, tocar nele não faz nada.</string>
+    <string name="pomodoro_intro_subtitle">Não precisa de força de vontade; use-a no trabalho.</string>
+    <string name="pomodoro_intro_willpower_title">Só os apps que você escolher</string>
+    <string name="pomodoro_intro_willpower_description">O resto funciona normal: chamadas e mapas abrem.</string>
     <string name="pomodoro_intro_break_title">A pausa continua sendo pausa</string>
     <string name="pomodoro_intro_break_description">Continua bloqueado na pausa, então ‘cinco minutos’ não vira uma hora.</string>
     <string name="pomodoro_intro_start_title">Fácil de começar</string>

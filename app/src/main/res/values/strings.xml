@@ -665,11 +665,11 @@
     <string name="pomodoro_setup_customize">Change settings</string>
     <string name="pomodoro_settings_title">Session settings</string>
     <string name="pomodoro_settings_done">Done</string>
-    <string name="pomodoro_intro_title">You don’t have to resist</string>
+    <string name="pomodoro_intro_title">It won’t open anyway</string>
     <string name="pomodoro_intro_eyebrow">When your hand reaches for the phone</string>
-    <string name="pomodoro_intro_subtitle">Put the effort into the work instead of into resisting.</string>
-    <string name="pomodoro_intro_willpower_title">The app simply won’t open</string>
-    <string name="pomodoro_intro_willpower_description">While you focus, tapping it does nothing.</string>
+    <string name="pomodoro_intro_subtitle">No willpower needed — put that energy into the work.</string>
+    <string name="pomodoro_intro_willpower_title">Only the apps you picked</string>
+    <string name="pomodoro_intro_willpower_description">Everything else works as usual, so calls and maps still open.</string>
     <string name="pomodoro_intro_break_title">Breaks stay breaks</string>
     <string name="pomodoro_intro_break_description">Still blocked while you rest, so ‘five minutes’ never becomes an hour.</string>
     <string name="pomodoro_intro_start_title">Easy to begin</string>
