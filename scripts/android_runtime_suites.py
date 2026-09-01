@@ -45,6 +45,7 @@ INTENTIONALLY_EXCLUDED_ANDROID_TEST_CLASSES: dict[str, str] = {
     "com.uiery.keep.feature.onboarding.OnboardingActionStackTest": "screen-local Compose layout regression; run from Onboarding action UI PRs",
     "com.uiery.keep.feature.onboarding.proposal.PromiseProposalEditActionsTest": "screen-local Compose regression; run from Promise proposal UI PRs",
     "com.uiery.keep.feature.parentmode.ParentModeSetupScreenAccessibilityTest": "screen-local accessibility regression; run from Parent Mode UI/a11y PRs",
+    "com.uiery.keep.feature.pomodoro.PomodoroScreenContentTest": "screen-local Compose regression; run from focus-session UI PRs",
     "com.uiery.keep.feature.routine.component.RoutineListContentIntegrationTest": "screen-local Compose regression; run from Routine card/list UI PRs",
     "com.uiery.keep.testing.AccessibilitySettingsDetailNavigatorTest": "test-helper/navigation utility regression; run from accessibility settings navigator PRs",
 }
