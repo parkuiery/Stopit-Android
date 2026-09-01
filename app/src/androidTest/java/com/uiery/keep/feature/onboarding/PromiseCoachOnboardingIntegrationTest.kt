@@ -155,6 +155,8 @@ class PromiseCoachOnboardingIntegrationTest {
             firstPromiseDraftStore = draftStore,
             analytics = analytics,
             routineRestoreAftercare = emptyRoutineRestoreAftercare(dataStore),
+            // 집중 세션이 없는 온보딩 경로다. 세션이 있으면 스플래시가 세션 화면으로 보낸다.
+            pomodoroBlockContextSource = { null },
         )
         assertEquals(
             SplashSideEffect.MoveToHome,

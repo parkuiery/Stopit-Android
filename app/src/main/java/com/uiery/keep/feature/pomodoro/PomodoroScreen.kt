@@ -254,7 +254,7 @@ internal fun PomodoroScreen(
 }
 
 @Composable
-private fun PomodoroRunningContent(
+internal fun PomodoroRunningContent(
     state: PomodoroUiState,
     onEnd: () -> Unit,
 ) {
@@ -411,7 +411,7 @@ private fun PomodoroBlockingNotice(
  * 50/10 을 쓰는 사람에게는 거짓말이 된다. 구체적인 길이는 다음 화면이 말한다.
  */
 @Composable
-private fun PomodoroIntroContent(cycle: PomodoroCycle, onNext: () -> Unit) {
+internal fun PomodoroIntroContent(cycle: PomodoroCycle, onNext: () -> Unit) {
     Column(modifier = Modifier.fillMaxSize()) {
         Column(
             modifier = Modifier
@@ -648,7 +648,7 @@ private fun PomodoroTrackLegend(color: Color, label: String) {
 
 
 @Composable
-private fun PomodoroSetupContent(
+internal fun PomodoroSetupContent(
     state: PomodoroUiState,
     onOpenSettings: () -> Unit,
     onPickApps: () -> Unit,
@@ -762,7 +762,7 @@ private fun PomodoroSetupContent(
  * 바꾸는 결정이라, 그 결과가 선택과 같은 화면에 보여야 한다.
  */
 @Composable
-private fun PomodoroSettingsContent(
+internal fun PomodoroSettingsContent(
     state: PomodoroUiState,
     onSelectCycle: (PomodoroCycle) -> Unit,
     onSelectCustom: () -> Unit,
@@ -1063,7 +1063,7 @@ private fun PomodoroCountStepper(
 }
 
 @Composable
-private fun PomodoroCompleteContent(
+internal fun PomodoroCompleteContent(
     state: PomodoroUiState,
     onRestart: () -> Unit,
     onLeave: () -> Unit,
