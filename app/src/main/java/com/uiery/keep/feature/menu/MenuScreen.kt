@@ -116,7 +116,7 @@ fun MenuScreen(
                 // 실행 표면은 타이머 시트다. 메뉴는 "이 앱이 뭘 할 수 있나"를 훑는 목록이라
                 // 발견성만 담당한다 — 같은 화면으로 가므로 모델이 둘로 갈라지지 않는다.
                 MenuItem(
-                    icon = R.drawable.ic_pomodoro_outline,
+                    icon = R.drawable.ic_focus_session,
                     title = stringResource(id = R.string.pomodoro_setup_title),
                     onClick = onNavigatePomodoro,
                 )
