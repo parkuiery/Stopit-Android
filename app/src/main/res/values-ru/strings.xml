@@ -569,7 +569,6 @@
     <string name="notification_pomodoro_progress">Осталось %1$s · концентрация %2$d из %3$d</string>
     <string name="cd_pomodoro_open">Начать сессию концентрации</string>
     <string name="pomodoro_setup_title">Начать сессию концентрации</string>
-    <string name="pomodoro_setup_description">Концентрация и перерывы чередуются. Выбранные приложения остаются заблокированными до конца сессии.</string>
     <string name="pomodoro_setup_cycle_label">Длительность цикла</string>
     <string name="pomodoro_preset_25_title">Концентрация 25 мин · перерыв 5 мин</string>
     <string name="pomodoro_preset_25_description">После 4-й концентрации будет 15 минут</string>
@@ -605,7 +604,7 @@
     <string name="pomodoro_block_title">Сейчас время концентрации</string>
     <string name="pomodoro_block_description">Концентрации %1$d осталось %2$s. По окончании откроется само.</string>
     <string name="pomodoro_end_confirm_message_none">Ничего не теряется — можно начать заново в любой момент.</string>
-    <string name="pomodoro_home_active_message">Идёт сессия концентрации, поэтому выбранные приложения остаются заблокированными.</string>
+    <string name="pomodoro_home_active_message">Пока идёт сессия, выбранные приложения остаются заблокированными.</string>
     <string name="pomodoro_preset_custom_title">Задать самому</string>
     <string name="pomodoro_preset_custom_description">Выберите свою длительность концентрации и перерывов</string>
     <string name="pomodoro_custom_focus_label">Концентрация</string>
@@ -614,7 +613,7 @@
     <string name="pomodoro_custom_minutes_value">%1$d мин</string>
     <string name="pomodoro_setup_total_summary_hours">Кругов: %1$d · всего заблокировано %2$d ч %3$d мин</string>
     <string name="pomodoro_setup_total_summary_minutes">Кругов: %1$d · всего заблокировано %2$d мин</string>
-    <string name="pomodoro_setup_no_apps">Сначала выберите приложения для блокировки — сессии нужно что-то защищать.</string>
+    <string name="pomodoro_setup_no_apps">Сначала выберите приложения — без них сессию не начать.</string>
     <string name="pomodoro_setup_choose_apps">Выбрать приложения</string>
     <string name="pomodoro_ended_title">Сессия завершена</string>
     <string name="pomodoro_sheet_segment">Цикл</string>
@@ -633,13 +632,13 @@
     <string name="pomodoro_setup_customize">Изменить настройки</string>
     <string name="pomodoro_settings_title">Настройки сессии</string>
     <string name="pomodoro_settings_done">Готово</string>
-    <string name="pomodoro_intro_title">Не бороться. Просто не открывается.</string>
+    <string name="pomodoro_intro_title">Не нужно себя сдерживать</string>
     <string name="pomodoro_intro_eyebrow">Когда рука сама тянется к телефону</string>
-    <string name="pomodoro_intro_subtitle">Тратьте силы на дело, а не на то, чтобы не взять телефон.</string>
-    <string name="pomodoro_intro_willpower_title">Нечему сопротивляться</string>
-    <string name="pomodoro_intro_willpower_description">Пока вы работаете, выбранные приложения не открываются.</string>
-    <string name="pomodoro_intro_break_title">Перерыв не съедает час</string>
-    <string name="pomodoro_intro_break_description">Блокирует и в перерыв: «пять минут» не станут часом.</string>
+    <string name="pomodoro_intro_subtitle">Направьте эти силы в работу, а не на борьбу с собой.</string>
+    <string name="pomodoro_intro_willpower_title">Приложение просто не откроется</string>
+    <string name="pomodoro_intro_willpower_description">Пока вы работаете, нажатие ничего не даёт.</string>
+    <string name="pomodoro_intro_break_title">Перерыв остаётся перерывом</string>
+    <string name="pomodoro_intro_break_description">В перерыв тоже заблокировано, поэтому «пять минут» не станут часом.</string>
     <string name="pomodoro_intro_start_title">Легко начать</string>
     <string name="pomodoro_intro_start_description">В конце разблокируется само, и можно завершить раньше.</string>
     <string name="pomodoro_intro_cta">Сфокусироваться один раз сегодня</string>

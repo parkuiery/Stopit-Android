@@ -558,7 +558,6 @@
     <string name="notification_pomodoro_progress">Quedan %1$s · concentración %2$d de %3$d</string>
     <string name="cd_pomodoro_open">Iniciar sesión de concentración</string>
     <string name="pomodoro_setup_title">Iniciar sesión de concentración</string>
-    <string name="pomodoro_setup_description">La concentración y los descansos se alternan. Las apps que elijas siguen bloqueadas hasta que acabe la sesión.</string>
     <string name="pomodoro_setup_cycle_label">Duración del ciclo</string>
     <string name="pomodoro_preset_25_title">Concentración 25 min · descanso 5 min</string>
     <string name="pomodoro_preset_25_description">Tras la 4.ª concentración tienes 15 minutos</string>
@@ -594,7 +593,7 @@
     <string name="pomodoro_block_title">Ahora toca concentrarse</string>
     <string name="pomodoro_block_description">A la concentración %1$d le quedan %2$s. Se abrirá sola al terminar.</string>
     <string name="pomodoro_end_confirm_message_none">No pierdes nada: puedes volver a empezar cuando quieras.</string>
-    <string name="pomodoro_home_active_message">Hay una sesión de concentración en marcha, así que tus apps siguen bloqueadas.</string>
+    <string name="pomodoro_home_active_message">Mientras hay una sesión en marcha, las apps elegidas siguen bloqueadas.</string>
     <string name="pomodoro_preset_custom_title">Configurarlo yo</string>
     <string name="pomodoro_preset_custom_description">Elige tú la duración de concentración y descansos</string>
     <string name="pomodoro_custom_focus_label">Concentración</string>
@@ -603,7 +602,7 @@
     <string name="pomodoro_custom_minutes_value">%1$d min</string>
     <string name="pomodoro_setup_total_summary_hours">%1$d rondas · bloqueado %2$d h %3$d min en total</string>
     <string name="pomodoro_setup_total_summary_minutes">%1$d rondas · bloqueado %2$d min en total</string>
-    <string name="pomodoro_setup_no_apps">Elige primero las apps que bloquear: una sesión necesita algo que proteger.</string>
+    <string name="pomodoro_setup_no_apps">Elige antes las apps a bloquear; sin eso no se puede iniciar la sesión.</string>
     <string name="pomodoro_setup_choose_apps">Elegir apps que bloquear</string>
     <string name="pomodoro_ended_title">Sesión terminada</string>
     <string name="pomodoro_sheet_segment">Ciclo</string>
@@ -622,13 +621,13 @@
     <string name="pomodoro_setup_customize">Cambiar ajustes</string>
     <string name="pomodoro_settings_title">Ajustes de la sesión</string>
     <string name="pomodoro_settings_done">Listo</string>
-    <string name="pomodoro_intro_title">No resistes. Simplemente no se abre.</string>
+    <string name="pomodoro_intro_title">No tienes que resistirte</string>
     <string name="pomodoro_intro_eyebrow">Cuando la mano va sola al móvil</string>
-    <string name="pomodoro_intro_subtitle">Gasta tu fuerza de voluntad en el trabajo, no en resistirte al móvil.</string>
-    <string name="pomodoro_intro_willpower_title">Nada que resistir</string>
-    <string name="pomodoro_intro_willpower_description">Mientras te concentras, las apps que elegiste no se abren.</string>
-    <string name="pomodoro_intro_break_title">Descansos que no se comen la hora</string>
-    <string name="pomodoro_intro_break_description">Bloqueado también en los descansos: ‘cinco minutos’ no se vuelve una hora.</string>
+    <string name="pomodoro_intro_subtitle">Pon esa energía en el trabajo, no en resistirte.</string>
+    <string name="pomodoro_intro_willpower_title">La app no se abre</string>
+    <string name="pomodoro_intro_willpower_description">Mientras te concentras, tocarla no hace nada.</string>
+    <string name="pomodoro_intro_break_title">El descanso sigue siendo descanso</string>
+    <string name="pomodoro_intro_break_description">Sigue bloqueado en el descanso, así ‘cinco minutos’ no se vuelve una hora.</string>
     <string name="pomodoro_intro_start_title">Fácil de empezar</string>
     <string name="pomodoro_intro_start_description">Se desbloquea solo al final y puedes parar antes.</string>
     <string name="pomodoro_intro_cta">Concéntrate una vez hoy</string>

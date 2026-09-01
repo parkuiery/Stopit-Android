@@ -559,7 +559,6 @@
     <string name="notification_pomodoro_progress">%1$s rimasti · concentrazione %2$d di %3$d</string>
     <string name="cd_pomodoro_open">Avvia una sessione di concentrazione</string>
     <string name="pomodoro_setup_title">Avvia una sessione di concentrazione</string>
-    <string name="pomodoro_setup_description">Concentrazione e pause si alternano. Le app scelte restano bloccate fino alla fine della sessione.</string>
     <string name="pomodoro_setup_cycle_label">Durata del ciclo</string>
     <string name="pomodoro_preset_25_title">Concentrazione 25 min · pausa 5 min</string>
     <string name="pomodoro_preset_25_description">Dopo la 4ª concentrazione ci sono 15 minuti</string>
@@ -595,7 +594,7 @@
     <string name="pomodoro_block_title">Adesso è tempo di concentrarsi</string>
     <string name="pomodoro_block_description">Alla concentrazione %1$d mancano %2$s. Si aprirà da sola.</string>
     <string name="pomodoro_end_confirm_message_none">Non perdi nulla: puoi ricominciare quando vuoi.</string>
-    <string name="pomodoro_home_active_message">È in corso una sessione di concentrazione, le tue app restano bloccate.</string>
+    <string name="pomodoro_home_active_message">Durante una sessione le app scelte restano bloccate.</string>
     <string name="pomodoro_preset_custom_title">Imposta tu</string>
     <string name="pomodoro_preset_custom_description">Scegli tu la durata di concentrazione e pause</string>
     <string name="pomodoro_custom_focus_label">Concentrazione</string>
@@ -604,7 +603,7 @@
     <string name="pomodoro_custom_minutes_value">%1$d min</string>
     <string name="pomodoro_setup_total_summary_hours">%1$d turni · bloccato %2$d h %3$d min in totale</string>
     <string name="pomodoro_setup_total_summary_minutes">%1$d turni · bloccato %2$d min in totale</string>
-    <string name="pomodoro_setup_no_apps">Scegli prima le app da bloccare: una sessione ha bisogno di qualcosa da proteggere.</string>
+    <string name="pomodoro_setup_no_apps">Scegli prima le app da bloccare: senza, la sessione non parte.</string>
     <string name="pomodoro_setup_choose_apps">Scegli le app da bloccare</string>
     <string name="pomodoro_ended_title">Sessione terminata</string>
     <string name="pomodoro_sheet_segment">Ciclo</string>
@@ -623,13 +622,13 @@
     <string name="pomodoro_setup_customize">Modifica impostazioni</string>
     <string name="pomodoro_settings_title">Impostazioni sessione</string>
     <string name="pomodoro_settings_done">Fatto</string>
-    <string name="pomodoro_intro_title">Niente resistenza. Resta chiuso.</string>
+    <string name="pomodoro_intro_title">Non devi resistere</string>
     <string name="pomodoro_intro_eyebrow">Quando la mano va dritta al telefono</string>
-    <string name="pomodoro_intro_subtitle">Usa le energie per il lavoro, non per resistere al telefono.</string>
-    <string name="pomodoro_intro_willpower_title">Niente a cui resistere</string>
-    <string name="pomodoro_intro_willpower_description">Mentre ti concentri, le app scelte non si aprono.</string>
-    <string name="pomodoro_intro_break_title">Pause che non divorano l’ora</string>
-    <string name="pomodoro_intro_break_description">Bloccato anche in pausa: ‘cinque minuti’ non diventa un’ora.</string>
+    <string name="pomodoro_intro_subtitle">Metti quell’energia nel lavoro, non nel resistere.</string>
+    <string name="pomodoro_intro_willpower_title">L’app non si apre</string>
+    <string name="pomodoro_intro_willpower_description">Mentre ti concentri, toccarla non fa nulla.</string>
+    <string name="pomodoro_intro_break_title">La pausa resta una pausa</string>
+    <string name="pomodoro_intro_break_description">Bloccato anche in pausa, così ‘cinque minuti’ non diventa un’ora.</string>
     <string name="pomodoro_intro_start_title">Facile da iniziare</string>
     <string name="pomodoro_intro_start_description">Si sblocca da solo alla fine e puoi smettere prima.</string>
     <string name="pomodoro_intro_cta">Concentrati una volta oggi</string>

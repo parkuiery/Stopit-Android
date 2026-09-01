@@ -601,7 +601,6 @@
     <string name="notification_pomodoro_progress">%1$s 남음 · 집중 %2$d/%3$d</string>
     <string name="cd_pomodoro_open">집중 세션 시작</string>
     <string name="pomodoro_setup_title">집중 세션 시작</string>
-    <string name="pomodoro_setup_description">집중과 휴식을 번갈아 돌려요. 세션이 끝날 때까지 고른 앱은 계속 막혀요.</string>
     <string name="pomodoro_setup_cycle_label">사이클 길이</string>
     <string name="pomodoro_preset_25_title">집중 25분 · 휴식 5분</string>
     <string name="pomodoro_preset_25_description">4번째 집중 뒤에는 15분 쉬어요</string>
@@ -637,7 +636,7 @@
     <string name="pomodoro_block_title">지금은 집중 시간이에요</string>
     <string name="pomodoro_block_description">%1$d번째 집중이 %2$s 남았어요. 끝나면 알아서 열려요.</string>
     <string name="pomodoro_end_confirm_message_none">잃는 건 없어요. 언제든 다시 시작할 수 있어요.</string>
-    <string name="pomodoro_home_active_message">집중 세션이 도는 중이라 고른 앱은 계속 막혀 있어요.</string>
+    <string name="pomodoro_home_active_message">집중 세션이 도는 동안에는 고른 앱이 계속 막혀 있어요.</string>
     <string name="pomodoro_preset_custom_title">직접 설정</string>
     <string name="pomodoro_preset_custom_description">집중과 휴식 길이를 직접 정해요</string>
     <string name="pomodoro_custom_focus_label">집중</string>
@@ -646,7 +645,7 @@
     <string name="pomodoro_custom_minutes_value">%1$d분</string>
     <string name="pomodoro_setup_total_summary_hours">집중 %1$d번 · 총 %2$d시간 %3$d분 동안 막혀요</string>
     <string name="pomodoro_setup_total_summary_minutes">집중 %1$d번 · 총 %2$d분 동안 막혀요</string>
-    <string name="pomodoro_setup_no_apps">막을 앱을 먼저 골라야 해요. 지킬 대상이 있어야 세션이 의미가 있어요.</string>
+    <string name="pomodoro_setup_no_apps">막을 앱을 먼저 골라주세요. 무엇을 막을지 정해야 세션을 시작할 수 있어요.</string>
     <string name="pomodoro_setup_choose_apps">차단 앱 고르기</string>
     <string name="pomodoro_ended_title">세션을 끝냈어요</string>
     <string name="pomodoro_sheet_segment">사이클</string>
@@ -665,13 +664,13 @@
     <string name="pomodoro_setup_customize">설정 바꾸기</string>
     <string name="pomodoro_settings_title">세션 설정</string>
     <string name="pomodoro_settings_done">완료</string>
-    <string name="pomodoro_intro_title">참지 않아도 집중된다</string>
+    <string name="pomodoro_intro_title">참지 않아도 돼요</string>
     <string name="pomodoro_intro_eyebrow">앉자마자 손이 폰으로 갈 때</string>
-    <string name="pomodoro_intro_subtitle">폰을 참는 데 힘을 쓰지 말고, 하려던 일에 쓰세요.</string>
-    <string name="pomodoro_intro_willpower_title">참을 일이 없어요</string>
-    <string name="pomodoro_intro_willpower_description">집중하는 동안 고른 앱이 아예 열리지 않아요.</string>
-    <string name="pomodoro_intro_break_title">쉬다가 흘러가지 않아요</string>
-    <string name="pomodoro_intro_break_description">휴식에도 막아 두니 ‘5분만’이 한 시간이 되지 않아요.</string>
+    <string name="pomodoro_intro_subtitle">참는 데 쓰던 힘을 하려던 일에 쓰세요.</string>
+    <string name="pomodoro_intro_willpower_title">고른 앱이 안 열려요</string>
+    <string name="pomodoro_intro_willpower_description">집중하는 동안에는 눌러도 열리지 않아요.</string>
+    <string name="pomodoro_intro_break_title">쉬다가 딴 데로 새지 않아요</string>
+    <string name="pomodoro_intro_break_description">휴식에도 막혀 있어서 ‘5분만’이 한 시간이 되지 않아요.</string>
     <string name="pomodoro_intro_start_title">시작이 가벼워요</string>
     <string name="pomodoro_intro_start_description">끝나면 저절로 풀리고, 중간에 끝낼 수도 있어요.</string>
     <string name="pomodoro_intro_cta">오늘 한 번 집중해볼게요</string>

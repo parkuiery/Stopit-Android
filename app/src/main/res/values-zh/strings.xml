@@ -557,7 +557,6 @@
     <string name="notification_pomodoro_progress">剩余 %1$s · 专注 %2$d/%3$d</string>
     <string name="cd_pomodoro_open">开始专注时段</string>
     <string name="pomodoro_setup_title">开始专注时段</string>
-    <string name="pomodoro_setup_description">专注与休息交替进行。在本次时段结束前，所选应用会一直被拦截。</string>
     <string name="pomodoro_setup_cycle_label">循环时长</string>
     <string name="pomodoro_preset_25_title">专注 25 分钟 · 休息 5 分钟</string>
     <string name="pomodoro_preset_25_description">第 4 次专注之后休息 15 分钟</string>
@@ -593,7 +592,7 @@
     <string name="pomodoro_block_title">现在是专注时间</string>
     <string name="pomodoro_block_description">第 %1$d 次专注还剩 %2$s。时间到了会自动打开。</string>
     <string name="pomodoro_end_confirm_message_none">不会失去任何东西，随时可以重新开始。</string>
-    <string name="pomodoro_home_active_message">专注时段进行中，所选应用会一直被拦截。</string>
+    <string name="pomodoro_home_active_message">专注会话进行期间，选中的应用会一直被拦截。</string>
     <string name="pomodoro_preset_custom_title">自行设置</string>
     <string name="pomodoro_preset_custom_description">自己决定专注和休息的时长</string>
     <string name="pomodoro_custom_focus_label">专注</string>
@@ -602,7 +601,7 @@
     <string name="pomodoro_custom_minutes_value">%1$d 分钟</string>
     <string name="pomodoro_setup_total_summary_hours">专注 %1$d 次 · 共拦截 %2$d 小时 %3$d 分钟</string>
     <string name="pomodoro_setup_total_summary_minutes">专注 %1$d 次 · 共拦截 %2$d 分钟</string>
-    <string name="pomodoro_setup_no_apps">请先选择要拦截的应用。没有要守护的对象，时段就没有意义。</string>
+    <string name="pomodoro_setup_no_apps">请先选择要拦截的应用，否则无法开始会话。</string>
     <string name="pomodoro_setup_choose_apps">选择要拦截的应用</string>
     <string name="pomodoro_ended_title">时段已结束</string>
     <string name="pomodoro_sheet_segment">循环</string>
@@ -621,13 +620,13 @@
     <string name="pomodoro_setup_customize">更改设置</string>
     <string name="pomodoro_settings_title">会话设置</string>
     <string name="pomodoro_settings_done">完成</string>
-    <string name="pomodoro_intro_title">不用忍，它根本打不开</string>
+    <string name="pomodoro_intro_title">不用忍着</string>
     <string name="pomodoro_intro_eyebrow">刚坐下手就伸向手机时</string>
-    <string name="pomodoro_intro_subtitle">把意志力用在要做的事上，而不是用来忍住不看手机。</string>
-    <string name="pomodoro_intro_willpower_title">没什么需要忍的</string>
-    <string name="pomodoro_intro_willpower_description">专注期间，你选的应用根本打不开。</string>
-    <string name="pomodoro_intro_break_title">休息不会一去不回</string>
-    <string name="pomodoro_intro_break_description">休息时也拦着，“就五分钟”不会变成一小时。</string>
+    <string name="pomodoro_intro_subtitle">把忍耐的力气用在要做的事上。</string>
+    <string name="pomodoro_intro_willpower_title">选中的应用打不开</string>
+    <string name="pomodoro_intro_willpower_description">专注期间，点了也不会打开。</string>
+    <string name="pomodoro_intro_break_title">休息就只是休息</string>
+    <string name="pomodoro_intro_break_description">休息时也拦着，所以“就五分钟”不会变成一小时。</string>
     <string name="pomodoro_intro_start_title">开始很轻松</string>
     <string name="pomodoro_intro_start_description">结束后自动解锁，中途也可以停下。</string>
     <string name="pomodoro_intro_cta">今天专注一次</string>

@@ -557,7 +557,6 @@
     <string name="notification_pomodoro_progress">残り %1$s · 集中 %2$d/%3$d</string>
     <string name="cd_pomodoro_open">集中セッションを開始</string>
     <string name="pomodoro_setup_title">集中セッションを開始</string>
-    <string name="pomodoro_setup_description">集中と休憩を交互に回します。セッションが終わるまで選んだアプリはブロックされたままです。</string>
     <string name="pomodoro_setup_cycle_label">サイクルの長さ</string>
     <string name="pomodoro_preset_25_title">集中25分・休憩5分</string>
     <string name="pomodoro_preset_25_description">4回目の集中の後は15分休みます</string>
@@ -593,7 +592,7 @@
     <string name="pomodoro_block_title">いまは集中の時間です</string>
     <string name="pomodoro_block_description">%1$d回目の集中があと%2$s残っています。終われば自動で開きます。</string>
     <string name="pomodoro_end_confirm_message_none">失うものはありません。いつでもまた始められます。</string>
-    <string name="pomodoro_home_active_message">集中セッション中なので、選んだアプリはブロックされたままです。</string>
+    <string name="pomodoro_home_active_message">集中セッションが動いている間は、選んだアプリが止まったままです。</string>
     <string name="pomodoro_preset_custom_title">自分で設定</string>
     <string name="pomodoro_preset_custom_description">集中と休憩の長さを自分で決めます</string>
     <string name="pomodoro_custom_focus_label">集中</string>
@@ -602,7 +601,7 @@
     <string name="pomodoro_custom_minutes_value">%1$d分</string>
     <string name="pomodoro_setup_total_summary_hours">集中%1$d回・合計%2$d時間%3$d分ブロックします</string>
     <string name="pomodoro_setup_total_summary_minutes">集中%1$d回・合計%2$d分ブロックします</string>
-    <string name="pomodoro_setup_no_apps">先にブロックするアプリを選んでください。守る対象がないとセッションの意味がありません。</string>
+    <string name="pomodoro_setup_no_apps">先にブロックするアプリを選んでください。決めないとセッションを始められません。</string>
     <string name="pomodoro_setup_choose_apps">ブロックするアプリを選ぶ</string>
     <string name="pomodoro_ended_title">セッションを終えました</string>
     <string name="pomodoro_sheet_segment">サイクル</string>
@@ -621,13 +620,13 @@
     <string name="pomodoro_setup_customize">設定を変える</string>
     <string name="pomodoro_settings_title">セッション設定</string>
     <string name="pomodoro_settings_done">完了</string>
-    <string name="pomodoro_intro_title">我慢しなくても集中できる</string>
+    <string name="pomodoro_intro_title">我慢しなくて大丈夫</string>
     <string name="pomodoro_intro_eyebrow">座った瞬間スマホに手が伸びるとき</string>
-    <string name="pomodoro_intro_subtitle">スマホを我慢する力を、やることのほうに使ってください。</string>
-    <string name="pomodoro_intro_willpower_title">我慢するものがありません</string>
-    <string name="pomodoro_intro_willpower_description">集中している間、選んだアプリはそもそも開きません。</string>
-    <string name="pomodoro_intro_break_title">休憩がそのまま流れません</string>
-    <string name="pomodoro_intro_break_description">休憩中も止めるので「5分だけ」が1時間になりません。</string>
+    <string name="pomodoro_intro_subtitle">我慢に使っていた力を、やることに使ってください。</string>
+    <string name="pomodoro_intro_willpower_title">選んだアプリが開きません</string>
+    <string name="pomodoro_intro_willpower_description">集中している間はタップしても開きません。</string>
+    <string name="pomodoro_intro_break_title">休憩が休憩のまま終わります</string>
+    <string name="pomodoro_intro_break_description">休憩中も止まっているので「5分だけ」が1時間になりません。</string>
     <string name="pomodoro_intro_start_title">はじめやすい</string>
     <string name="pomodoro_intro_start_description">終われば自動で解除され、途中でやめることもできます。</string>
     <string name="pomodoro_intro_cta">今日ひとつ集中してみる</string>

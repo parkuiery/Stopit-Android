@@ -602,7 +602,6 @@
     <string name="notification_pomodoro_progress">%1$s left · focus %2$d of %3$d</string>
     <string name="cd_pomodoro_open">Start a focus session</string>
     <string name="pomodoro_setup_title">Start a focus session</string>
-    <string name="pomodoro_setup_description">Focus and breaks take turns. Your chosen apps stay blocked until the session ends.</string>
     <string name="pomodoro_setup_cycle_label">Cycle length</string>
     <string name="pomodoro_preset_25_title">Focus 25 min · break 5 min</string>
     <string name="pomodoro_preset_25_description">After the 4th focus you get 15 minutes</string>
@@ -638,7 +637,7 @@
     <string name="pomodoro_block_title">This is focus time</string>
     <string name="pomodoro_block_description">Focus %1$d has %2$s left. It opens on its own when the time is up.</string>
     <string name="pomodoro_end_confirm_message_none">Nothing is lost — you can start again whenever you want.</string>
-    <string name="pomodoro_home_active_message">A focus session is running, so your selected apps stay blocked.</string>
+    <string name="pomodoro_home_active_message">A focus session is running, so your chosen apps stay blocked.</string>
     <string name="pomodoro_preset_custom_title">Set it yourself</string>
     <string name="pomodoro_preset_custom_description">Choose your own focus and break lengths</string>
     <string name="pomodoro_custom_focus_label">Focus</string>
@@ -647,7 +646,7 @@
     <string name="pomodoro_custom_minutes_value">%1$d min</string>
     <string name="pomodoro_setup_total_summary_hours">%1$d focus rounds · blocked for %2$dh %3$dm in total</string>
     <string name="pomodoro_setup_total_summary_minutes">%1$d focus rounds · blocked for %2$d min in total</string>
-    <string name="pomodoro_setup_no_apps">Pick the apps to block first — a session needs something to protect.</string>
+    <string name="pomodoro_setup_no_apps">Pick the apps to block first — a session needs something to hold.</string>
     <string name="pomodoro_setup_choose_apps">Pick apps to block</string>
     <string name="pomodoro_ended_title">Session ended</string>
     <string name="pomodoro_sheet_segment">Cycle</string>
@@ -666,13 +665,13 @@
     <string name="pomodoro_setup_customize">Change settings</string>
     <string name="pomodoro_settings_title">Session settings</string>
     <string name="pomodoro_settings_done">Done</string>
-    <string name="pomodoro_intro_title">You don’t resist. It just closes.</string>
+    <string name="pomodoro_intro_title">You don’t have to resist</string>
     <string name="pomodoro_intro_eyebrow">When your hand reaches for the phone</string>
-    <string name="pomodoro_intro_subtitle">Spend your willpower on the work, not on resisting your phone.</string>
-    <string name="pomodoro_intro_willpower_title">Nothing to resist</string>
-    <string name="pomodoro_intro_willpower_description">While you focus, the apps you picked don’t open at all.</string>
-    <string name="pomodoro_intro_break_title">Breaks that don’t swallow the hour</string>
-    <string name="pomodoro_intro_break_description">Blocked through breaks, so ‘five more minutes’ never becomes an hour.</string>
+    <string name="pomodoro_intro_subtitle">Put the effort into the work instead of into resisting.</string>
+    <string name="pomodoro_intro_willpower_title">The app simply won’t open</string>
+    <string name="pomodoro_intro_willpower_description">While you focus, tapping it does nothing.</string>
+    <string name="pomodoro_intro_break_title">Breaks stay breaks</string>
+    <string name="pomodoro_intro_break_description">Still blocked while you rest, so ‘five minutes’ never becomes an hour.</string>
     <string name="pomodoro_intro_start_title">Easy to begin</string>
     <string name="pomodoro_intro_start_description">It unlocks by itself at the end, and you can stop early.</string>
     <string name="pomodoro_intro_cta">Focus once today</string>
