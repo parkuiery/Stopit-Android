@@ -624,7 +624,7 @@
     <string name="pomodoro_end_session">End session</string>
     <string name="pomodoro_end_confirm_title">End this session?</string>
     <string name="pomodoro_end_confirm_message">The %1$d focus rounds you finished stay in today\'s record.</string>
-    <string name="pomodoro_end_confirm_continue">Keep going</string>
+    <string name="pomodoro_end_confirm_continue">Continue</string>
     <string name="pomodoro_end_confirm_end">End it</string>
     <string name="pomodoro_complete_title">Session finished</string>
     <string name="pomodoro_complete_subtitle">It is in today\'s record</string>
@@ -657,7 +657,7 @@
     <string name="pomodoro_sheet_summary_hours">Focus %1$d min · %2$dh %3$dm in total</string>
     <string name="pomodoro_sheet_summary_minutes">Focus %1$d min · %2$d min in total</string>
     <string name="pomodoro_sheet_change">Change</string>
-    <string name="pomodoro_block_during_breaks_title">Keep blocking during breaks</string>
+    <string name="pomodoro_block_during_breaks_title">Block during breaks too</string>
     <string name="pomodoro_block_during_breaks_description">Off means your apps open during breaks and lock again when focus resumes.</string>
     <string name="pomodoro_custom_cycles_label">Repeat</string>
     <string name="pomodoro_custom_cycles_value">%1$d times</string>
