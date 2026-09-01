@@ -624,7 +624,7 @@
     <string name="pomodoro_settings_title">Réglages de la session</string>
     <string name="pomodoro_settings_done">Terminé</string>
     <string name="pomodoro_intro_title">Pas de lutte. Ça reste fermé.</string>
-    <string name="pomodoro_intro_eyebrow">Session de concentration</string>
+    <string name="pomodoro_intro_eyebrow">Quand la main file vers le téléphone</string>
     <string name="pomodoro_intro_subtitle">Gardez votre énergie pour le travail, pas pour résister au téléphone.</string>
     <string name="pomodoro_intro_willpower_title">Rien à quoi résister</string>
     <string name="pomodoro_intro_willpower_description">Pendant la concentration, les applis choisies ne s’ouvrent pas.</string>

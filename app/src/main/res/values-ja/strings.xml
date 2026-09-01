@@ -622,7 +622,7 @@
     <string name="pomodoro_settings_title">セッション設定</string>
     <string name="pomodoro_settings_done">完了</string>
     <string name="pomodoro_intro_title">我慢しなくても集中できる</string>
-    <string name="pomodoro_intro_eyebrow">集中セッション</string>
+    <string name="pomodoro_intro_eyebrow">座った瞬間スマホに手が伸びるとき</string>
     <string name="pomodoro_intro_subtitle">スマホを我慢する力を、やることのほうに使ってください。</string>
     <string name="pomodoro_intro_willpower_title">我慢するものがありません</string>
     <string name="pomodoro_intro_willpower_description">集中している間、選んだアプリはそもそも開きません。</string>

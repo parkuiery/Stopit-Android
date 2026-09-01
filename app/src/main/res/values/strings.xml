@@ -667,7 +667,7 @@
     <string name="pomodoro_settings_title">Session settings</string>
     <string name="pomodoro_settings_done">Done</string>
     <string name="pomodoro_intro_title">You don’t resist. It just closes.</string>
-    <string name="pomodoro_intro_eyebrow">Focus session</string>
+    <string name="pomodoro_intro_eyebrow">When your hand reaches for the phone</string>
     <string name="pomodoro_intro_subtitle">Spend your willpower on the work, not on resisting your phone.</string>
     <string name="pomodoro_intro_willpower_title">Nothing to resist</string>
     <string name="pomodoro_intro_willpower_description">While you focus, the apps you picked don’t open at all.</string>

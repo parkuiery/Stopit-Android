@@ -624,7 +624,7 @@
     <string name="pomodoro_settings_title">Definições da sessão</string>
     <string name="pomodoro_settings_done">Concluído</string>
     <string name="pomodoro_intro_title">Sem resistir. Simplesmente não abre.</string>
-    <string name="pomodoro_intro_eyebrow">Sessão de concentração</string>
+    <string name="pomodoro_intro_eyebrow">Quando a mão vai sozinha para o telemóvel</string>
     <string name="pomodoro_intro_subtitle">Gaste a sua força de vontade no trabalho, não a resistir ao telemóvel.</string>
     <string name="pomodoro_intro_willpower_title">Nada a que resistir</string>
     <string name="pomodoro_intro_willpower_description">Enquanto se concentra, as apps escolhidas não abrem.</string>

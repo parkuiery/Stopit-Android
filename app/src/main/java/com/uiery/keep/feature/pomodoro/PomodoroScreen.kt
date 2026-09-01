@@ -167,7 +167,7 @@ internal fun PomodoroScreen(
                 title = {
                     // 진행·완료 화면은 본문이 이미 상태를 크게 말한다. 제목을 또 얹으면 같은
                     // 문장이 두 줄 겹치므로 시작·설정 화면에서만 제목을 쓴다.
-                    if (!uiState.isSessionRunning && !uiState.isSessionFinished && !showIntro) {
+                    if (!uiState.isSessionRunning && !uiState.isSessionFinished) {
                         Text(
                             text = stringResource(
                                 if (showSettings) {
@@ -444,11 +444,15 @@ private fun PomodoroIntroContent(cycle: PomodoroCycle, onNext: () -> Unit) {
                     iterations = LottieConstants.IterateForever,
                 )
                 Spacer(modifier = Modifier.height(6.dp))
+                // 약속을 꺼내기 전에 **읽는 사람이 겪는 순간**을 한 줄 놓는다. "이거 내 얘기네"가
+                // 되면 다음 줄을 읽는다. 길게 늘이지는 않는다 — 차단 앱을 이미 깔고 메뉴에서
+                // 이 기능을 눌러 들어온 사람에게 문제를 설명하는 건 아는 것을 되풀이하는 일이다.
                 Text(
                     text = stringResource(R.string.pomodoro_intro_eyebrow),
                     color = KeepTheme.colors.surfaceVariant,
                     fontWeight = FontWeight.Bold,
                     fontSize = 13.sp,
+                    textAlign = TextAlign.Center,
                 )
                 Spacer(modifier = Modifier.height(10.dp))
                 // 크기를 로케일 자원에서 읽는다. CJK 는 같은 문장이 절반 길이로 끝나서 크게

@@ -622,7 +622,7 @@
     <string name="pomodoro_settings_title">会话设置</string>
     <string name="pomodoro_settings_done">完成</string>
     <string name="pomodoro_intro_title">不用忍，它根本打不开</string>
-    <string name="pomodoro_intro_eyebrow">专注会话</string>
+    <string name="pomodoro_intro_eyebrow">刚坐下手就伸向手机时</string>
     <string name="pomodoro_intro_subtitle">把意志力用在要做的事上，而不是用来忍住不看手机。</string>
     <string name="pomodoro_intro_willpower_title">没什么需要忍的</string>
     <string name="pomodoro_intro_willpower_description">专注期间，你选的应用根本打不开。</string>

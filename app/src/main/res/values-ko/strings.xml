@@ -666,7 +666,7 @@
     <string name="pomodoro_settings_title">세션 설정</string>
     <string name="pomodoro_settings_done">완료</string>
     <string name="pomodoro_intro_title">참지 않아도 집중된다</string>
-    <string name="pomodoro_intro_eyebrow">집중 세션</string>
+    <string name="pomodoro_intro_eyebrow">앉자마자 손이 폰으로 갈 때</string>
     <string name="pomodoro_intro_subtitle">폰을 참는 데 힘을 쓰지 말고, 하려던 일에 쓰세요.</string>
     <string name="pomodoro_intro_willpower_title">참을 일이 없어요</string>
     <string name="pomodoro_intro_willpower_description">집중하는 동안 고른 앱이 아예 열리지 않아요.</string>
