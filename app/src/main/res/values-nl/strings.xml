@@ -552,7 +552,7 @@
     <string name="sensitive_block_reason_settings">Je kunt de apparaatinstellingen niet wijzigen</string>
     <string name="emergency_unlock_websites_stay_blocked">Noodontgrendeling opent alleen apps. Websites blijven geblokkeerd tot deze vergrendeling eindigt.</string>
     <string name="notification_channel_pomodoro_name">Focussessie</string>
-    <string name="notification_channel_pomodoro_description">Toont de huidige fase en resterende tijd tijdens een focussessie.</string>
+    <string name="notification_channel_pomodoro_description">Toont de huidige fase en resterende tijd van de sessie.</string>
     <string name="notification_pomodoro_focus_title">Aan het focussen</string>
     <string name="notification_pomodoro_short_break_title">Even pauze</string>
     <string name="notification_pomodoro_long_break_title">Lange pauze</string>
@@ -564,7 +564,7 @@
     <string name="pomodoro_preset_25_description">Na de 4e focus krijg je 15 minuten</string>
     <string name="pomodoro_preset_50_title">Focus 50 min · pauze 10 min</string>
     <string name="pomodoro_preset_50_description">Na de 4e focus krijg je 20 minuten</string>
-    <string name="pomodoro_setup_targets_title">Wat geblokkeerd blijft</string>
+    <string name="pomodoro_setup_targets_title">Te blokkeren apps</string>
     <string name="pomodoro_setup_targets_summary">%1$d apps</string>
     <string name="pomodoro_setup_start">Beginnen met focussen</string>
     <string name="pomodoro_phase_focus">Aan het focussen</string>
@@ -573,7 +573,7 @@
     <string name="pomodoro_remaining_label">over van %1$d min</string>
     <string name="pomodoro_cycle_progress">Focus %1$d van %2$d</string>
     <string name="pomodoro_next_focus">Hierna: focus %1$d</string>
-    <string name="pomodoro_break_auto_continue">Na de pauze gaat het vanzelf verder</string>
+    <string name="pomodoro_break_auto_continue">De volgende focus start vanzelf</string>
     <string name="pomodoro_today_focus_count">Je hebt vandaag %1$d keer gefocust</string>
     <string name="pomodoro_blocking_summary">%1$d apps geblokkeerd</string>
     <string name="pomodoro_break_blocking_title">Ook tijdens de pauze blijft het geblokkeerd</string>
@@ -594,7 +594,7 @@
     <string name="pomodoro_block_title">Nu is het focustijd</string>
     <string name="pomodoro_block_description">Focus %1$d heeft nog %2$s. Daarna gaat het vanzelf open.</string>
     <string name="pomodoro_end_confirm_message_none">Je verliest niets — je kunt altijd opnieuw beginnen.</string>
-    <string name="pomodoro_home_active_message">Tijdens een focussessie blijven de gekozen apps geblokkeerd.</string>
+    <string name="pomodoro_home_active_message">De gekozen apps blijven geblokkeerd tot de sessie eindigt.</string>
     <string name="pomodoro_preset_custom_title">Zelf instellen</string>
     <string name="pomodoro_preset_custom_description">Kies zelf je focus- en pauzelengtes</string>
     <string name="pomodoro_custom_focus_label">Focus</string>
@@ -603,7 +603,7 @@
     <string name="pomodoro_custom_minutes_value">%1$d min</string>
     <string name="pomodoro_setup_total_summary_hours">%1$d focusronden · in totaal %2$d u %3$d min geblokkeerd</string>
     <string name="pomodoro_setup_total_summary_minutes">%1$d focusronden · in totaal %2$d min geblokkeerd</string>
-    <string name="pomodoro_setup_no_apps">Kies eerst de apps om te blokkeren; anders kan de sessie niet starten.</string>
+    <string name="pomodoro_setup_no_apps">Kies minstens één app om te blokkeren voordat je start.</string>
     <string name="pomodoro_setup_choose_apps">Apps kiezen om te blokkeren</string>
     <string name="pomodoro_ended_title">Sessie beëindigd</string>
     <string name="pomodoro_sheet_segment">Cyclus</string>

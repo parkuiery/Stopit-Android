@@ -550,7 +550,7 @@
     <string name="sensitive_block_reason_settings">端末の設定を変更できません</string>
     <string name="emergency_unlock_websites_stay_blocked">緊急解除で開くのはアプリだけです。ウェブサイトはこのロックが終わるまでブロックされたままです。</string>
     <string name="notification_channel_pomodoro_name">集中セッション</string>
-    <string name="notification_channel_pomodoro_description">集中セッション中の現在のフェーズと残り時間を表示します。</string>
+    <string name="notification_channel_pomodoro_description">集中セッションの現在の区間と残り時間を表示します。</string>
     <string name="notification_pomodoro_focus_title">集中中</string>
     <string name="notification_pomodoro_short_break_title">休憩中</string>
     <string name="notification_pomodoro_long_break_title">長い休憩中</string>
@@ -562,16 +562,16 @@
     <string name="pomodoro_preset_25_description">4回目の集中の後は15分休みます</string>
     <string name="pomodoro_preset_50_title">集中50分・休憩10分</string>
     <string name="pomodoro_preset_50_description">4回目の集中の後は20分休みます</string>
-    <string name="pomodoro_setup_targets_title">ブロックする対象</string>
+    <string name="pomodoro_setup_targets_title">ブロックするアプリ</string>
     <string name="pomodoro_setup_targets_summary">アプリ%1$d件</string>
     <string name="pomodoro_setup_start">集中を始める</string>
     <string name="pomodoro_phase_focus">集中中</string>
     <string name="pomodoro_phase_short_break">休憩中</string>
-    <string name="pomodoro_phase_long_break">長い休憩</string>
+    <string name="pomodoro_phase_long_break">長い休憩中</string>
     <string name="pomodoro_remaining_label">%1$d分のうちの残り時間</string>
     <string name="pomodoro_cycle_progress">%1$d回目の集中・全%2$d回</string>
     <string name="pomodoro_next_focus">次は%1$d回目の集中</string>
-    <string name="pomodoro_break_auto_continue">休憩が終わると自動で続きます</string>
+    <string name="pomodoro_break_auto_continue">休憩が終わると次の集中が自動で始まります</string>
     <string name="pomodoro_today_focus_count">今日は%1$d回集中しました</string>
     <string name="pomodoro_blocking_summary">アプリ%1$d件をブロック中</string>
     <string name="pomodoro_break_blocking_title">休憩中もブロックは続いています</string>
@@ -592,7 +592,7 @@
     <string name="pomodoro_block_title">いまは集中の時間です</string>
     <string name="pomodoro_block_description">%1$d回目の集中があと%2$s残っています。終われば自動で開きます。</string>
     <string name="pomodoro_end_confirm_message_none">失うものはありません。いつでもまた始められます。</string>
-    <string name="pomodoro_home_active_message">集中セッションが動いている間は、選んだアプリが止まったままです。</string>
+    <string name="pomodoro_home_active_message">集中セッションが終わるまで、選んだアプリを止めておきます。</string>
     <string name="pomodoro_preset_custom_title">自分で設定</string>
     <string name="pomodoro_preset_custom_description">集中と休憩の長さを自分で決めます</string>
     <string name="pomodoro_custom_focus_label">集中</string>
@@ -601,7 +601,7 @@
     <string name="pomodoro_custom_minutes_value">%1$d分</string>
     <string name="pomodoro_setup_total_summary_hours">集中%1$d回・合計%2$d時間%3$d分ブロックします</string>
     <string name="pomodoro_setup_total_summary_minutes">集中%1$d回・合計%2$d分ブロックします</string>
-    <string name="pomodoro_setup_no_apps">先にブロックするアプリを選んでください。決めないとセッションを始められません。</string>
+    <string name="pomodoro_setup_no_apps">セッションを始めるには、ブロックするアプリを1つ以上選んでください。</string>
     <string name="pomodoro_setup_choose_apps">ブロックするアプリを選ぶ</string>
     <string name="pomodoro_ended_title">セッションを終えました</string>
     <string name="pomodoro_sheet_segment">サイクル</string>

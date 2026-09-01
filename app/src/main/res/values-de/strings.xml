@@ -552,7 +552,7 @@
     <string name="sensitive_block_reason_settings">Du kannst die Geräteeinstellungen nicht ändern</string>
     <string name="emergency_unlock_websites_stay_blocked">Die Notfall-Entsperrung gibt nur Apps frei. Websites bleiben bis zum Ende dieser Sperre blockiert.</string>
     <string name="notification_channel_pomodoro_name">Fokussitzung</string>
-    <string name="notification_channel_pomodoro_description">Zeigt während einer Fokussitzung die aktuelle Phase und die verbleibende Zeit an.</string>
+    <string name="notification_channel_pomodoro_description">Zeigt die aktuelle Phase und die verbleibende Zeit der Sitzung.</string>
     <string name="notification_pomodoro_focus_title">Fokus läuft</string>
     <string name="notification_pomodoro_short_break_title">Pause</string>
     <string name="notification_pomodoro_long_break_title">Lange Pause</string>
@@ -564,7 +564,7 @@
     <string name="pomodoro_preset_25_description">Nach dem 4. Fokus gibt es 15 Minuten</string>
     <string name="pomodoro_preset_50_title">Fokus 50 Min. · Pause 10 Min.</string>
     <string name="pomodoro_preset_50_description">Nach dem 4. Fokus gibt es 20 Minuten</string>
-    <string name="pomodoro_setup_targets_title">Was blockiert bleibt</string>
+    <string name="pomodoro_setup_targets_title">Zu blockierende Apps</string>
     <string name="pomodoro_setup_targets_summary">%1$d Apps</string>
     <string name="pomodoro_setup_start">Fokus starten</string>
     <string name="pomodoro_phase_focus">Fokus läuft</string>
@@ -573,7 +573,7 @@
     <string name="pomodoro_remaining_label">übrig von %1$d Min.</string>
     <string name="pomodoro_cycle_progress">Fokus %1$d von %2$d</string>
     <string name="pomodoro_next_focus">Als Nächstes: Fokus %1$d</string>
-    <string name="pomodoro_break_auto_continue">Nach der Pause geht es von selbst weiter</string>
+    <string name="pomodoro_break_auto_continue">Der nächste Fokus startet von selbst</string>
     <string name="pomodoro_today_focus_count">Du hast dich heute %1$d-mal konzentriert</string>
     <string name="pomodoro_blocking_summary">%1$d Apps werden blockiert</string>
     <string name="pomodoro_break_blocking_title">Auch in der Pause bleibt alles blockiert</string>
@@ -594,7 +594,7 @@
     <string name="pomodoro_block_title">Jetzt ist Fokuszeit</string>
     <string name="pomodoro_block_description">Fokus %1$d hat noch %2$s. Danach öffnet es sich von selbst.</string>
     <string name="pomodoro_end_confirm_message_none">Es geht nichts verloren – du kannst jederzeit neu starten.</string>
-    <string name="pomodoro_home_active_message">Während einer Fokus-Sitzung bleiben die gewählten Apps blockiert.</string>
+    <string name="pomodoro_home_active_message">Die gewählten Apps bleiben blockiert, bis die Sitzung endet.</string>
     <string name="pomodoro_preset_custom_title">Selbst festlegen</string>
     <string name="pomodoro_preset_custom_description">Bestimme Fokus- und Pausenlängen selbst</string>
     <string name="pomodoro_custom_focus_label">Fokus</string>
@@ -603,8 +603,8 @@
     <string name="pomodoro_custom_minutes_value">%1$d Min.</string>
     <string name="pomodoro_setup_total_summary_hours">%1$d Fokusrunden · insgesamt %2$d Std. %3$d Min. blockiert</string>
     <string name="pomodoro_setup_total_summary_minutes">%1$d Fokusrunden · insgesamt %2$d Min. blockiert</string>
-    <string name="pomodoro_setup_no_apps">Wähle zuerst die Apps aus – ohne sie kann keine Sitzung starten.</string>
-    <string name="pomodoro_setup_choose_apps">Apps zum Blockieren wählen</string>
+    <string name="pomodoro_setup_no_apps">Wähle mindestens eine App, bevor du eine Sitzung startest.</string>
+    <string name="pomodoro_setup_choose_apps">Apps auswählen</string>
     <string name="pomodoro_ended_title">Sitzung beendet</string>
     <string name="pomodoro_sheet_segment">Zyklus</string>
     <string name="pomodoro_sheet_description">Fokus und Pausen wechseln sich bis zum Ende der Sitzung ab. Deine Apps bleiben die ganze Zeit blockiert, auch in den Pausen.</string>
