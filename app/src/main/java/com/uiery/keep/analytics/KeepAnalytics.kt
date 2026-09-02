@@ -303,6 +303,31 @@ interface KeepAnalytics {
         goalNameType: String,
     ) = Unit
 
+    fun trackPomodoroSessionStarted(
+        preset: String,
+        entrySurface: String,
+        selectedAppCountBucket: String,
+        focusMinutesBucket: String,
+        cycleCountBucket: String,
+    ) = Unit
+
+    fun trackPomodoroFocusCompleted(
+        preset: String,
+        cycleIndexBucket: String,
+    ) = Unit
+
+    fun trackPomodoroBreakStarted(
+        preset: String,
+        breakType: String,
+    ) = Unit
+
+    fun trackPomodoroSessionEnded(
+        preset: String,
+        endReason: String,
+        completedFocusCountBucket: String,
+        elapsedMinutesBucket: String,
+    ) = Unit
+
     fun trackGoalLockEndedEarly(
         lockMode: String,
         elapsedDaysBucket: String,
@@ -452,6 +477,10 @@ object KeepAnalyticsEvent {
     const val SUPPORT_CONTACT_STARTED = "support_contact_started"
     const val SUPPORT_CONTACT_FALLBACK_USED = "support_contact_fallback_used"
     const val GOAL_LOCK_CREATE_STARTED = "goal_lock_create_started"
+    const val POMODORO_SESSION_STARTED = "pomodoro_session_started"
+    const val POMODORO_FOCUS_COMPLETED = "pomodoro_focus_completed"
+    const val POMODORO_BREAK_STARTED = "pomodoro_break_started"
+    const val POMODORO_SESSION_ENDED = "pomodoro_session_ended"
     const val GOAL_LOCK_CREATED = "goal_lock_created"
     const val GOAL_LOCK_ENDED_EARLY = "goal_lock_ended_early"
     const val GOAL_LOCK_COMPLETED = "goal_lock_completed"
@@ -523,6 +552,13 @@ object KeepAnalyticsParam {
     const val PURCHASE_AVAILABLE = "purchase_available"
     const val DURATION_SELECTION_TYPE = "duration_selection_type"
     const val ENTRY_SURFACE = "entry_surface"
+    const val PRESET = "preset"
+    const val BREAK_TYPE = "break_type"
+    const val CYCLE_INDEX_BUCKET = "cycle_index_bucket"
+    const val FOCUS_MINUTES_BUCKET = "focus_minutes_bucket"
+    const val CYCLE_COUNT_BUCKET = "cycle_count_bucket"
+    const val COMPLETED_FOCUS_COUNT_BUCKET = "completed_focus_count_bucket"
+    const val ELAPSED_MINUTES_BUCKET = "elapsed_minutes_bucket"
     const val LOCK_MODE = "lock_mode"
     const val SELECTED_APP_COUNT_BUCKET = "selected_app_count_bucket"
     const val GOAL_NAME_TYPE = "goal_name_type"
@@ -632,6 +668,7 @@ object AnalyticsSource {
     const val ONBOARDING = "onboarding"
     const val HOME = "home"
     const val HOME_TIMER = "home_timer"
+    const val HOME_POMODORO = "home_pomodoro"
     const val HOME_KEEP_SWITCH = "home_keep_switch"
     const val ROUTINE = "routine"
     const val ROUTINE_ALARM = "routine_alarm"
@@ -741,6 +778,9 @@ object AnalyticsScheduleType {
     const val TIMER = "timer"
     const val COUNTDOWN = "countdown"
     const val ROUTINE = "routine"
+
+    // 집중 세션은 사이클 전체가 하나의 예약이다. 예약 길이는 집중 하나가 아니라 총 길이다.
+    const val POMODORO = "pomodoro"
 }
 
 object AnalyticsBlockSource {
@@ -749,6 +789,10 @@ object AnalyticsBlockSource {
     const val ROUTINE = "routine"
     const val GOAL_LOCK = "goal_lock"
     const val PARENT_MODE = "parent_mode"
+
+    // 뽀모도로 세션 중 차단. `timed_lock` 에 합산하지 않는다 — 합치면 집중 세션의 성과를
+    // 기존 타이머 잠금과 분리할 수 없다.
+    const val POMODORO = "pomodoro"
 }
 
 object AnalyticsDeviceRegistrationSkipReason {

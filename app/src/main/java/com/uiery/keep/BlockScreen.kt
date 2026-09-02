@@ -48,6 +48,7 @@ import com.uiery.keep.lockscreen.LockScreenEntry
 import com.uiery.keep.domain.parentmode.ParentModeBlockReason
 import com.uiery.keep.lockscreen.LockScreenMode
 import com.uiery.keep.domain.repeatblock.RepeatBlockRoutineSuggestion
+import com.uiery.keep.util.formatMinuteSecondCountdown
 import com.uiery.keep.service.emergencyUnlockActionUiState
 import com.uiery.keep.ui.component.CountDownContent
 import com.uiery.keep.ui.component.EmergencyUnlockBottomSheetContent
@@ -90,6 +91,7 @@ fun BlockScreen(
     LaunchedEffect(lockScreenEntry) {
         viewModel.syncManualTimedLockReentry(lockScreenEntry)
         viewModel.syncParentModeBlockReason(lockScreenEntry)
+        viewModel.syncPomodoroBlockContext(lockScreenEntry.blockSource)
         viewModel.trackBlockShown(lockScreenEntry)
     }
 
@@ -285,6 +287,61 @@ internal fun BlockScreenContent(
                         fontSize = 13.sp,
                         lineHeight = 18.sp,
                     )
+                }
+                // 집중 세션이 막은 화면이다. 남은 시간과 사이클 위치를 여기서 말하지 않으면
+                // 사용자는 세션 화면으로 돌아가야만 자기가 어디쯤인지 알 수 있다.
+                uiState.pomodoroBlockContext?.let { context ->
+                    Spacer(modifier = Modifier.height(12.dp))
+                    val remaining = formatMinuteSecondCountdown(context.remainingSeconds)
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(14.dp))
+                            .background(KeepTheme.colors.onSecondary)
+                            .padding(horizontal = 14.dp, vertical = 12.dp)
+                            .testTag("block_screen_pomodoro_context"),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(4.dp),
+                    ) {
+                        Text(
+                            text = stringResource(
+                                if (context.isBreak) {
+                                    R.string.pomodoro_block_break_title
+                                } else {
+                                    R.string.pomodoro_block_title
+                                },
+                            ),
+                            color = KeepTheme.colors.onSurfaceVariant,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 15.sp,
+                        )
+                        Text(
+                            // 휴식 문구가 이 기능에서 가장 중요한 카피다. "쉬는 중인데 왜 안
+                            // 열리지"라는 첫 반응에 대한 답이 여기 있어야 한다.
+                            text = if (context.isBreak) {
+                                stringResource(R.string.pomodoro_block_break_description, remaining)
+                            } else {
+                                stringResource(
+                                    R.string.pomodoro_block_description,
+                                    context.cycleIndex,
+                                    remaining,
+                                )
+                            },
+                            textAlign = TextAlign.Center,
+                            color = KeepTheme.colors.surfaceVariant,
+                            fontSize = 13.sp,
+                            lineHeight = 18.sp,
+                        )
+                        Text(
+                            text = stringResource(
+                                R.string.pomodoro_cycle_progress,
+                                context.cycleIndex,
+                                context.cyclesPerSession,
+                            ),
+                            color = KeepTheme.colors.surface,
+                            fontSize = 12.sp,
+                        )
+                    }
                 }
                 uiState.timedLockDeadline?.let { deadline ->
                     Spacer(modifier = Modifier.height(20.dp))

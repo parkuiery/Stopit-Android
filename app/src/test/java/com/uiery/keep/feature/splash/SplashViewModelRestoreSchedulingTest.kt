@@ -74,7 +74,8 @@ class SplashViewModelRestoreSchedulingTest {
             blockingStateStore = BlockingStateStore(dataStore),
             firstPromiseDraftStore = FirstPromiseDraftStore(dataStore),
             analytics = analytics,
-            routineRestoreAftercare = RoutineRestoreAftercare(
+            pomodoroBlockContextSource = { null },
+                routineRestoreAftercare = RoutineRestoreAftercare(
                 routineRepository = routineRepository,
                 dataStore = dataStore,
                 exactAlarmOrchestrator = RoutineExactAlarmOrchestrator(scheduler),
@@ -131,7 +132,8 @@ class SplashViewModelRestoreSchedulingTest {
             blockingStateStore = BlockingStateStore(dataStore),
             firstPromiseDraftStore = FirstPromiseDraftStore(dataStore),
             analytics = analytics,
-            routineRestoreAftercare = RoutineRestoreAftercare(
+            pomodoroBlockContextSource = { null },
+                routineRestoreAftercare = RoutineRestoreAftercare(
                 routineRepository = RoomRoutineRepository(routineDao),
                 dataStore = dataStore,
                 exactAlarmOrchestrator = RoutineExactAlarmOrchestrator(scheduler),

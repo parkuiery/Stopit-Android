@@ -76,4 +76,34 @@ object PreferencesKey {
     val FIRST_PROMISE_PRACTICE_DECISION = stringPreferencesKey("first_promise_practice_decision")
     val FIRST_PROMISE_CREATION_BARRIER_DRAFT_IDS =
         stringSetPreferencesKey("first_promise_creation_barrier_draft_ids")
+
+    // 뽀모도로 세션. deadline 은 `LOCK_TIME` 과 같은 이유로 ISO-8601 `Instant` 문자열이다 —
+    // timezone 이 바뀌어도 같은 실제 시각에 만료되어야 하고, 앱이 죽어 있던 동안 지나간 구간을
+    // 저장된 값만으로 따라잡을 수 있어야 한다.
+    val POMODORO_PRESET = stringPreferencesKey("pomodoro_preset")
+    // 길이는 프리셋 key 가 아니라 분 값으로 남긴다. 커스텀 길이는 표에 없고, 프리셋
+    // 정의가 바뀌어도 이미 돌고 있던 세션의 남은 시간이 소급해 달라지면 안 된다.
+    val POMODORO_FOCUS_MINUTES = intPreferencesKey("pomodoro_focus_minutes")
+    val POMODORO_SHORT_BREAK_MINUTES = intPreferencesKey("pomodoro_short_break_minutes")
+    val POMODORO_LONG_BREAK_MINUTES = intPreferencesKey("pomodoro_long_break_minutes")
+    val POMODORO_CYCLES = intPreferencesKey("pomodoro_cycles")
+    val POMODORO_STARTED_AT = stringPreferencesKey("pomodoro_started_at")
+    val POMODORO_PHASE = stringPreferencesKey("pomodoro_phase")
+    val POMODORO_CYCLE_INDEX = intPreferencesKey("pomodoro_cycle_index")
+    val POMODORO_PHASE_DEADLINE = stringPreferencesKey("pomodoro_phase_deadline")
+    val POMODORO_COMPLETED_FOCUS_COUNT = intPreferencesKey("pomodoro_completed_focus_count")
+    val POMODORO_STATUS = stringPreferencesKey("pomodoro_status")
+    // "오늘 N번 집중했어요"는 세션 하나가 아니라 하루를 센다. 날짜가 바뀌면 0부터 다시 센다.
+    val POMODORO_TODAY_DATE = stringPreferencesKey("pomodoro_today_date")
+    val POMODORO_TODAY_FOCUS_COUNT = intPreferencesKey("pomodoro_today_focus_count")
+    // 마지막으로 고른 사이클. 다시 쓸 때 고르는 과정을 통째로 건너뛰기 위한 값이라
+    // 진행 중 세션과 별개로 남는다. 세션이 끝나도 지우지 않는다.
+    // 휴식 중에도 막을지. 뽀모도로 카테고리 기본은 "휴식엔 풀림"이지만, 이 앱을 고른 이유가
+    // 차단이므로 기본값은 계속 막는 쪽이다. `docs/POMODORO_FOCUS_MVP.md` 참고.
+    val POMODORO_BLOCK_DURING_BREAKS = booleanPreferencesKey("pomodoro_block_during_breaks")
+    val POMODORO_LAST_PRESET = stringPreferencesKey("pomodoro_last_preset")
+    val POMODORO_LAST_FOCUS_MINUTES = intPreferencesKey("pomodoro_last_focus_minutes")
+    val POMODORO_LAST_SHORT_BREAK_MINUTES = intPreferencesKey("pomodoro_last_short_break_minutes")
+    val POMODORO_LAST_LONG_BREAK_MINUTES = intPreferencesKey("pomodoro_last_long_break_minutes")
+    val POMODORO_LAST_CYCLES = intPreferencesKey("pomodoro_last_cycles")
 }

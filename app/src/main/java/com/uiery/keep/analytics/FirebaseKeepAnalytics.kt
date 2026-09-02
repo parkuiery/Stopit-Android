@@ -659,6 +659,68 @@ class FirebaseKeepAnalytics
             )
         }
 
+        override fun trackPomodoroSessionStarted(
+            preset: String,
+            entrySurface: String,
+            selectedAppCountBucket: String,
+            focusMinutesBucket: String,
+            cycleCountBucket: String,
+        ) {
+            backend.logEvent(
+                name = KeepAnalyticsEvent.POMODORO_SESSION_STARTED,
+                params = mapOf(
+                    KeepAnalyticsParam.PRESET to preset,
+                    KeepAnalyticsParam.ENTRY_SURFACE to entrySurface,
+                    KeepAnalyticsParam.SELECTED_APP_COUNT_BUCKET to selectedAppCountBucket,
+                    KeepAnalyticsParam.FOCUS_MINUTES_BUCKET to focusMinutesBucket,
+                    KeepAnalyticsParam.CYCLE_COUNT_BUCKET to cycleCountBucket,
+                ),
+            )
+        }
+
+        override fun trackPomodoroFocusCompleted(
+            preset: String,
+            cycleIndexBucket: String,
+        ) {
+            backend.logEvent(
+                name = KeepAnalyticsEvent.POMODORO_FOCUS_COMPLETED,
+                params = mapOf(
+                    KeepAnalyticsParam.PRESET to preset,
+                    KeepAnalyticsParam.CYCLE_INDEX_BUCKET to cycleIndexBucket,
+                ),
+            )
+        }
+
+        override fun trackPomodoroBreakStarted(
+            preset: String,
+            breakType: String,
+        ) {
+            backend.logEvent(
+                name = KeepAnalyticsEvent.POMODORO_BREAK_STARTED,
+                params = mapOf(
+                    KeepAnalyticsParam.PRESET to preset,
+                    KeepAnalyticsParam.BREAK_TYPE to breakType,
+                ),
+            )
+        }
+
+        override fun trackPomodoroSessionEnded(
+            preset: String,
+            endReason: String,
+            completedFocusCountBucket: String,
+            elapsedMinutesBucket: String,
+        ) {
+            backend.logEvent(
+                name = KeepAnalyticsEvent.POMODORO_SESSION_ENDED,
+                params = mapOf(
+                    KeepAnalyticsParam.PRESET to preset,
+                    KeepAnalyticsParam.END_REASON to endReason,
+                    KeepAnalyticsParam.COMPLETED_FOCUS_COUNT_BUCKET to completedFocusCountBucket,
+                    KeepAnalyticsParam.ELAPSED_MINUTES_BUCKET to elapsedMinutesBucket,
+                ),
+            )
+        }
+
         override fun trackParentModeDurationSelected(durationMinutesBucket: String) {
             backend.logEvent(
                 name = KeepAnalyticsEvent.PARENT_MODE_DURATION_SELECTED,

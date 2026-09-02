@@ -121,6 +121,22 @@
                 android:value="Local DNS filtering blocks user-selected websites while a StopIt lock is active." />
         </service>
 
+        <!--
+            The focus session must keep running with the screen off and the app in the background:
+            that is the whole point of a pomodoro cycle. The service also carries the ongoing
+            notification that tells the user which phase they are in.
+
+            Keep the specialUse subtype string in sync with the Play Console declaration.
+        -->
+        <service
+            android:name=".service.PomodoroSessionService"
+            android:exported="false"
+            android:foregroundServiceType="specialUse">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="Runs the user-started focus/break cycle and shows its remaining time while StopIt keeps the selected apps blocked." />
+        </service>
+
         <receiver
             android:name=".receiver.RoutineAlarmReceiver"
             android:exported="false" />

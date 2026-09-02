@@ -11,12 +11,14 @@ import com.uiery.keep.datastore.ManualLockTimePolicy
 import com.uiery.keep.data.routine.RoutineRestoreAftercare
 import com.uiery.keep.domain.firstpromise.FirstPromisePhase
 import com.uiery.keep.domain.firstpromise.OnboardingVariant
+import com.uiery.keep.domain.pomodoro.PomodoroBlockContextSource
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.delay
 
 import org.orbitmvi.orbit.Container
 import org.orbitmvi.orbit.ContainerHost
 import org.orbitmvi.orbit.viewmodel.container
+import java.time.Instant
 import java.time.LocalDateTime
 import javax.inject.Inject
 import kotlin.time.Duration.Companion.seconds
@@ -29,6 +31,7 @@ class SplashViewModel
         private val firstPromiseDraftStore: FirstPromiseDraftStore,
         private val analytics: KeepAnalytics,
         private val routineRestoreAftercare: RoutineRestoreAftercare,
+        private val pomodoroBlockContextSource: PomodoroBlockContextSource,
     ) : ViewModel(),
         ContainerHost<SplashUiState, SplashSideEffect> {
         override val container: Container<SplashUiState, SplashSideEffect> = container(SplashUiState())
@@ -55,6 +58,13 @@ class SplashViewModel
             if (!hasRestoredRoomData && isNew) {
                 trackFirstOpenIfNeeded()
                 return SplashSideEffect.MoveToOnboarding
+            }
+
+            // 집중 세션은 잠금 관점에서 타이머 잠금 하나이므로 `LOCK_TIME` 이 서 있다. 그것만 보고
+            // 잠금 화면으로 보내면 사용자는 페이즈도 사이클도 없는 화면에 갇히고, 세션을 끝낼
+            // 길도 사라진다. 세션이 살아 있으면 세션 화면이 그 자리다.
+            if (pomodoroBlockContextSource.blockContext(Instant.now()) != null) {
+                return SplashSideEffect.MoveToPomodoro
             }
 
             val lockTime = getLockTime()
@@ -101,4 +111,7 @@ sealed class SplashSideEffect {
         val lockTime: String?,
         val isRoutine: Boolean,
     ) : SplashSideEffect()
+
+    /** 집중 세션이 도는 중. 잠금 화면이 아니라 세션 화면이 사용자가 있어야 할 자리다. */
+    data object MoveToPomodoro : SplashSideEffect()
 }

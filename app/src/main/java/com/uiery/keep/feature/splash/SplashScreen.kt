@@ -22,6 +22,7 @@ fun SplashScreen(
     modifier: Modifier = Modifier,
     viewModel: SplashViewModel = hiltViewModel(),
     onNavigateHome: () -> Unit,
+    onNavigatePomodoro: () -> Unit,
     onNavigateOnboarding: () -> Unit,
     onNavigateLock: (lockTime: String?, Boolean) -> Unit,
 ) {
@@ -31,6 +32,7 @@ fun SplashScreen(
                 is SplashSideEffect.MoveToHome -> onNavigateHome()
                 is SplashSideEffect.MoveToOnboarding -> onNavigateOnboarding()
                 is SplashSideEffect.MoveToLock -> onNavigateLock(effect.lockTime, effect.isRoutine)
+                is SplashSideEffect.MoveToPomodoro -> onNavigatePomodoro()
             }
         }
     }

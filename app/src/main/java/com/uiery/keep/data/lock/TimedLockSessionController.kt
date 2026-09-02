@@ -21,6 +21,15 @@ import kotlinx.coroutines.sync.withLock
 sealed interface TimedLockStartOrigin {
     data class Home(val scheduleType: TimedLockHomeScheduleType) : TimedLockStartOrigin
     data object FirstPromisePractice : TimedLockStartOrigin
+
+    /**
+     * 집중 세션.
+     *
+     * 휴식 중에도 차단을 유지하기로 했으므로 뽀모도로 세션은 잠금 관점에서 **연속된 타이머 잠금
+     * 하나**다. 페이즈는 그 위에 얹힌 표현·알림 레이어다. 그래서 별도 세션 종류를 만들지 않고
+     * 여기로 들어온다 — 잠금 기록, `lock_session_*`, 첫 잠금 전달이 전부 따라온다.
+     */
+    data object Pomodoro : TimedLockStartOrigin
 }
 
 enum class TimedLockHomeScheduleType(val analyticsValue: String) {
@@ -34,6 +43,7 @@ sealed interface TimedLockStartResult {
         val firstLockConfigured: Boolean,
         internal val ownership: TimedLockSessionOwnership? = null,
         internal val analyticsScheduleType: String? = null,
+        internal val analyticsSource: String = AnalyticsSource.HOME_TIMER,
         internal val analyticsDurationMinutes: Long = 0L,
         internal val firstLockSelectedAppCount: Int? = null,
     ) : TimedLockStartResult
@@ -41,6 +51,16 @@ sealed interface TimedLockStartResult {
     data object EmptyApps : TimedLockStartResult
     data object InvalidDuration : TimedLockStartResult
     data object AlreadyActive : TimedLockStartResult
+}
+
+/**
+ * 이 origin 이 활성화 퍼널의 첫 잠금으로 셀 수 있는지, 센다면 어떤 source 인지.
+ * 첫 약속 연습은 실제 잠금 설정이 아니므로 세지 않는다.
+ */
+private fun TimedLockStartOrigin.firstLockSource(): String? = when (this) {
+    is TimedLockStartOrigin.Home -> AnalyticsSource.HOME_TIMER
+    TimedLockStartOrigin.Pomodoro -> AnalyticsSource.HOME_POMODORO
+    TimedLockStartOrigin.FirstPromisePractice -> null
 }
 
 @Singleton
@@ -87,10 +107,14 @@ class TimedLockSessionController @Inject constructor(
         val scheduleType = when (origin) {
             is TimedLockStartOrigin.Home -> origin.scheduleType.analyticsValue
             TimedLockStartOrigin.FirstPromisePractice -> AnalyticsScheduleType.COUNTDOWN
+            TimedLockStartOrigin.Pomodoro -> AnalyticsScheduleType.POMODORO
         }
-        val firstLockConfigured = origin is TimedLockStartOrigin.Home &&
+        // 집중 세션으로 처음 잠근 사용자도 첫 잠금을 설정한 것이다. 활성화 퍼널에서 빠지면
+        // 뽀모도로로 유입된 사용자가 통째로 안 보인다.
+        val firstLockSource = origin.firstLockSource()
+        val firstLockConfigured = firstLockSource != null &&
             firstLockDelivery.reserveIfNeeded(
-                source = AnalyticsSource.HOME_TIMER,
+                source = firstLockSource,
                 selectedAppCount = blockablePackages.size,
             )
         TimedLockStartResult.Started(
@@ -98,6 +122,7 @@ class TimedLockSessionController @Inject constructor(
             firstLockConfigured = firstLockConfigured,
             ownership = ownership,
             analyticsScheduleType = scheduleType,
+            analyticsSource = firstLockSource ?: AnalyticsSource.HOME_TIMER,
             analyticsDurationMinutes = durationMinutes,
             // Must match the count reserved above, or rollback cannot release the pending delivery.
             firstLockSelectedAppCount = blockablePackages.size.takeIf { firstLockConfigured },
@@ -113,7 +138,7 @@ class TimedLockSessionController @Inject constructor(
             analytics.trackLockScheduled(scheduleType, started.analyticsDurationMinutes)
         }
         trackBestEffort {
-            analytics.trackLockSessionStart(source = AnalyticsSource.HOME_TIMER, isRoutine = false)
+            analytics.trackLockSessionStart(source = started.analyticsSource, isRoutine = false)
         }
     }
 
@@ -126,7 +151,7 @@ class TimedLockSessionController @Inject constructor(
         if (rolledBack) {
             started.firstLockSelectedAppCount?.let { selectedAppCount ->
                 firstLockDelivery.releasePending(
-                    source = AnalyticsSource.HOME_TIMER,
+                    source = started.analyticsSource,
                     selectedAppCount = selectedAppCount,
                 )
             }

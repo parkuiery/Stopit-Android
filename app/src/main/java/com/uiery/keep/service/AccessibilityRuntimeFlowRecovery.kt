@@ -11,6 +11,7 @@ internal enum class AccessibilityRuntimeFlowSource(
     Routines("routines"),
     GoalLocks("goal_locks"),
     ParentMode("parent_mode"),
+    Pomodoro("pomodoro"),
 }
 
 internal data class AccessibilityRuntimeFlowRecoveryEvent(
