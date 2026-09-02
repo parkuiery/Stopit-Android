@@ -148,16 +148,23 @@ internal fun PomodoroScreen(
     //
     // 시트에서 이미 시작을 누르고 들어온 경로(autoStart)는 소개를 지나친다. 재사용 2탭 계약을
     // 소개 화면으로 깨면 안 된다.
-    var showIntro by rememberSaveable { mutableStateOf(!autoStart) }
+    var introDismissed by rememberSaveable {
+        mutableStateOf(PomodoroStepPolicy.introDismissedInitially(autoStart))
+    }
 
     // 고르는 일과 시작하는 일을 한 화면에 같이 두면, 시작하러 들어온 사람이 매번 선택지를
     // 지나가게 된다. 설정은 제 화면을 갖고, 시작 화면에는 결과와 버튼만 남는다.
-    var showSettings by rememberSaveable { mutableStateOf(false) }
-    // 세션이 시작되면 설정 화면은 의미가 없다. 시스템 back 이 아니라 상태로 닫는다.
-    if (showSettings && (uiState.isSessionRunning || uiState.isSessionFinished)) {
-        showSettings = false
-    }
-    BackHandler(enabled = showSettings) { showSettings = false }
+    var settingsRequested by rememberSaveable { mutableStateOf(false) }
+
+    // 세션 상태가 화면 안의 선택보다 먼저다. 세션이 시작되면 설정·소개는 의미가 없다.
+    val step = PomodoroStepPolicy.resolve(
+        isLoading = uiState.isLoading,
+        isSessionRunning = uiState.isSessionRunning,
+        isSessionFinished = uiState.isSessionFinished,
+        introDismissed = introDismissed,
+        settingsRequested = settingsRequested,
+    )
+    BackHandler(enabled = PomodoroStepPolicy.handlesSystemBack(step)) { settingsRequested = false }
 
     val navigateBackLabel = stringResource(R.string.cd_navigate_back)
     Scaffold(
@@ -167,10 +174,10 @@ internal fun PomodoroScreen(
                 title = {
                     // 진행·완료 화면은 본문이 이미 상태를 크게 말한다. 제목을 또 얹으면 같은
                     // 문장이 두 줄 겹치므로 시작·설정 화면에서만 제목을 쓴다.
-                    if (!uiState.isSessionRunning && !uiState.isSessionFinished) {
+                    if (step != PomodoroStep.Running && step != PomodoroStep.Complete) {
                         Text(
                             text = stringResource(
-                                if (showSettings) {
+                                if (step == PomodoroStep.Settings) {
                                     R.string.pomodoro_settings_title
                                 } else {
                                     R.string.pomodoro_setup_title
@@ -187,9 +194,9 @@ internal fun PomodoroScreen(
                         onClick = {
                             // 끝난 세션을 남겨 두고 나가면 다음 진입에서 완료 화면이 다시 뜬다.
                             // 나가는 순간 치우고, 진행 중 세션은 그대로 두고 홈으로만 돌아간다.
-                            when {
-                                showSettings -> showSettings = false
-                                uiState.isSessionFinished -> viewModel.finishAndLeave()
+                            when (step) {
+                                PomodoroStep.Settings -> settingsRequested = false
+                                PomodoroStep.Complete -> viewModel.finishAndLeave()
                                 else -> onNavigateHome()
                             }
                         },
@@ -215,22 +222,22 @@ internal fun PomodoroScreen(
             val gutter = Modifier
                 .fillMaxSize()
                 .padding(horizontal = 20.dp)
-            when {
-                uiState.isLoading -> Unit
-                uiState.isSessionFinished -> Box(gutter) { PomodoroCompleteContent(
+            when (step) {
+                PomodoroStep.Loading -> Unit
+                PomodoroStep.Complete -> Box(gutter) { PomodoroCompleteContent(
                     state = uiState,
                     onRestart = viewModel::restartSession,
                     onLeave = viewModel::finishAndLeave,
                 ) }
-                uiState.isSessionRunning -> Box(gutter) { PomodoroRunningContent(
+                PomodoroStep.Running -> Box(gutter) { PomodoroRunningContent(
                     state = uiState,
                     onEnd = viewModel::showEndConfirm,
                 ) }
-                showIntro -> PomodoroIntroContent(
+                PomodoroStep.Intro -> PomodoroIntroContent(
                     cycle = uiState.selectedCycle,
-                    onNext = { showIntro = false },
+                    onNext = { introDismissed = true },
                 )
-                showSettings -> Box(gutter) { PomodoroSettingsContent(
+                PomodoroStep.Settings -> Box(gutter) { PomodoroSettingsContent(
                     state = uiState,
                     onSelectCycle = viewModel::selectCycle,
                     onSelectCustom = viewModel::selectCustomCycle,
@@ -240,11 +247,11 @@ internal fun PomodoroScreen(
                     onChangeCustomCycles = viewModel::changeCustomCycles,
                     onToggleBlockDuringBreaks = viewModel::setBlockDuringBreaks,
                     onPickApps = onPickApps,
-                    onDone = { showSettings = false },
+                    onDone = { settingsRequested = false },
                 ) }
-                else -> Box(gutter) { PomodoroSetupContent(
+                PomodoroStep.Confirm -> Box(gutter) { PomodoroSetupContent(
                     state = uiState,
-                    onOpenSettings = { showSettings = true },
+                    onOpenSettings = { settingsRequested = true },
                     onPickApps = onPickApps,
                     onStart = { viewModel.startSession() },
                 ) }

@@ -805,11 +805,16 @@ allowlist에 추가할 때는 `docs/analytics/AMPLITUDE_EVENT_SCHEMA.md`의 `cap
 
 ### 남은 작업
 
-- **Compose instrumentation 테스트를 넓힌다.** 열 건을 넣어 화면 계약을 고정했지만
-  (`PomodoroScreenContentTest`), 3단 왕복과 `autoStart` 분기는 ViewModel 을 세워야 해서 아직
-  수동 확인으로만 덮여 있다.
-- **로케일 렌더링 잔여.** 12개 중 넷(한국어·일본어·스페인어·독일어)을 확인했다. 일본어 부제는
-  마지막 글자만 다음 줄로 넘어가는 고아 줄이 있다.
+- **Compose instrumentation 테스트.** 열 건으로 화면 계약을 고정했다
+  (`PomodoroScreenContentTest`). 3단 전환 규칙은 화면을 띄우지 않고 확인할 수 있도록
+  `PomodoroStepPolicy` 로 꺼내 JVM 테스트 9건으로 덮었다 — 세션 상태가 화면 안의 선택보다
+  먼저라는 우선순위, `autoStart` 가 소개를 지나친다는 것, 설정에서만 시스템 back 을 가로챈다는 것.
+  남은 것은 실제 탭으로 왕복하는 시나리오이고, 그것만 수동 확인으로 덮여 있다.
+- **로케일 렌더링.** 문자열 길이를 재서 최장 케이스를 골라 확인했다 — 제목이 가장 긴
+  프랑스어(31자)가 28sp 에서 두 줄로 들어가고 잘림이 없다. 나머지는 이보다 짧아 덮인다.
+  한국어·일본어·독일어·스페인어도 함께 확인했다.
+  남은 것: 프랑스어 상단 바 제목(`Démarrer une session de concentration`)이 두 줄로 감기면서
+  뒤로가기 화살표와 세로 정렬이 어긋난다. 기능 문제는 아니다.
 - **브랜치.** PR head 는 `feature/*` 여야 한다(`docs/GIT_WORKFLOW.md`). 현재 이름은
   worktree 생성 시 이름 그대로다.
 
